@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<srx xmlns="http://www.lisa.org/srx20" xmlns:okpsrx="http://okapi.sf.net/srx-extensions" version="2.0">
+<header segmentsubflows="yes" cascade="no">
+<formathandle type="start" include="no"></formathandle>
+<formathandle type="end" include="yes"></formathandle>
+<formathandle type="isolated" include="no"></formathandle>
+<okpsrx:options oneSegmentIncludesAll="no" trimLeadingWhitespaces="no" trimTrailingWhitespaces="no"></okpsrx:options>
+<okpsrx:sample language="en" useMappedRules="yes">Mr. Holmes is from the U.K. not the U.S. Is Dr. Watson from there too? Yes: both are.
+"Right?" Yes, indeed. I'm all for it! But you are not. "Yes." Here too.
+In the U.S.: more to come. Right, e.g.: There is that. (e.g.: the cat). Test!?. And here.</okpsrx:sample>
+<okpsrx:rangeRule></okpsrx:rangeRule>
+</header>
+<body>
+<languagerules>
+<languagerule languagerulename="default">
+<rule break="no">
+<beforebreak>\b(pp|e\.?\s*g|i\.?\s*e|no|[Vv]ol|[Rr]col|maj|Lt|[Ff]ig|[Ff]igs|[Vv]iz|[Vv]ols|[Aa]pprox|[Ii]ncl|Pres|Prof|[Dd]ept|min|max|[Gg]ovt|c\.?\s*f|vs)\.</beforebreak>
+<afterbreak>\s[^\p{Lu}]</afterbreak>
+</rule>
+<rule break="no">
+<beforebreak>\b(St|Gen|Hon|Dr|Mr|Ms|Mrs|Col|Maj|Brig|Sgt|Capt|Cmnd|Sen|Rev|Rep|Revd)\.</beforebreak>
+<afterbreak>\s\p{Lu}</afterbreak>
+</rule>
+<rule break="no">
+<beforebreak>([A-Z]\.){2,}</beforebreak>
+<afterbreak>\s[\p{Lu}]</afterbreak>
+</rule>
+<rule break="yes">
+<beforebreak>\w+[\p{Pe}\p{Po}"]*[\.?!]+[\p{Pe}\p{Po}"]*</beforebreak>
+<afterbreak>\s</afterbreak>
+</rule>
+</languagerule>
+</languagerules>
+<maprules>
+<languagemap languagepattern=".*" languagerulename="default"></languagemap>
+</maprules>
+</body>
+</srx>

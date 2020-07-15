@@ -1,0 +1,8 @@
+/target/
+/log/
+/.settings/
+/.classpath
+/.checkstyle
+/.project
+/.idea
+**/*.out.*
