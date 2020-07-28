@@ -306,6 +306,14 @@ class MarianNmtConnectorTest {
     assertThat(MarianNmtConnector.moveMarkupBetweenBpeFragments(
         new String[] { "a", "b", "c@@", CLOSE1, "x", "y@@", "z" }))
             .containsExactly("a", "b", "c@@", "x", CLOSE1, "y@@", "z");
+
+    assertThat(MarianNmtConnector.moveMarkupBetweenBpeFragments(
+        new String[] { "a", "b", "c@@", OPEN1, CLOSE1, "x", "y@@", "z" }))
+            .containsExactly("a", "b", OPEN1, "c@@", "x", CLOSE1, "y@@", "z");
+
+    assertThat(MarianNmtConnector.moveMarkupBetweenBpeFragments(
+        new String[] { "a", "b", "c@@", CLOSE1, OPEN1, "x", "y@@", "z" }))
+            .containsExactly("a", "b", OPEN1, "c@@", "x", CLOSE1, "y@@", "z");
   }
 
 

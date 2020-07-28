@@ -554,13 +554,15 @@ public class MarianNmtConnector extends BaseConnector {
       if (isTag(oneToken) && isBpeFragement(tokenList.get(i - 1))) {
         String removedToken = tokenList.remove(i);
         if (isBackwardTag(oneToken)) {
-          // get index of closes following token that is not a bpe fragment;
+          // get index of closest following token that is not a bpe fragment;
           // attention: The last bpe fragment has no @@ ending!
           for (int nextIndex = i; nextIndex < tokenList.size(); nextIndex++) {
-            if (isBpeFragement(tokenList.get(nextIndex))) {
+            if (isBpeFragement(tokenList.get(nextIndex))
+                || isTag(tokenList.get(nextIndex))) {
               continue;
             }
             tokenList.add(nextIndex + 1, removedToken);
+            i--;
             break;
           }
         } else {
