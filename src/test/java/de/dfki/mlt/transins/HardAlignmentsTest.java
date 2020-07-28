@@ -77,14 +77,15 @@ class HardAlignmentsTest {
 
 
   /**
-   * Test {@link HardAlignments#toString()}.
+   * Test {@link HardAlignments#toString()} and {@link HardAlignments#toStringAsProvidedByMarian()}.
    */
   @Test
   void testToString() {
 
     String rawAlignments = "1-1 2-1 3-1";
     HardAlignments algn = new HardAlignments(rawAlignments);
-    assertThat(algn.toString()).isEqualTo("1-1 2-1 3-1");
+    assertThat(algn.toStringAsProvidedByMarian()).isEqualTo("1-1 2-1 3-1");
+    assertThat(algn.toString()).isEqualTo("1-1 1-2 1-3");
   }
 
 
@@ -99,9 +100,9 @@ class HardAlignmentsTest {
     algn.shiftSourceIndexes(0);
     assertThat(algn.toString()).isEqualTo("1-1 2-2 3-3");
     algn.shiftSourceIndexes(-1);
-    assertThat(algn.toString()).isEqualTo("0-1 1-2 2-3");
+    assertThat(algn.toString()).isEqualTo("1-0 2-1 3-2");
     algn.shiftSourceIndexes(2);
-    assertThat(algn.toString()).isEqualTo("2-1 3-2 4-3");
+    assertThat(algn.toString()).isEqualTo("1-2 2-3 3-4");
   }
 
 
@@ -116,8 +117,8 @@ class HardAlignmentsTest {
     algn.shiftTargetIndexes(0);
     assertThat(algn.toString()).isEqualTo("1-1 2-2 3-3");
     algn.shiftTargetIndexes(-1);
-    assertThat(algn.toString()).isEqualTo("1-0 2-1 3-2");
+    assertThat(algn.toString()).isEqualTo("0-1 1-2 2-3");
     algn.shiftTargetIndexes(2);
-    assertThat(algn.toString()).isEqualTo("1-2 2-3 3-4");
+    assertThat(algn.toString()).isEqualTo("2-1 3-2 4-3");
   }
 }
