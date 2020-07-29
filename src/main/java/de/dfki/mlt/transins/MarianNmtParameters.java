@@ -15,7 +15,6 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   private static final String TRANSLATION_URL = "translation_url";
   private static final String PREPOST_HOST = "prepost_host";
   private static final String PREPOST_PORT = "prepost_port";
-  private static final String MARKUP_INSERTION_STRATEGY = "markup_insertion_strategy";
 
 
   /**
@@ -107,25 +106,6 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   }
 
 
-  /**
-   * @return the markup insertion strategy
-   */
-  public String getMarkupInsertionStrategy() {
-
-    return getString(MARKUP_INSERTION_STRATEGY);
-  }
-
-
-  /**
-   * @param markupInsertionStrategy
-   *          the markup insertion strategy to set
-   */
-  public void setMarkupInsertionStrategy(String markupInsertionStrategy) {
-
-    setString(MARKUP_INSERTION_STRATEGY, markupInsertionStrategy);
-  }
-
-
   @Override
   public ParametersDescription getParametersDescription() {
 
@@ -136,8 +116,6 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
         "Host where pre-/postprocessing server runs");
     desc.add(PREPOST_PORT, "Pre-/Postprocessing Port:",
         "Port of the pre-/postprocessing server");
-    desc.add(MARKUP_INSERTION_STRATEGY, "Markup Insertion Strategy:",
-        "Strategy to insert markup, either 'mtrain' or 'advanced'");
 
     return desc;
   }
@@ -151,7 +129,6 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
     desc.addTextInputPart(paramsDesc.get(TRANSLATION_URL));
     desc.addTextInputPart(paramsDesc.get(PREPOST_HOST));
     desc.addTextInputPart(paramsDesc.get(PREPOST_PORT));
-    desc.addTextInputPart(paramsDesc.get(MARKUP_INSERTION_STRATEGY));
     return desc;
   }
 }

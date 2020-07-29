@@ -53,36 +53,6 @@ class MarianNmtConnectorTest {
     Map<Integer, List<String>> index2Tags =
         (Map<Integer, List<String>>)method.invoke(null, new Object[] { sourceTokens });
 
-    assertThat(index2Tags).hasSize(4);
-    assertThat(index2Tags.get(0)).containsExactly(ISO, OPEN1);
-    assertThat(index2Tags.get(1)).containsExactly(CLOSE1);
-    assertThat(index2Tags.get(3)).containsExactly(OPEN2);
-    assertThat(index2Tags.get(5)).containsExactly(CLOSE2);
-  }
-
-
-  /**
-   * Test {@link MarianNmtConnector#createSourceTokenIndex2TagsAdvanced(String[], int)}.
-   * This method is private, access for unit test achieved via reflection.
-   */
-  @Test
-  void testCreateSourceTokenIndex2TagsAdvanced()
-      throws ReflectiveOperationException {
-
-    String source =
-        String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
-    String[] sourceTokens = source.split(" ");
-
-    // use reflection to make private method accessible
-    String methodName = "createSourceTokenIndex2TagsAdvanced";
-    Method method =
-        MarianNmtConnector.class.getDeclaredMethod(methodName, String[].class);
-    method.setAccessible(true);
-
-    @SuppressWarnings("unchecked")
-    Map<Integer, List<String>> index2Tags =
-        (Map<Integer, List<String>>)method.invoke(null, new Object[] { sourceTokens });
-
     assertThat(index2Tags).hasSize(3);
     assertThat(index2Tags.get(0)).containsExactly(ISO, OPEN1, CLOSE1);
     assertThat(index2Tags.get(3)).containsExactly(OPEN2);
@@ -92,10 +62,11 @@ class MarianNmtConnectorTest {
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertMarkupMtrain(String[], String[], SoftAlignments)}.
+   * {@link MarianNmtConnector#reinsertMarkup(String[], String[], Alignments)}
+   * with soft alignments.
    */
   @Test
-  void testReinsertMarkupMtrainStrategyWithSoftAlignments() {
+  void testReinsertMarkupWithSoftAlignments() {
 
     String source =
         String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
@@ -105,7 +76,7 @@ class MarianNmtConnectorTest {
     String target = null;
     String[] targetTokens = null;
     String rawAlignments = null;
-    SoftAlignments algn = null;
+    Alignments algn = null;
     String[] targetTokensWithMarkup = null;
 
     // first test
@@ -122,7 +93,7 @@ class MarianNmtConnectorTest {
     algn = new SoftAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkupMtrain(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
         .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2);
@@ -142,19 +113,20 @@ class MarianNmtConnectorTest {
     algn = new SoftAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkupMtrain(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
-        .containsExactly(OPEN2, "Test", "ein", CLOSE1, "ist", ISO, OPEN1, "das", ".", CLOSE2);
+        .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2);
   }
 
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertMarkupMtrain(String[], String[], HardAlignments)}.
+   * {@link MarianNmtConnector#reinsertMarkup(String[], String[], Alignments)}
+   * with hard alignments.
    */
   @Test
-  void testReinsertMarkupMtrainStrategyWithSoftHardAlignments() {
+  void testReinsertMarkupWithHardAlignments() {
 
     String source =
         String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
@@ -175,7 +147,7 @@ class MarianNmtConnectorTest {
     algn = new HardAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkupMtrain(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
 
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
@@ -191,57 +163,7 @@ class MarianNmtConnectorTest {
     algn = new HardAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkupMtrain(sourceTokens, targetTokens, algn);
-
-    assertThat(targetTokensWithMarkup)
-        .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
-        .containsExactly(OPEN2, "Test", "ein", CLOSE1, "ist", ISO, OPEN1, "das", ".", CLOSE2);
-  }
-
-
-  /**
-   * Test
-   * {@link MarianNmtConnector#reinsertMarkupAdvanced(String[], String[], HardAlignments)}.
-   */
-  @Test
-  void testReinsertMarkupAdvanced() {
-
-    String source =
-        String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
-    String[] sourceTokens = source.split(" ");
-
-    // init variables to be re-used between tests
-    String target = null;
-    String[] targetTokens = null;
-    String rawAlignments = null;
-    Alignments algn = null;
-    String[] targetTokensWithMarkup = null;
-
-    // first test
-    target = "Das ist ein Test .";
-    targetTokens = target.split(" ");
-
-    rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
-    algn = new HardAlignments(rawAlignments);
-
-    targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkupAdvanced(sourceTokens, targetTokens, algn);
-
-    assertThat(targetTokensWithMarkup)
-        .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
-        .containsExactly(
-            ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2);
-
-    // second test
-    target = "Test ein ist das .";
-    //        This is  a   Test .
-    targetTokens = target.split(" ");
-
-    rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
-    algn = new HardAlignments(rawAlignments);
-
-    targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkupAdvanced(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
 
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")

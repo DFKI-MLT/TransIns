@@ -184,19 +184,9 @@ public class MarianNmtConnector extends BaseConnector {
           logger.debug(String.format("sentence alignment:%n%s", createSentenceAlignment(
               sourceTokensWithoutMarkup, targetTokens, algn)));
 
-          String markupInsertionStrategy = this.params.getMarkupInsertionStrategy();
           String[] targetTokensWithMarkup = null;
-          if (markupInsertionStrategy.equalsIgnoreCase("mtrain")) {
-            targetTokensWithMarkup =
-                reinsertMarkupMtrain(sourceTokensWithMarkup, targetTokens, algn);
-          } else if (markupInsertionStrategy.equalsIgnoreCase("advanced")) {
-            targetTokensWithMarkup =
-                reinsertMarkupAdvanced(sourceTokensWithMarkup, targetTokens, algn);
-          } else {
-            throw new OkapiException(
-                String.format(
-                    "unsupported markup insertion strategy \"%s\"", markupInsertionStrategy));
-          }
+          targetTokensWithMarkup =
+              reinsertMarkup(sourceTokensWithMarkup, targetTokens, algn);
 
           // make sure markup is not between bpe fragments
           targetTokensWithMarkup = moveMarkupBetweenBpeFragments(targetTokensWithMarkup);
@@ -321,103 +311,8 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Re-insert markup from source based on the strategy implemented with mtrain, using alignments.
-   *
-   * @see <a
-   *      href="https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315">reinsertion.py</a>
-   * @see <a
-   *      href="http://www.cl.uzh.ch/dam/jcr:e7fb9132-4761-4af4-8f95-7e610a12a705/MA_mathiasmueller_05012017_0008.pdf">Treatment
-   *      of Markup in StatisticalMachine Translation</a>
-   *
-   * @param sourceTokensWithMarkup
-   *          list of source tokens, including the 2-character markup encoding used by
-   *          Okapi
-   * @param targetTokens
-   *          list of target tokens (without any markup)
-   * @param algn
-   *          alignment of source and target tokens
-   * @return target tokens with re-inserted markup
-   */
-  public static String[] reinsertMarkupMtrain(
-      String[] sourceTokensWithMarkup, String[] targetTokens, Alignments algn) {
-
-    List<String> targetTokensWithMarkup = new ArrayList<>();
-
-    Map<Integer, List<String>> sourceTokenIndex2tags =
-        createSourceTokenIndex2Tags(sourceTokensWithMarkup);
-
-    for (int targetTokenIndex = 0; targetTokenIndex < targetTokens.length; targetTokenIndex++) {
-
-      String targetToken = targetTokens[targetTokenIndex];
-
-      List<String> tagsToInsert = new ArrayList<>();
-
-      List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
-      for (int oneSourceTokenIndex : sourceTokenIndexes) {
-        List<String> sourceTags = sourceTokenIndex2tags.get(oneSourceTokenIndex);
-        if (sourceTags != null) {
-          tagsToInsert.addAll(sourceTags);
-          sourceTokenIndex2tags.remove(oneSourceTokenIndex);
-        }
-      }
-      targetTokensWithMarkup.addAll(tagsToInsert);
-      targetTokensWithMarkup.add(targetToken);
-    }
-
-    int lastTargetTokenIndex = targetTokens.length;
-    List<String> lastSourceTags = sourceTokenIndex2tags.get(lastTargetTokenIndex);
-    if (lastSourceTags != null) {
-      targetTokensWithMarkup.addAll(lastSourceTags);
-      sourceTokenIndex2tags.remove(lastTargetTokenIndex);
-    }
-
-    // add any remaining tags
-    if (!sourceTokenIndex2tags.isEmpty()) {
-      List<Integer> keys = new ArrayList<>(sourceTokenIndex2tags.keySet());
-      Collections.sort(keys);
-      for (Integer oneKey : keys) {
-        targetTokensWithMarkup.addAll(sourceTokenIndex2tags.get(oneKey));
-      }
-    }
-    String[] resultAsArray = new String[targetTokensWithMarkup.size()];
-    return targetTokensWithMarkup.toArray(resultAsArray);
-  }
-
-
-  /**
-   * mtrain version of creating a mapping from indexes to markup tags.
-   *
-   * @param sourceTokens
-   *          the source tokens
-   * @return the mapping
-   */
-  private static Map<Integer, List<String>> createSourceTokenIndex2Tags(
-      String[] sourceTokens) {
-
-    Map<Integer, List<String>> index2tags = new HashMap<>();
-
-    int offset = 0;
-
-    for (int i = 0; i < sourceTokens.length; i++) {
-      if (isTag(sourceTokens[i])) {
-        int currentIndex = i - offset;
-        List<String> currentTags = index2tags.get(currentIndex);
-        if (currentTags == null) {
-          currentTags = new ArrayList<>();
-          index2tags.put(currentIndex, currentTags);
-        }
-        currentTags.add(sourceTokens[i]);
-        offset = offset + 1;
-      }
-    }
-
-    return index2tags;
-  }
-
-
-  /**
-   * Advanced version to re-insert markup from source, using hard alignments. Take into account
-   * the 'direction' of a tag and special handling of isolated tags at sentence beginning.
+   * Advanced version to re-insert markup from source. Takes into account the 'direction' of
+   * a tag and special handling of isolated tags at sentence beginning.
    *
    * @param sourceTokensWithMarkup
    *          list of source tokens, including the 2-character markup encoding used by
@@ -428,13 +323,13 @@ public class MarianNmtConnector extends BaseConnector {
    *          hard alignment of source and target tokens
    * @return target tokens with re-inserted markup
    */
-  public static String[] reinsertMarkupAdvanced(
+  public static String[] reinsertMarkup(
       String[] sourceTokensWithMarkup, String[] targetTokens, Alignments algn) {
 
     List<String> targetTokensWithMarkup = new ArrayList<>();
 
     Map<Integer, List<String>> sourceTokenIndex2tags =
-        createSourceTokenIndex2TagsAdvanced(sourceTokensWithMarkup);
+        createSourceTokenIndex2Tags(sourceTokensWithMarkup);
 
     // handle special case of isolated tag at the beginning of source sentence;
     // we assume that such tags refer to the whole sentence and not a specific token and
@@ -503,19 +398,19 @@ public class MarianNmtConnector extends BaseConnector {
    * 'direction' of a tag, i.e. isolated and opening tags are assigned to the <b>next</b> token,
    * while a closing tag is assigned to the <b>previous</b> token.
    *
-   * @param sourceTokens
-   *          the source tokens
+   * @param sourceTokensWithMarkup
+   *          the source tokens with markup
    * @return the mapping
    */
-  private static Map<Integer, List<String>> createSourceTokenIndex2TagsAdvanced(
-      String[] sourceTokens) {
+  private static Map<Integer, List<String>> createSourceTokenIndex2Tags(
+      String[] sourceTokensWithMarkup) {
 
     Map<Integer, List<String>> index2tags = new HashMap<>();
 
     int offset = 0;
 
-    for (int i = 0; i < sourceTokens.length; i++) {
-      String currentToken = sourceTokens[i];
+    for (int i = 0; i < sourceTokensWithMarkup.length; i++) {
+      String currentToken = sourceTokensWithMarkup[i];
       if (isTag(currentToken)) {
         // forward token is default
         int currentIndex = i - offset;
@@ -527,7 +422,7 @@ public class MarianNmtConnector extends BaseConnector {
           currentTags = new ArrayList<>();
           index2tags.put(currentIndex, currentTags);
         }
-        currentTags.add(sourceTokens[i]);
+        currentTags.add(sourceTokensWithMarkup[i]);
         offset = offset + 1;
       }
     }
