@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +41,7 @@ class MarianNmtConnectorTest {
       throws ReflectiveOperationException {
 
     String source =
-        String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
+        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
     String[] sourceTokens = source.split(" ");
 
     // use reflection to make private method accessible
@@ -53,24 +54,108 @@ class MarianNmtConnectorTest {
     Map<Integer, List<String>> index2Tags =
         (Map<Integer, List<String>>)method.invoke(null, new Object[] { sourceTokens });
 
-    assertThat(index2Tags).hasSize(3);
+    assertThat(index2Tags).hasSize(4);
     assertThat(index2Tags.get(0)).containsExactly(ISO, OPEN1, CLOSE1);
     assertThat(index2Tags.get(3)).containsExactly(OPEN2);
     assertThat(index2Tags.get(4)).containsExactly(CLOSE2);
+    assertThat(index2Tags.get(5)).containsExactly(ISO);
+  }
+
+
+  /**
+   * Test {@link MarianNmtConnector#getTagsForSourceTokenIndex(Map, String[], int)}.
+   * This method is private, access for unit test achieved via reflection.
+   */
+  @Test
+  @SuppressWarnings("unchecked")
+  void testGetTagsForSourceTokenIndex()
+      throws ReflectiveOperationException {
+
+    String source =
+        String.format("%s %s Th@@ i@@ s %s is a %s te@@ st . %s %s",
+            ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    String[] sourceTokensWithMarkup = source.split(" ");
+    String[] sourceTokens = MarianNmtConnector.removeCodes(source).split(" ");
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        createSourceTokenIndex2tags(sourceTokensWithMarkup);
+
+    // use reflection to make private method accessible
+    String methodName = "getTagsForSourceTokenIndex";
+    Method method = MarianNmtConnector.class.getDeclaredMethod(
+        methodName, int.class, Map.class, String[].class);
+    method.setAccessible(true);
+
+    List<String> tags = null;
+    // source token indexes in the following test refer to source sentence
+    // WITHOUT markup
+
+    // non-bpe token 'is'
+    tags = (List<String>)method.invoke(
+        null, 3,
+        new HashMap<>(sourceTokenIndex2tags),
+        sourceTokens);
+    assertThat(tags).isEmpty();
+
+    // last bpe fragment 's'
+    tags = (List<String>)method.invoke(
+        null, 2,
+        new HashMap<>(sourceTokenIndex2tags),
+        sourceTokens);
+    assertThat(tags).containsExactly(ISO, OPEN1, CLOSE1);
+
+    // middle bpe fragment 'i@@'
+    tags = (List<String>)method.invoke(
+        null, 1,
+        new HashMap<>(sourceTokenIndex2tags),
+        sourceTokens);
+    assertThat(tags).containsExactly(ISO, OPEN1, CLOSE1);
+
+    // first bpe fragment 'Th@@'
+    tags = (List<String>)method.invoke(
+        null, 0,
+        new HashMap<>(sourceTokenIndex2tags),
+        sourceTokens);
+    assertThat(tags).containsExactly(ISO, OPEN1, CLOSE1);
+
+    // EOS
+    tags = (List<String>)method.invoke(
+        null, 8,
+        new HashMap<>(sourceTokenIndex2tags),
+        sourceTokens);
+    assertThat(tags).containsExactly(ISO);
+  }
+
+
+  private static Map<Integer, List<String>> createSourceTokenIndex2tags(
+      String[] sourceTokensWithMarkup)
+      throws ReflectiveOperationException {
+
+    // use reflection to make private method accessible
+    String methodName = "createSourceTokenIndex2Tags";
+    Method method = MarianNmtConnector.class.getDeclaredMethod(methodName, String[].class);
+    method.setAccessible(true);
+
+    @SuppressWarnings("unchecked")
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        (Map<Integer, List<String>>)method.invoke(null, new Object[] { sourceTokensWithMarkup });
+
+    return sourceTokenIndex2tags;
   }
 
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertMarkup(String[], String[], Alignments)}
+   * {@link MarianNmtConnector#reinsertMarkup(String[], String[], String[], Alignments)}
    * with soft alignments.
    */
   @Test
   void testReinsertMarkupWithSoftAlignments() {
 
     String source =
-        String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
-    String[] sourceTokens = source.split(" ");
+        String.format("%s %s This %s is a %s test . %s %s",
+            ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    String[] sourceTokensWithMarkup = source.split(" ");
+    String[] sourceTokensWithoutMarkup = MarianNmtConnector.removeCodes(source).split(" ");
 
     // init variables to be re-used between tests
     String target = null;
@@ -93,10 +178,11 @@ class MarianNmtConnectorTest {
     algn = new SoftAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(
+            sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
-        .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2);
+        .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
 
     // second test
@@ -113,24 +199,26 @@ class MarianNmtConnectorTest {
     algn = new SoftAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(
+            sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
-        .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2);
+        .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
 
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertMarkup(String[], String[], Alignments)}
+   * {@link MarianNmtConnector#reinsertMarkup(String[], String[], String[], Alignments)}
    * with hard alignments.
    */
   @Test
   void testReinsertMarkupWithHardAlignments() {
 
     String source =
-        String.format("%s %s This %s is a %s test . %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2);
-    String[] sourceTokens = source.split(" ");
+        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    String[] sourceTokensWithMarkup = source.split(" ");
+    String[] sourceTokensWithoutMarkup = MarianNmtConnector.removeCodes(source).split(" ");
 
     // init variables to be re-used between tests
     String target = null;
@@ -147,12 +235,13 @@ class MarianNmtConnectorTest {
     algn = new HardAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(
+            sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
 
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
         .containsExactly(
-            ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2);
+            ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
     // second test
     target = "Test ein ist das .";
@@ -163,11 +252,12 @@ class MarianNmtConnectorTest {
     algn = new HardAlignments(rawAlignments);
 
     targetTokensWithMarkup =
-        MarianNmtConnector.reinsertMarkup(sourceTokens, targetTokens, algn);
+        MarianNmtConnector.reinsertMarkup(
+            sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
 
     assertThat(targetTokensWithMarkup)
         .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
-        .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2);
+        .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
 
 

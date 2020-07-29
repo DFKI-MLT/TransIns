@@ -186,7 +186,8 @@ public class MarianNmtConnector extends BaseConnector {
 
           String[] targetTokensWithMarkup = null;
           targetTokensWithMarkup =
-              reinsertMarkup(sourceTokensWithMarkup, targetTokens, algn);
+              reinsertMarkup(
+                  sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
 
           // make sure markup is not between bpe fragments
           targetTokensWithMarkup = moveMarkupBetweenBpeFragments(targetTokensWithMarkup);
@@ -317,6 +318,8 @@ public class MarianNmtConnector extends BaseConnector {
    * @param sourceTokensWithMarkup
    *          list of source tokens, including the 2-character markup encoding used by
    *          Okapi
+   * @param sourceTokensWithoutMarkup
+   *          list of source tokens without markup
    * @param targetTokens
    *          list of target tokens (without any markup)
    * @param algn
@@ -324,7 +327,8 @@ public class MarianNmtConnector extends BaseConnector {
    * @return target tokens with re-inserted markup
    */
   public static String[] reinsertMarkup(
-      String[] sourceTokensWithMarkup, String[] targetTokens, Alignments algn) {
+      String[] sourceTokensWithMarkup, String[] sourceTokensWithoutMarkup,
+      String[] targetTokens, Alignments algn) {
 
     List<String> targetTokensWithMarkup = new ArrayList<>();
 
@@ -356,7 +360,8 @@ public class MarianNmtConnector extends BaseConnector {
 
       List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
       for (int oneSourceTokenIndex : sourceTokenIndexes) {
-        List<String> sourceTags = sourceTokenIndex2tags.get(oneSourceTokenIndex);
+        List<String> sourceTags = getTagsForSourceTokenIndex(
+            oneSourceTokenIndex, sourceTokenIndex2tags, sourceTokensWithoutMarkup);
         if (sourceTags != null) {
           for (String oneSourceTag : sourceTags) {
             if (isBackwardTag(oneSourceTag)) {
@@ -365,7 +370,6 @@ public class MarianNmtConnector extends BaseConnector {
               tagsToInsertBefore.add(oneSourceTag);
             }
           }
-          sourceTokenIndex2tags.remove(oneSourceTokenIndex);
         }
       }
       targetTokensWithMarkup.addAll(tagsToInsertBefore);
@@ -373,11 +377,12 @@ public class MarianNmtConnector extends BaseConnector {
       targetTokensWithMarkup.addAll(tagsToInsertAfter);
     }
 
-    int lastTargetTokenIndex = targetTokens.length;
-    List<String> lastSourceTags = sourceTokenIndex2tags.get(lastTargetTokenIndex);
-    if (lastSourceTags != null) {
-      targetTokensWithMarkup.addAll(lastSourceTags);
-      sourceTokenIndex2tags.remove(lastTargetTokenIndex);
+    // get EOS markup from source sentence
+    int eosTokenIndex = sourceTokensWithoutMarkup.length;
+    List<String> eosTags = sourceTokenIndex2tags.get(eosTokenIndex);
+    if (eosTags != null) {
+      targetTokensWithMarkup.addAll(eosTags);
+      sourceTokenIndex2tags.remove(eosTokenIndex);
     }
 
     // add any remaining tags
@@ -428,6 +433,79 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return index2tags;
+  }
+
+
+  /**
+   * Get all tags from given source tokens associated with the given source token index.
+   * If the source token index points to a bpe fragments, this methods collects all tags
+   * from all bpe fragments belonging to the original token.<br>
+   * All collected tags are removed from the given sourceTokenIndex2tags map.
+   *
+   * @param sourceTokenIndex
+   *          the source token index
+   * @param sourceTokenIndex2tags
+   *          map of source token index to list of associated tags
+   * @param sourceTokensWithoutMarkup
+   *          the original source token sequence without markup
+   *
+   * @return list of tags associated with the index
+   */
+  private static List<String> getTagsForSourceTokenIndex(
+      int sourceTokenIndex,
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      String[] sourceTokensWithoutMarkup) {
+
+    List<String> resultTags = new ArrayList<>();
+
+    // handle special case of index pointing to EOS of source sentence;
+    // there is NO token for EOS in sourceTokensWithoutMarkup
+    if (sourceTokenIndex == sourceTokensWithoutMarkup.length) {
+      List<String> sourceTags = sourceTokenIndex2tags.get(sourceTokenIndex);
+      if (sourceTags != null) {
+        resultTags = sourceTags;
+        sourceTokenIndex2tags.remove(sourceTokenIndex);
+      }
+      return resultTags;
+    }
+
+    int currentIndex = -1;
+    if (isBpeFragement(sourceTokensWithoutMarkup[sourceTokenIndex])) {
+      currentIndex = sourceTokenIndex;
+    } else if (sourceTokenIndex > 0
+        && isBpeFragement(sourceTokensWithoutMarkup[sourceTokenIndex - 1])) {
+      currentIndex = sourceTokenIndex - 1;
+    }
+    if (currentIndex != -1) {
+      // source token index points to a bpe fragment;
+      // go to first bpe fragment belonging to the token
+      while (currentIndex >= 0 && isBpeFragement(sourceTokensWithoutMarkup[currentIndex])) {
+        currentIndex--;
+      }
+      currentIndex++;
+      // now collect tags beginning at the first bpe fragment of the token
+      for (int i = currentIndex; i < sourceTokensWithoutMarkup.length; i++) {
+        List<String> sourceTags = sourceTokenIndex2tags.get(i);
+        if (sourceTags != null) {
+          resultTags.addAll(sourceTokenIndex2tags.get(i));
+          sourceTokenIndex2tags.remove(i);
+        }
+        if (!isBpeFragement(sourceTokensWithoutMarkup[i])) {
+          // last bpe fragment found
+          break;
+        }
+      }
+    } else {
+      // source token points to a non-bpe token, so just return the associated tags and
+      // remove them from the map
+      List<String> sourceTags = sourceTokenIndex2tags.get(sourceTokenIndex);
+      if (sourceTags != null) {
+        resultTags = sourceTags;
+        sourceTokenIndex2tags.remove(sourceTokenIndex);
+      }
+    }
+
+    return resultTags;
   }
 
 
