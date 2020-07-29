@@ -640,30 +640,30 @@ public class MarianNmtConnector extends BaseConnector {
   /**
    * Create table with source and target sentence tokens with index and alignment.
    *
-   * @param sourceTokens
-   *          the source sentence tokens
-   * @param targetTokens
-   *          the target sentence tokens
+   * @param sourceTokensWithMarkup
+   *          the source sentence tokens with markup
+   * @param targetTokensWithMarkup
+   *          the target sentence tokens with markup
    * @param algn
    *          the hard alignment
    * @return the table as string
    */
   public static String createSentenceAlignment(
-      String[] sourceTokens, String[] targetTokens, Alignments algn) {
+      String[] sourceTokensWithMarkup, String[] targetTokensWithMarkup, Alignments algn) {
 
     StringBuilder result = new StringBuilder();
     result.append(String.format("%s%n", algn.toString()));
 
     // get max source token length
     int maxSourceTokenLength = "source:".length();
-    for (String oneToken : sourceTokens) {
+    for (String oneToken : sourceTokensWithMarkup) {
       if (oneToken.length() > maxSourceTokenLength) {
         maxSourceTokenLength = oneToken.length();
       }
     }
     // get max target token length
     int maxTargetTokenLength = "target:".length();
-    for (String oneToken : targetTokens) {
+    for (String oneToken : targetTokensWithMarkup) {
       if (oneToken.length() > maxTargetTokenLength) {
         maxTargetTokenLength = oneToken.length();
       }
@@ -673,18 +673,20 @@ public class MarianNmtConnector extends BaseConnector {
         String.format(
             "%" + maxTargetTokenLength + "s   \t\t\t   %" + maxSourceTokenLength + "s%n",
             "TARGET:", "SOURCE:"));
-    for (int i = 0; i < Math.max(targetTokens.length, sourceTokens.length); i++) {
-      if (i < targetTokens.length) {
+    for (int i = 0;
+        i < Math.max(targetTokensWithMarkup.length, sourceTokensWithMarkup.length);
+        i++) {
+      if (i < targetTokensWithMarkup.length) {
         result.append(
             String.format("%" + maxTargetTokenLength + "s %2d\t\t\t",
-                targetTokens[i], i));
+                targetTokensWithMarkup[i], i));
       } else {
         result.append(String.format("%" + (maxTargetTokenLength + 3) + "s\t\t\t", " "));
       }
-      if (i < sourceTokens.length) {
+      if (i < sourceTokensWithMarkup.length) {
         result.append(
             String.format("%2d %" + maxSourceTokenLength + "s\t\t\t%n",
-                i, sourceTokens[i]));
+                i, sourceTokensWithMarkup[i]));
       } else {
         result.append(String.format("%n"));
       }
