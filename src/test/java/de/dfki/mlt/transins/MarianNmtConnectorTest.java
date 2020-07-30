@@ -1,6 +1,7 @@
 package de.dfki.mlt.transins;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -368,5 +369,90 @@ class MarianNmtConnectorTest {
     String masked6 = "a b c " + ISO + "c " + OPEN1 + "c";
     assertThat(MarianNmtConnector.maskMarkup(unmasked6.split(" "))).isEqualTo(masked6);
     assertThat(MarianNmtConnector.unmaskMarkup(masked6)).isEqualTo(unmasked6);
+  }
+
+
+  /**
+   * Test {@link MarianNmtConnector#createTagIdMapping(String)}.
+   * This method is private, access for unit test achieved via reflection.
+   */
+  @Test
+  void testCreateTagIdMapping()
+      throws ReflectiveOperationException {
+
+    // use reflection to make private method accessible
+    String methodName = "createTagIdMapping";
+    Method method =
+        MarianNmtConnector.class.getDeclaredMethod(methodName, String.class);
+    method.setAccessible(true);
+
+    String source =
+        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+
+    @SuppressWarnings("unchecked")
+    Map<Integer, Integer> closing2OpeningTagMap =
+        (Map<Integer, Integer>)method.invoke(null, source);
+    assertThat(closing2OpeningTagMap).containsExactly(entry(2, 1), entry(4, 3));
+  }
+
+
+  /**
+   * Test {@link MarianNmtConnector#balanceTags(String, String[])}.
+   * This method is private, access for unit test achieved via reflection.
+   */
+  @Test
+  void testBalanceTags()
+      throws ReflectiveOperationException {
+
+    // use reflection to make private method accessible
+    String methodName = "balanceTags";
+    Method method =
+        MarianNmtConnector.class.getDeclaredMethod(methodName, String.class, String[].class);
+    method.setAccessible(true);
+
+    // init variables to be re-used between tests
+    String source = null;
+    String target = null;
+    String[] targetTokens = null;
+
+    // first test
+    source = String.format("%s %s This is %s %s a test . %s %s",
+        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    target = String.format("%s Das %s %s ist %s ein Test . %s %s",
+            ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
+    targetTokens = target.split(" ");
+    method.invoke(null, new Object[] {source, targetTokens});
+    assertThat(targetTokens).containsExactly(
+        ISO, OPEN1, "Das", "ist", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
+
+    // second test
+    source = String.format("%s %s %s This is %s %s a test . %s",
+        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO);
+    target = String.format("%s Das %s %s %s %s ist ein Test . %s",
+            ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
+    targetTokens = target.split(" ");
+    method.invoke(null, new Object[] {source, targetTokens});
+    assertThat(targetTokens).containsExactly(
+        ISO, OPEN2, OPEN1, "Das", "ist", CLOSE1, CLOSE2, "ein", "Test", ".", ISO);
+
+    // first test with bpe fragments
+    source = String.format("%s %s This is %s %s a test . %s %s",
+        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    target = String.format("%s Da@@ s %s %s is@@ t %s ein Test . %s %s",
+            ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
+    targetTokens = target.split(" ");
+    method.invoke(null, new Object[] {source, targetTokens});
+    assertThat(targetTokens).containsExactly(
+        ISO, OPEN1, "Da@@", "s", "is@@", "t", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
+
+    // second test with bpe fragments
+    source = String.format("%s %s %s This is %s %s a test . %s",
+        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO);
+    target = String.format("%s Da@@ s %s %s %s %s is@@ t ein Test . %s",
+            ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
+    targetTokens = target.split(" ");
+    method.invoke(null, new Object[] {source, targetTokens});
+    assertThat(targetTokens).containsExactly(
+        ISO, OPEN2, OPEN1, "Da@@", "s", "is@@", "t", CLOSE1, CLOSE2, "ein", "Test", ".", ISO);
   }
 }

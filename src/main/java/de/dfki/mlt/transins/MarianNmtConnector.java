@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -176,6 +177,9 @@ public class MarianNmtConnector extends BaseConnector {
           // make sure markup is not between bpe fragments
           targetTokensWithMarkup = moveMarkupBetweenBpeFragments(targetTokensWithMarkup);
 
+          // make sure markup is balanced
+          balanceTags(preprocessedSentence, targetTokensWithMarkup);
+
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
           translation = maskMarkup(targetTokensWithMarkup);
@@ -231,6 +235,136 @@ public class MarianNmtConnector extends BaseConnector {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
     }
     return ((super.current == 0) ? 1 : 0);
+  }
+
+
+  /**
+   * Checks if the tags in the given target sentence are balanced. If not, swaps opening and closing
+   * tags. Tag brackets are extracted from the given source sentence.
+   *
+   * @param preprocessedSourceSentence
+   *          the source sentence with balanced tags
+   * @param targetTokensWithMarkup
+   *          target sentence tokens
+   */
+  private static String[] balanceTags(
+      String preprocessedSourceSentence, String[] targetTokensWithMarkup) {
+
+    Map<Integer, Integer> closing2OpeningTagMap = createTagIdMapping(preprocessedSourceSentence);
+
+    List<Integer> currentOpeningIds = new ArrayList<>();
+    outer:
+    while (true) {
+      boolean swapped = false;
+      for (int i = 0; i < targetTokensWithMarkup.length; i++) {
+        String oneToken = targetTokensWithMarkup[i];
+        if (isOpeningTag(oneToken)) {
+          currentOpeningIds.add(getTagId(oneToken));
+        } else if (isClosingTag(oneToken)) {
+          // get opening tag id
+          int openingTagId = closing2OpeningTagMap.get(getTagId(oneToken));
+          if (!currentOpeningIds.contains(openingTagId)) {
+            // tags have to be swapped
+            for (int j = i + 1; j < targetTokensWithMarkup.length; j++) {
+              String oneFollowingToken = targetTokensWithMarkup[j];
+              if (isOpeningTag(oneFollowingToken)
+                  && getTagId(oneFollowingToken) == openingTagId) {
+                // we found the corresponding opening tag, now swap them
+                swap(targetTokensWithMarkup, i, j);
+                // move opening tag in front of the closest preceding non-tag;
+                // tag must NOT end between bpe fragments
+                int precIndex = i - 1;
+                while (precIndex >= 0) {
+                  swap(targetTokensWithMarkup, precIndex, precIndex + 1);
+                  if (!isBetweenBpeFragments(targetTokensWithMarkup, precIndex)) {
+                    break;
+                  }
+                  precIndex--;
+                }
+                // move closing tag after the closest following non-tag;
+                // tag must NOT end between bpe fragments
+                int follIndex = j + 1;
+                while (follIndex < targetTokensWithMarkup.length) {
+                  swap(targetTokensWithMarkup, follIndex - 1, follIndex);
+                  if (!isBetweenBpeFragments(targetTokensWithMarkup, follIndex)) {
+                    break;
+                  }
+                  follIndex++;
+                }
+              }
+            }
+            swapped = true;
+            break;
+          }
+        }
+      }
+      if (!swapped) {
+        break outer;
+      }
+    }
+
+    return targetTokensWithMarkup;
+  }
+
+
+  /**
+   * Check if token at the given index is between bpe fragments.
+   *
+   * @param targetTokensWithMarkup
+   *          the tokens
+   * @param tokenIndex
+   *          the index of the token to check
+   * @return {@code true} if between bpe fragments, {@code false} otherwise
+   */
+  private static boolean isBetweenBpeFragments(
+      String[] targetTokensWithMarkup, int tokenIndex) {
+
+    if (tokenIndex == 0
+        || tokenIndex == targetTokensWithMarkup.length - 1) {
+      // token at beginning or end cannot be between bpe fragments
+      return false;
+    }
+
+    if (isBpeFragement(targetTokensWithMarkup[tokenIndex - 1])) {
+      return true;
+    }
+
+    return false;
+  }
+
+
+  /**
+   * Create mapping of closing tag ids to opening tag ids from the given preprocessed source
+   * sentence. It is assumed that the tags are balanced.
+   *
+   * @return map of closing tag ids to opening tag ids
+   */
+  private static Map<Integer, Integer> createTagIdMapping(String preprocessedSourceSentence) {
+
+    Map<Integer, Integer> resultMap = new HashMap<>();
+
+    Stack<Integer> openingIdsStack = new Stack<>();
+
+    String[] tokens = preprocessedSourceSentence.split(" ");
+    for (String oneToken : tokens) {
+      if (isOpeningTag(oneToken)) {
+        openingIdsStack.push(getTagId(oneToken));
+      } else if (isClosingTag(oneToken)) {
+        int closingTagId = getTagId(oneToken);
+        int openingTagId = openingIdsStack.pop();
+        resultMap.put(closingTagId, openingTagId);
+      }
+    }
+
+    return resultMap;
+  }
+
+
+  private static void swap(String[] array, int firstIndex, int secondIndex) {
+
+    String temp = array[firstIndex];
+    array[firstIndex] = array[secondIndex];
+    array[secondIndex] = temp;
   }
 
 
@@ -656,6 +790,49 @@ public class MarianNmtConnector extends BaseConnector {
     return token.charAt(0) == TextFragment.MARKER_OPENING
         || token.charAt(0) == TextFragment.MARKER_CLOSING
         || token.charAt(0) == TextFragment.MARKER_ISOLATED;
+  }
+
+
+  /**
+   * Check if the given token is an opening Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true} if token is opening Okapi tag
+   */
+  public static boolean isOpeningTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_OPENING;
+  }
+
+
+  /**
+   * Check if the given token is a closing Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true} if token is closing Okapi tag
+   */
+  public static boolean isClosingTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_CLOSING;
+  }
+
+
+  /**
+   * Return the id of the given tag
+   *
+   * @param tag
+   *          the tag
+   * @return the id or -1 if none
+   */
+  public static int getTagId(String tag) {
+
+    if (!isTag(tag)) {
+      return -1;
+    }
+
+    return TextFragment.toIndex(tag.charAt(1));
   }
 
 
