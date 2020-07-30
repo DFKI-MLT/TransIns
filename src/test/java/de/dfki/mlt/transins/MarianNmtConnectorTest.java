@@ -40,15 +40,15 @@ class MarianNmtConnectorTest {
   void testCreateSourceTokenIndex2Tags()
       throws ReflectiveOperationException {
 
-    String source =
-        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
-    String[] sourceTokens = source.split(" ");
-
     // use reflection to make private method accessible
     String methodName = "createSourceTokenIndex2Tags";
     Method method =
         MarianNmtConnector.class.getDeclaredMethod(methodName, String[].class);
     method.setAccessible(true);
+
+    String source =
+        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    String[] sourceTokens = source.split(" ");
 
     @SuppressWarnings("unchecked")
     Map<Integer, List<String>> index2Tags =
@@ -71,6 +71,12 @@ class MarianNmtConnectorTest {
   void testGetTagsForSourceTokenIndex()
       throws ReflectiveOperationException {
 
+    // use reflection to make private method accessible
+    String methodName = "getTagsForSourceTokenIndex";
+    Method method = MarianNmtConnector.class.getDeclaredMethod(
+        methodName, int.class, Map.class, String[].class);
+    method.setAccessible(true);
+
     String source =
         String.format("%s %s Th@@ i@@ s %s is a %s te@@ st . %s %s",
             ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
@@ -78,12 +84,6 @@ class MarianNmtConnectorTest {
     String[] sourceTokens = MarianNmtConnector.removeCodes(source).split(" ");
     Map<Integer, List<String>> sourceTokenIndex2tags =
         createSourceTokenIndex2tags(sourceTokensWithMarkup);
-
-    // use reflection to make private method accessible
-    String methodName = "getTagsForSourceTokenIndex";
-    Method method = MarianNmtConnector.class.getDeclaredMethod(
-        methodName, int.class, Map.class, String[].class);
-    method.setAccessible(true);
 
     List<String> tags = null;
     // source token indexes in the following test refer to source sentence
