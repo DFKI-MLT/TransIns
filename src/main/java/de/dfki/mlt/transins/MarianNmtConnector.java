@@ -756,5 +756,36 @@ public class MarianNmtConnector extends BaseConnector {
 
     return result.toString();
   }
-}
 
+
+  /**
+   * Replace Okapi markup with human readable tags in given String array
+   *
+   * @param targetTokensWithMarkup
+   *          string array with tokens
+   * @return string array with human readable tags
+   */
+  public static String[] replaceOkapiMarkup(String[] targetTokensWithMarkup) {
+
+    String[] resultTokens = new String[targetTokensWithMarkup.length];
+
+    int index = -1;
+    for (String oneToken : targetTokensWithMarkup) {
+      index++;
+      if (oneToken.charAt(0) == TextFragment.MARKER_ISOLATED) {
+        resultTokens[index] = String.format("<iso%d/>",
+            TextFragment.toIndex(oneToken.charAt(1)));
+      } else if (oneToken.charAt(0) == TextFragment.MARKER_OPENING) {
+        resultTokens[index] = String.format("<u%d>",
+            TextFragment.toIndex(oneToken.charAt(1)));
+      } else if (oneToken.charAt(0) == TextFragment.MARKER_CLOSING) {
+        resultTokens[index] = String.format("</u%d>",
+            TextFragment.toIndex(oneToken.charAt(1)));
+      } else {
+        resultTokens[index] = oneToken;
+}
+    }
+
+    return resultTokens;
+  }
+}

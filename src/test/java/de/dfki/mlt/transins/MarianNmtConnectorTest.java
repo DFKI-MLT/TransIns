@@ -25,11 +25,11 @@ class MarianNmtConnectorTest {
   private static final String OPEN1 =
       String.format("%c%c", TextFragment.MARKER_OPENING, 1 + TextFragment.CHARBASE);
   private static final String CLOSE1 =
-      String.format("%c%c", TextFragment.MARKER_CLOSING, 1 + TextFragment.CHARBASE);
-  private static final String OPEN2 =
-      String.format("%c%c", TextFragment.MARKER_OPENING, 2 + TextFragment.CHARBASE);
-  private static final String CLOSE2 =
       String.format("%c%c", TextFragment.MARKER_CLOSING, 2 + TextFragment.CHARBASE);
+  private static final String OPEN2 =
+      String.format("%c%c", TextFragment.MARKER_OPENING, 3 + TextFragment.CHARBASE);
+  private static final String CLOSE2 =
+      String.format("%c%c", TextFragment.MARKER_CLOSING, 4 + TextFragment.CHARBASE);
 
 
   /**
@@ -181,7 +181,8 @@ class MarianNmtConnectorTest {
         MarianNmtConnector.reinsertMarkup(
             sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
     assertThat(targetTokensWithMarkup)
-        .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
+        // provide human-readable string
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiMarkup(targetTokensWithMarkup)) + "")
         .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
 
@@ -202,7 +203,8 @@ class MarianNmtConnectorTest {
         MarianNmtConnector.reinsertMarkup(
             sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
     assertThat(targetTokensWithMarkup)
-        .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
+        // provide human-readable string
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiMarkup(targetTokensWithMarkup)) + "")
         .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
 
@@ -239,7 +241,8 @@ class MarianNmtConnectorTest {
             sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
 
     assertThat(targetTokensWithMarkup)
-        .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
+        // provide human-readable string
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiMarkup(targetTokensWithMarkup)) + "")
         .containsExactly(
             ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
@@ -256,7 +259,8 @@ class MarianNmtConnectorTest {
             sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
 
     assertThat(targetTokensWithMarkup)
-        .as(Arrays.asList(replaceOkapiMarkup(targetTokensWithMarkup)) + "")
+        // provide human-readable string
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiMarkup(targetTokensWithMarkup)) + "")
         .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
 
@@ -364,31 +368,5 @@ class MarianNmtConnectorTest {
     String masked6 = "a b c " + ISO + "c " + OPEN1 + "c";
     assertThat(MarianNmtConnector.maskMarkup(unmasked6.split(" "))).isEqualTo(masked6);
     assertThat(MarianNmtConnector.unmaskMarkup(masked6)).isEqualTo(unmasked6);
-  }
-
-
-  private static String[] replaceOkapiMarkup(String[] targetTokensWithMarkup) {
-
-    String[] resultTokens = new String[targetTokensWithMarkup.length];
-
-    int index = -1;
-    for (String oneToken : targetTokensWithMarkup) {
-      index++;
-      if (ISO.equals(oneToken)) {
-        resultTokens[index] = "<iso/>";
-      } else if (OPEN1.equals(oneToken)) {
-        resultTokens[index] = "<u1>";
-      } else if (CLOSE1.equals(oneToken)) {
-        resultTokens[index] = "</u1>";
-      } else if (OPEN2.equals(oneToken)) {
-        resultTokens[index] = "<u2>";
-      } else if (CLOSE2.equals(oneToken)) {
-        resultTokens[index] = "</u2>";
-      } else {
-        resultTokens[index] = oneToken;
-      }
-    }
-
-    return resultTokens;
   }
 }
