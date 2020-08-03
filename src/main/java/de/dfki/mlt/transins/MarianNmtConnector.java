@@ -129,45 +129,49 @@ public class MarianNmtConnector extends BaseConnector {
 
       // preprocessing
       String sentence = fragment.getCodedText();
-      String preprocessedSentence =
+      String preprocessedSourceSentence =
           this.prepostClient.process(
               super.getSourceLanguage().toString(),
               sentence,
               Mode.PREPROCESS,
               this.params.getPrePostHost(),
               this.params.getPrePostPort());
-      logger.debug(String.format("preprocessed source sentence: \"%s\"", preprocessedSentence));
+      logger.debug(String.format("preprocessed source sentence: \"%s\"",
+          preprocessedSourceSentence));
 
       // translate
-      String translatorInput = removeCodes(preprocessedSentence);
+      String translatorInput = removeCodes(preprocessedSourceSentence);
       // add leading token with target language
       translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
       logger.debug(String.format("send to translator: \"%s\"", translatorInput));
       String translatorResponse = this.translatorClient.send(translatorInput);
 
-      // split into translation and alignment
+      // split into translation and alignments
       String[] parts = translatorResponse.split(" \\|\\|\\| ");
       String translation = null;
 
       boolean hasMarkup = fragment.hasCode();
       if (parts.length == 2) {
-        // if markup and alignment are available, re-insert markup
+        // if markup and alignments are available, re-insert markup
         translation = parts[0].trim();
         String rawAlignments = parts[1].trim();
         logger.debug(String.format("raw target sentence: \"%s\"", translation));
-        logger.debug(String.format("raw alignment: \"%s\"", rawAlignments));
+        logger.debug(String.format("raw alignments: \"%s\"", rawAlignments));
         Alignments algn = createAlignments(rawAlignments);
         // compensate for leading target language token in source sentence
         algn.shiftSourceIndexes(-1);
         if (hasMarkup) {
           // re-insert markup
-          String[] sourceTokensWithMarkup = preprocessedSentence.split(" ");
+          String[] sourceTokensWithMarkup = preprocessedSourceSentence.split(" ");
           String[] targetTokens = translation.split(" ");
 
-          // print alignment
-          String[] sourceTokensWithoutMarkup = removeCodes(preprocessedSentence).split(" ");
-          logger.debug(String.format("sentence alignment:%n%s", createSentenceAlignment(
+          // print alignments
+          String[] sourceTokensWithoutMarkup = removeCodes(preprocessedSourceSentence).split(" ");
+          logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
               sourceTokensWithoutMarkup, targetTokens, algn)));
+
+          Map<Integer, Integer> closing2OpeningTagIdMap =
+              createTagIdMapping(preprocessedSourceSentence);
 
           String[] targetTokensWithMarkup = null;
           targetTokensWithMarkup =
@@ -178,7 +182,7 @@ public class MarianNmtConnector extends BaseConnector {
           targetTokensWithMarkup = moveMarkupBetweenBpeFragments(targetTokensWithMarkup);
 
           // make sure markup is balanced
-          balanceTags(preprocessedSentence, targetTokensWithMarkup);
+          balanceTags(closing2OpeningTagIdMap, targetTokensWithMarkup);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -235,136 +239,6 @@ public class MarianNmtConnector extends BaseConnector {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
     }
     return ((super.current == 0) ? 1 : 0);
-  }
-
-
-  /**
-   * Checks if the tags in the given target sentence are balanced. If not, swaps opening and closing
-   * tags. Tag brackets are extracted from the given source sentence.
-   *
-   * @param preprocessedSourceSentence
-   *          the source sentence with balanced tags
-   * @param targetTokensWithMarkup
-   *          target sentence tokens
-   */
-  private static String[] balanceTags(
-      String preprocessedSourceSentence, String[] targetTokensWithMarkup) {
-
-    Map<Integer, Integer> closing2OpeningTagMap = createTagIdMapping(preprocessedSourceSentence);
-
-    List<Integer> currentOpeningIds = new ArrayList<>();
-    outer:
-    while (true) {
-      boolean swapped = false;
-      for (int i = 0; i < targetTokensWithMarkup.length; i++) {
-        String oneToken = targetTokensWithMarkup[i];
-        if (isOpeningTag(oneToken)) {
-          currentOpeningIds.add(getTagId(oneToken));
-        } else if (isClosingTag(oneToken)) {
-          // get opening tag id
-          int openingTagId = closing2OpeningTagMap.get(getTagId(oneToken));
-          if (!currentOpeningIds.contains(openingTagId)) {
-            // tags have to be swapped
-            for (int j = i + 1; j < targetTokensWithMarkup.length; j++) {
-              String oneFollowingToken = targetTokensWithMarkup[j];
-              if (isOpeningTag(oneFollowingToken)
-                  && getTagId(oneFollowingToken) == openingTagId) {
-                // we found the corresponding opening tag, now swap them
-                swap(targetTokensWithMarkup, i, j);
-                // move opening tag in front of the closest preceding non-tag;
-                // tag must NOT end between bpe fragments
-                int precIndex = i - 1;
-                while (precIndex >= 0) {
-                  swap(targetTokensWithMarkup, precIndex, precIndex + 1);
-                  if (!isBetweenBpeFragments(targetTokensWithMarkup, precIndex)) {
-                    break;
-                  }
-                  precIndex--;
-                }
-                // move closing tag after the closest following non-tag;
-                // tag must NOT end between bpe fragments
-                int follIndex = j + 1;
-                while (follIndex < targetTokensWithMarkup.length) {
-                  swap(targetTokensWithMarkup, follIndex - 1, follIndex);
-                  if (!isBetweenBpeFragments(targetTokensWithMarkup, follIndex)) {
-                    break;
-                  }
-                  follIndex++;
-                }
-              }
-            }
-            swapped = true;
-            break;
-          }
-        }
-      }
-      if (!swapped) {
-        break outer;
-      }
-    }
-
-    return targetTokensWithMarkup;
-  }
-
-
-  /**
-   * Check if token at the given index is between bpe fragments.
-   *
-   * @param targetTokensWithMarkup
-   *          the tokens
-   * @param tokenIndex
-   *          the index of the token to check
-   * @return {@code true} if between bpe fragments, {@code false} otherwise
-   */
-  private static boolean isBetweenBpeFragments(
-      String[] targetTokensWithMarkup, int tokenIndex) {
-
-    if (tokenIndex == 0
-        || tokenIndex == targetTokensWithMarkup.length - 1) {
-      // token at beginning or end cannot be between bpe fragments
-      return false;
-    }
-
-    if (isBpeFragement(targetTokensWithMarkup[tokenIndex - 1])) {
-      return true;
-    }
-
-    return false;
-  }
-
-
-  /**
-   * Create mapping of closing tag ids to opening tag ids from the given preprocessed source
-   * sentence. It is assumed that the tags are balanced.
-   *
-   * @return map of closing tag ids to opening tag ids
-   */
-  private static Map<Integer, Integer> createTagIdMapping(String preprocessedSourceSentence) {
-
-    Map<Integer, Integer> resultMap = new HashMap<>();
-
-    Stack<Integer> openingIdsStack = new Stack<>();
-
-    String[] tokens = preprocessedSourceSentence.split(" ");
-    for (String oneToken : tokens) {
-      if (isOpeningTag(oneToken)) {
-        openingIdsStack.push(getTagId(oneToken));
-      } else if (isClosingTag(oneToken)) {
-        int closingTagId = getTagId(oneToken);
-        int openingTagId = openingIdsStack.pop();
-        resultMap.put(closingTagId, openingTagId);
-      }
-    }
-
-    return resultMap;
-  }
-
-
-  private static void swap(String[] array, int firstIndex, int secondIndex) {
-
-    String temp = array[firstIndex];
-    array[firstIndex] = array[secondIndex];
-    array[secondIndex] = temp;
   }
 
 
@@ -430,6 +304,35 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Create mapping of closing tag ids to opening tag ids from the given preprocessed source
+   * sentence. It is assumed that the tags are balanced.
+   *
+   * @param preprocessedSourceSentence
+   *          the preprocessed source sentence
+   * @return map of closing tag ids to opening tag ids
+   */
+  public static Map<Integer, Integer> createTagIdMapping(String preprocessedSourceSentence) {
+
+    Map<Integer, Integer> resultMap = new HashMap<>();
+
+    Stack<Integer> openingIdsStack = new Stack<>();
+
+    String[] tokens = preprocessedSourceSentence.split(" ");
+    for (String oneToken : tokens) {
+      if (isOpeningTag(oneToken)) {
+        openingIdsStack.push(getTagId(oneToken));
+      } else if (isClosingTag(oneToken)) {
+        int closingTagId = getTagId(oneToken);
+        int openingTagId = openingIdsStack.pop();
+        resultMap.put(closingTagId, openingTagId);
+      }
+    }
+
+    return resultMap;
+  }
+
+
+  /**
    * Advanced version to re-insert markup from source. Takes into account the 'direction' of
    * a tag and special handling of isolated tags at sentence beginning.
    *
@@ -441,7 +344,7 @@ public class MarianNmtConnector extends BaseConnector {
    * @param targetTokens
    *          list of target tokens (without any markup)
    * @param algn
-   *          hard alignment of source and target tokens
+   *          hard alignments of source and target tokens
    * @return target tokens with re-inserted markup
    */
   public static String[] reinsertMarkup(
@@ -511,8 +414,9 @@ public class MarianNmtConnector extends BaseConnector {
         targetTokensWithMarkup.addAll(sourceTokenIndex2tags.get(oneKey));
       }
     }
-    String[] resultAsArray = new String[targetTokensWithMarkup.size()];
-    return targetTokensWithMarkup.toArray(resultAsArray);
+
+    // convert array list to array and return it
+    return targetTokensWithMarkup.toArray(new String[targetTokensWithMarkup.size()]);
   }
 
 
@@ -624,6 +528,108 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return resultTags;
+  }
+
+
+  /**
+   * Checks if the tags in the given target sentence are balanced. If not, swaps opening and closing
+   * tags.
+   *
+   * @param closing2OpeningTagIdMap
+   *          map of closing tag ids to opening tag ids
+   * @param targetTokensWithMarkup
+   *          target sentence tokens
+   * @return target sentence tokens with balanced tags
+   */
+  public static String[] balanceTags(
+      Map<Integer, Integer> closing2OpeningTagIdMap, String[] targetTokensWithMarkup) {
+
+    List<Integer> currentOpeningIds = new ArrayList<>();
+    outer:
+    while (true) {
+      boolean swapped = false;
+      for (int i = 0; i < targetTokensWithMarkup.length; i++) {
+        String oneToken = targetTokensWithMarkup[i];
+        if (isOpeningTag(oneToken)) {
+          currentOpeningIds.add(getTagId(oneToken));
+        } else if (isClosingTag(oneToken)) {
+          // get opening tag id
+          int openingTagId = closing2OpeningTagIdMap.get(getTagId(oneToken));
+          if (!currentOpeningIds.contains(openingTagId)) {
+            // tags have to be swapped
+            for (int j = i + 1; j < targetTokensWithMarkup.length; j++) {
+              String oneFollowingToken = targetTokensWithMarkup[j];
+              if (isOpeningTag(oneFollowingToken)
+                  && getTagId(oneFollowingToken) == openingTagId) {
+                // we found the corresponding opening tag, now swap them
+                swap(targetTokensWithMarkup, i, j);
+                // move opening tag in front of the closest preceding non-tag;
+                // tag must NOT end between bpe fragments
+                int precIndex = i - 1;
+                while (precIndex >= 0) {
+                  swap(targetTokensWithMarkup, precIndex, precIndex + 1);
+                  if (!isBetweenBpeFragments(targetTokensWithMarkup, precIndex)) {
+                    break;
+                  }
+                  precIndex--;
+                }
+                // move closing tag after the closest following non-tag;
+                // tag must NOT end between bpe fragments
+                int follIndex = j + 1;
+                while (follIndex < targetTokensWithMarkup.length) {
+                  swap(targetTokensWithMarkup, follIndex - 1, follIndex);
+                  if (!isBetweenBpeFragments(targetTokensWithMarkup, follIndex)) {
+                    break;
+                  }
+                  follIndex++;
+                }
+              }
+            }
+            swapped = true;
+            break;
+          }
+        }
+      }
+      if (!swapped) {
+        break outer;
+      }
+    }
+
+    return targetTokensWithMarkup;
+  }
+
+
+  private static void swap(String[] array, int firstIndex, int secondIndex) {
+
+    String temp = array[firstIndex];
+    array[firstIndex] = array[secondIndex];
+    array[secondIndex] = temp;
+  }
+
+
+  /**
+   * Check if token at the given index is between bpe fragments.
+   *
+   * @param targetTokensWithMarkup
+   *          the tokens
+   * @param tokenIndex
+   *          the index of the token to check
+   * @return {@code true} if between bpe fragments, {@code false} otherwise
+   */
+  private static boolean isBetweenBpeFragments(
+      String[] targetTokensWithMarkup, int tokenIndex) {
+
+    if (tokenIndex == 0
+        || tokenIndex == targetTokensWithMarkup.length - 1) {
+      // token at beginning or end cannot be between bpe fragments
+      return false;
+    }
+
+    if (isBpeFragement(targetTokensWithMarkup[tokenIndex - 1])) {
+      return true;
+    }
+
+    return false;
   }
 
 
@@ -877,17 +883,17 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Create table with source and target sentence tokens with index and alignment.
+   * Create table with source and target sentence tokens with index and alignments.
    *
    * @param sourceTokensWithMarkup
    *          the source sentence tokens with markup
    * @param targetTokensWithMarkup
    *          the target sentence tokens with markup
    * @param algn
-   *          the hard alignment
+   *          the hard alignments
    * @return the table as string
    */
-  public static String createSentenceAlignment(
+  public static String createSentenceAlignments(
       String[] sourceTokensWithMarkup, String[] targetTokensWithMarkup, Alignments algn) {
 
     StringBuilder result = new StringBuilder();
