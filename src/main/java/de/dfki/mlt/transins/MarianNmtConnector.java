@@ -785,6 +785,39 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * @param tagId
+   *          the tag id
+   * @return an opening tag with the given tag id
+   */
+  public static String createOpeningTag(int tagId) {
+
+    return String.format("%c%c", TextFragment.MARKER_OPENING, tagId + TextFragment.CHARBASE);
+  }
+
+
+  /**
+   * @param tagId
+   *          the tag id
+   * @return a closing tag with the given tag id
+   */
+  public static String createClosingTag(int tagId) {
+
+    return String.format("%c%c", TextFragment.MARKER_CLOSING, tagId + TextFragment.CHARBASE);
+  }
+
+
+  /**
+   * @param tagId
+   *          the tag id
+   * @return an isolated tag with the given tag id
+   */
+  public static String createIsolatedTag(int tagId) {
+
+    return String.format("%c%c", TextFragment.MARKER_ISOLATED, tagId + TextFragment.CHARBASE);
+  }
+
+
+  /**
    * Check if given token is an Okapi tag.
    *
    * @param token
@@ -822,6 +855,19 @@ public class MarianNmtConnector extends BaseConnector {
   public static boolean isClosingTag(String token) {
 
     return token.charAt(0) == TextFragment.MARKER_CLOSING;
+  }
+
+
+  /**
+   * Check if the given token is an isolated Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true} if token is isolated Okapi tag
+   */
+  public static boolean isIsolatedTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_ISOLATED;
   }
 
 

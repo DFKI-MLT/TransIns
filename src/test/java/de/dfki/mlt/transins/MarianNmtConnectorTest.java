@@ -11,8 +11,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import net.sf.okapi.common.resource.TextFragment;
-
 /**
  * Test class for {@link MarianNmtConnector}.
  *
@@ -21,16 +19,11 @@ import net.sf.okapi.common.resource.TextFragment;
 class MarianNmtConnectorTest {
 
   // declare tags in the format used by Okapi
-  private static final String ISO =
-      String.format("%c%c", TextFragment.MARKER_ISOLATED, 0 + TextFragment.CHARBASE);
-  private static final String OPEN1 =
-      String.format("%c%c", TextFragment.MARKER_OPENING, 1 + TextFragment.CHARBASE);
-  private static final String CLOSE1 =
-      String.format("%c%c", TextFragment.MARKER_CLOSING, 2 + TextFragment.CHARBASE);
-  private static final String OPEN2 =
-      String.format("%c%c", TextFragment.MARKER_OPENING, 3 + TextFragment.CHARBASE);
-  private static final String CLOSE2 =
-      String.format("%c%c", TextFragment.MARKER_CLOSING, 4 + TextFragment.CHARBASE);
+  private static final String ISO = MarianNmtConnector.createIsolatedTag(0);
+  private static final String OPEN1 = MarianNmtConnector.createOpeningTag(1);
+  private static final String CLOSE1 = MarianNmtConnector.createClosingTag(2);
+  private static final String OPEN2 = MarianNmtConnector.createOpeningTag(3);
+  private static final String CLOSE2 = MarianNmtConnector.createClosingTag(4);
 
 
   /**
