@@ -37,8 +37,16 @@ public interface Alignments {
 
 
   /**
+   * @return all source token indexes for which there is at least one target token pointing at them
+   */
+  List<Integer> getPointedSourceTokens();
+
+
+  /**
    * @return the raw alignments, as provided by Marian NMT
    */
   @Override
   String toString();
+
+
 }

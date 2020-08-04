@@ -79,6 +79,32 @@ class SoftAlignmentsTest {
 
 
   /**
+   * Test {@link HardAlignments#getPointedSourceTokens()}.
+   */
+  @Test
+  void testGetPointedSourceTokens() {
+
+    String rawAlignments = null;
+    SoftAlignments algn = null;
+
+    // multiple targets to one source token
+    rawAlignments = "1.0,0.0,0.0 1.0,0.0,0.0 1.0,0.0,0.0";
+    algn = new SoftAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(0);
+
+    // one-to-one mapping
+    rawAlignments = "0.3,0.2,0.1 0.4,0.6,0.5 0.7,0.8,0.9";
+    algn = new SoftAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(0, 1, 2);
+
+    // one-to-one with gaps
+    rawAlignments = "0.3,0.2,0.1 0.6,0.4,0.5 0.7,0.8,0.9";
+    algn = new SoftAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(0, 2);
+  }
+
+
+  /**
    * Test {@link SoftAlignments#toHardAlignments(double)}.
    */
   @Test

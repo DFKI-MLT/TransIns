@@ -77,6 +77,37 @@ class HardAlignmentsTest {
 
 
   /**
+   * Test {@link HardAlignments#getPointedSourceTokens()}.
+   */
+  @Test
+  void testGetPointedSourceTokens() {
+
+    String rawAlignments = null;
+    HardAlignments algn = null;
+
+    // one target target to multiple source tokens
+    rawAlignments = "1-1 2-1 3-1";
+    algn = new HardAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(1, 2, 3);
+
+    // multiple targets to one source token
+    rawAlignments = "1-1 1-2 1-3";
+    algn = new HardAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(1);
+
+    // one-to-one mapping
+    rawAlignments = "1-1 2-2 3-3";
+    algn = new HardAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(1, 2, 3);
+
+    // one-to-one with gaps
+    rawAlignments = "1-1 1-2 3-3";
+    algn = new HardAlignments(rawAlignments);
+    assertThat(algn.getPointedSourceTokens()).containsExactly(1, 3);
+  }
+
+
+  /**
    * Test {@link HardAlignments#toString()} and {@link HardAlignments#toStringAsProvidedByMarian()}.
    */
   @Test

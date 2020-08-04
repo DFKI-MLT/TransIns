@@ -2,8 +2,10 @@ package de.dfki.mlt.transins;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -123,6 +125,20 @@ public class HardAlignments implements Alignments {
       return Collections.emptyList();
     }
     return sourceTokenIndexes;
+  }
+
+
+  @Override
+  public List<Integer> getPointedSourceTokens() {
+
+    Set<Integer> collectedPointedSourceTokens = new HashSet<>();
+    for (var oneEntry : this.target2sourcesMapping.entrySet()) {
+      collectedPointedSourceTokens.addAll(oneEntry.getValue());
+    }
+    List<Integer> sortedPointedSourceTokens = new ArrayList<>(collectedPointedSourceTokens);
+    Collections.sort(sortedPointedSourceTokens);
+
+    return sortedPointedSourceTokens;
   }
 
 

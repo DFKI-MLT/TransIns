@@ -1,7 +1,10 @@
 package de.dfki.mlt.transins;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Provide token based alignments based on Marian NMT soft alignments.
@@ -169,6 +172,20 @@ public class SoftAlignments implements Alignments {
     }
 
     return sourceTokenIndexes;
+  }
+
+
+  @Override
+  public List<Integer> getPointedSourceTokens() {
+
+    Set<Integer> collectedPointedSourceTokens = new HashSet<>();
+    for (int i = 0; i < this.alignmentScores.length; i++) {
+      collectedPointedSourceTokens.add(getBestSourceTokenIndex(i));
+    }
+    List<Integer> sortedPointedSourceTokens = new ArrayList<>(collectedPointedSourceTokens);
+    Collections.sort(sortedPointedSourceTokens);
+
+    return sortedPointedSourceTokens;
   }
 
 
