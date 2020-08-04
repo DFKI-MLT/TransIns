@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -176,7 +177,8 @@ public class MarianNmtConnector extends BaseConnector {
           String[] targetTokensWithMarkup = null;
           targetTokensWithMarkup =
               reinsertMarkup(
-                  sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens, algn);
+                  sourceTokensWithMarkup, sourceTokensWithoutMarkup, targetTokens,
+                  closing2OpeningTagIdMap, algn);
 
           // make sure markup is not between bpe fragments
           targetTokensWithMarkup = moveMarkupBetweenBpeFragments(targetTokensWithMarkup);
@@ -343,18 +345,23 @@ public class MarianNmtConnector extends BaseConnector {
    *          list of source tokens without markup
    * @param targetTokens
    *          list of target tokens (without any markup)
+   * @param closing2OpeningTagMap
+   *          map of closing tag ids to opening tag ids
    * @param algn
    *          hard alignments of source and target tokens
    * @return target tokens with re-inserted markup
    */
   public static String[] reinsertMarkup(
       String[] sourceTokensWithMarkup, String[] sourceTokensWithoutMarkup,
-      String[] targetTokens, Alignments algn) {
+      String[] targetTokens, Map<Integer, Integer> closing2OpeningTagMap, Alignments algn) {
 
     List<String> targetTokensWithMarkup = new ArrayList<>();
 
     Map<Integer, List<String>> sourceTokenIndex2tags =
         createSourceTokenIndex2Tags(sourceTokensWithMarkup);
+
+    moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTagMap,
+        algn.getPointedSourceTokens(), sourceTokensWithoutMarkup.length);
 
     // handle special case of isolated tag at the beginning of source sentence;
     // we assume that such tags refer to the whole sentence and not a specific token and
@@ -455,6 +462,193 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return index2tags;
+  }
+
+
+  /**
+   * Make sure that all source tokens with associated tags are actually 'pointed' to by at least
+   * one target token:
+   * <ul>
+   * <li>if there is no pointing token between opening and closing tag, move both to eos
+   * <li>move opening tags forwards until pointing token
+   * <li>move closing tags backwards until pointing token
+   * </ul>
+   * The provided map is adapted accordingly.
+   *
+   * @param sourceTokenIndex2tags
+   *          mapping of source token indexes to associated tags
+   * @param closing2OpeningTagIdMap
+   *          map of closing tag ids to corresponding opening tag ids
+   * @param pointedSourceTokens
+   *          all source token indexes for which there is at least one target token pointing at them
+   *          in the alignments
+   * @param sourceTokensLength
+   *          the number of source tokens
+   */
+  public static void moveSourceTagsToPointedTokens(
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      Map<Integer, Integer> closing2OpeningTagIdMap, List<Integer> pointedSourceTokens,
+      int sourceTokensLength) {
+
+    // for each closing tag of non-pointed source tokens, check if there is
+    // a pointed source on the way to the corresponding opening tag;
+    // if not remove the tag pair (i.e. move to eos)
+    List<String> eosTags = new ArrayList<>();
+    for (var oneEntry : new HashSet<>(sourceTokenIndex2tags.entrySet())) {
+      int sourceTokenIndex = oneEntry.getKey();
+      if (pointedSourceTokens.contains(sourceTokenIndex)) {
+        continue;
+      }
+
+      List<String> tags = oneEntry.getValue();
+      for (String oneTag : new ArrayList<>(tags)) {
+        if (isClosingTag(oneTag)) {
+          // find corresponding opening tag in front of it
+          int openingTagId = closing2OpeningTagIdMap.get(getTagId(oneTag));
+          String openingTag = createOpeningTag(openingTagId);
+          int openingTagSourceTokenIndex = -1;
+          List<String> previousTags = null;
+          for (int i = sourceTokenIndex; i >= 0; i--) {
+            previousTags = sourceTokenIndex2tags.get(i);
+            if (previousTags != null
+                && previousTags.contains(openingTag)) {
+              openingTagSourceTokenIndex = i;
+              break;
+            }
+          }
+          // there must ALWAYS be a matching opening tag, as the tags in
+          // the source sentence are balanced
+          assert openingTagSourceTokenIndex != -1;
+          assert previousTags != null;
+          boolean foundPointingToken = false;
+          for (int i = openingTagSourceTokenIndex; i <= sourceTokenIndex; i++) {
+            if (pointedSourceTokens.contains(i)) {
+              foundPointingToken = true;
+              break;
+            }
+          }
+          if (!foundPointingToken) {
+            // no pointing token between opening and closing tag
+            tags.remove(oneTag);
+            if (tags.isEmpty()) {
+              sourceTokenIndex2tags.remove(sourceTokenIndex);
+            }
+            if (previousTags != null) {
+              // just check for non-null to suppress warning
+              previousTags.remove(openingTag);
+              if (previousTags.isEmpty()) {
+                sourceTokenIndex2tags.remove(openingTagSourceTokenIndex);
+              }
+            }
+            eosTags.add(oneTag);
+            eosTags.add(0, openingTag);
+          }
+        }
+      }
+    }
+
+    // at this point, all remaining tags are either isolated or have at least on pointing
+    // token between the opening and closing tag;
+    // now move opening and isolated tags to the following pointed token and closing tags
+    // to the preceding pointed token
+    for (var oneEntry : new HashSet<>(sourceTokenIndex2tags.entrySet())) {
+      int sourceTokenIndex = oneEntry.getKey();
+      if (pointedSourceTokens.contains(sourceTokenIndex)) {
+        continue;
+      }
+
+      List<String> tags = oneEntry.getValue();
+      for (String oneTag : new ArrayList<>(tags)) {
+        if (isOpeningTag(oneTag) || isIsolatedTag(oneTag)) {
+          for (int i = sourceTokenIndex + 1; i < sourceTokensLength; i++) {
+            if (pointedSourceTokens.contains(i)) {
+              List<String> pointedSourceTokenTags = sourceTokenIndex2tags.get(i);
+              if (pointedSourceTokenTags == null) {
+                pointedSourceTokenTags = new ArrayList<>();
+                sourceTokenIndex2tags.put(i, pointedSourceTokenTags);
+              }
+              pointedSourceTokenTags.add(0, oneTag);
+              tags.remove(oneTag);
+              if (tags.isEmpty()) {
+                sourceTokenIndex2tags.remove(sourceTokenIndex);
+              }
+              break;
+            }
+          }
+
+        } else if (isClosingTag(oneTag)) {
+          for (int i = sourceTokenIndex - 1; i >= 0; i--) {
+            if (pointedSourceTokens.contains(i)) {
+              List<String> pointedSourceTokenTags = sourceTokenIndex2tags.get(i);
+              if (pointedSourceTokenTags == null) {
+                pointedSourceTokenTags = new ArrayList<>();
+                sourceTokenIndex2tags.put(i, pointedSourceTokenTags);
+              }
+              pointedSourceTokenTags.add(oneTag);
+              tags.remove(oneTag);
+              if (tags.isEmpty()) {
+                sourceTokenIndex2tags.remove(sourceTokenIndex);
+              }
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // add end-of-sentence tags
+    List<String> currentEosTags = sourceTokenIndex2tags.get(sourceTokensLength);
+    if (currentEosTags == null) {
+      currentEosTags = new ArrayList<>();
+      sourceTokenIndex2tags.put(sourceTokensLength, currentEosTags);
+    }
+    for (String oneTag : eosTags) {
+      if (isClosingTag(oneTag)) {
+        currentEosTags.add(oneTag);
+      } else {
+        currentEosTags.add(0, oneTag);
+      }
+    }
+  }
+
+
+  /**
+   * Rebuild the source sentence with tags. Used or debugging
+   * {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
+   *
+   * @param sourceTokenIndex2tags
+   *          map of source token index to list of associated tags
+   * @param sourceTokensWithoutMarkup
+   *          the original source token sequence without markup
+   * @return list of source tokens with markup
+   */
+  public static List<String> rebuildSourceSentenceWithTags(
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      String[] sourceTokensWithoutMarkup) {
+
+    List<String> tokens = new ArrayList<>();
+
+    for (int i = 0; i < sourceTokensWithoutMarkup.length; i++) {
+      List<String> tags = sourceTokenIndex2tags.get(i);
+      if (tags == null) {
+        tokens.add(sourceTokensWithoutMarkup[i]);
+        continue;
+      }
+      List<String> tagsBefore = new ArrayList<>();
+      List<String> tagsAfter = new ArrayList<>();
+      for (String oneTag : tags) {
+        if (isClosingTag(oneTag)) {
+          tagsAfter.add(oneTag);
+        } else {
+          tagsBefore.add(0, oneTag);
+        }
+      }
+      tokens.addAll(tagsBefore);
+      tokens.add(sourceTokensWithoutMarkup[i]);
+      tokens.addAll(tagsAfter);
+    }
+
+    return tokens;
   }
 
 
