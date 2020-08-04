@@ -9,4 +9,4 @@ DFKI MLT-Lab
 Email: steffen@dfki.de
 
 == Summary
-Okapi-based tool with connector for Marian NMT translation server that implements several strategies for re-inserting markup of the source text into the translated text.
+Okapi-based tool with connector for Marian NMT translation server implementing a strategy for re-inserting markup of the source text into the translated text.
