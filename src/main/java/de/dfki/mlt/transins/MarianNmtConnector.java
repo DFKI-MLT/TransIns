@@ -164,21 +164,23 @@ public class MarianNmtConnector extends BaseConnector {
         if (hasTags) {
           // re-insert tags
           String[] sourceTokensWithTags = preprocessedSourceSentence.split(" ");
-          String[] targetTokens = translation.split(" ");
+          String[] targetTokensWithoutTags = translation.split(" ");
 
           // print alignments
           String[] sourceTokensWithoutTags = removeTags(preprocessedSourceSentence).split(" ");
           logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
-              sourceTokensWithoutTags, targetTokens, algn)));
+              sourceTokensWithoutTags, targetTokensWithoutTags, algn)));
 
-          Map<Integer, Integer> closing2OpeningTagId =
-              createTagIdMap(preprocessedSourceSentence);
+          Map<Integer, Integer> closing2OpeningTagId = createTagIdMap(preprocessedSourceSentence);
+
+          Map<Integer, List<String>> sourceTokenIndex2tags =
+              createSourceTokenIndex2Tags(sourceTokensWithTags);
+          moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTagId,
+              algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
           String[] targetTokensWithTags = null;
-          targetTokensWithTags =
-              reinsertTags(
-                  sourceTokensWithTags, sourceTokensWithoutTags, targetTokens,
-                  closing2OpeningTagId, algn);
+          targetTokensWithTags = reinsertTags(
+              sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
           // make sure tags are not between bpe fragments
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
@@ -335,99 +337,6 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Advanced version to re-insert tags from source. Takes into account the 'direction' of
-   * a tag and special handling of isolated tags at sentence beginning.
-   *
-   * @param sourceTokensWithTags
-   *          list of source tokens, including the 2-character tag encoding used by
-   *          Okapi
-   * @param sourceTokensWithoutTags
-   *          list of source tokens without tags
-   * @param targetTokens
-   *          list of target tokens (without any tags)
-   * @param closing2OpeningTag
-   *          map of closing tag ids to opening tag ids
-   * @param algn
-   *          hard alignments of source and target tokens
-   * @return target tokens with re-inserted tags
-   */
-  public static String[] reinsertTags(
-      String[] sourceTokensWithTags, String[] sourceTokensWithoutTags,
-      String[] targetTokens, Map<Integer, Integer> closing2OpeningTag, Alignments algn) {
-
-    List<String> targetTokensWithTags = new ArrayList<>();
-
-    Map<Integer, List<String>> sourceTokenIndex2tags =
-        createSourceTokenIndex2Tags(sourceTokensWithTags);
-
-    moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTag,
-        algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
-
-    // handle special case of isolated tag at the beginning of source sentence;
-    // we assume that such tags refer to the whole sentence and not a specific token and
-    // therefore add them at the beginning of the target sentence
-    List<String> sourceTagsAtBeginningOfSentence = sourceTokenIndex2tags.get(0);
-    if (sourceTagsAtBeginningOfSentence != null) {
-      for (String oneSourceTag : new ArrayList<>(sourceTagsAtBeginningOfSentence)) {
-        if (oneSourceTag.charAt(0) == TextFragment.MARKER_ISOLATED) {
-          targetTokensWithTags.add(oneSourceTag);
-          sourceTagsAtBeginningOfSentence.remove(oneSourceTag);
-        }
-      }
-      if (sourceTagsAtBeginningOfSentence.isEmpty()) {
-        sourceTokenIndex2tags.remove(0);
-      }
-    }
-
-    for (int targetTokenIndex = 0; targetTokenIndex < targetTokens.length; targetTokenIndex++) {
-
-      String targetToken = targetTokens[targetTokenIndex];
-
-      List<String> tagsToInsertBefore = new ArrayList<>();
-      List<String> tagsToInsertAfter = new ArrayList<>();
-
-      List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
-      for (int oneSourceTokenIndex : sourceTokenIndexes) {
-        List<String> sourceTags = getTagsForSourceTokenIndex(
-            oneSourceTokenIndex, sourceTokenIndex2tags, sourceTokensWithoutTags);
-        if (sourceTags != null) {
-          for (String oneSourceTag : sourceTags) {
-            if (isBackwardTag(oneSourceTag)) {
-              tagsToInsertAfter.add(oneSourceTag);
-            } else {
-              tagsToInsertBefore.add(oneSourceTag);
-            }
-          }
-        }
-      }
-      targetTokensWithTags.addAll(tagsToInsertBefore);
-      targetTokensWithTags.add(targetToken);
-      targetTokensWithTags.addAll(tagsToInsertAfter);
-    }
-
-    // get EOS tags from source sentence
-    int eosTokenIndex = sourceTokensWithoutTags.length;
-    List<String> eosTags = sourceTokenIndex2tags.get(eosTokenIndex);
-    if (eosTags != null) {
-      targetTokensWithTags.addAll(eosTags);
-      sourceTokenIndex2tags.remove(eosTokenIndex);
-    }
-
-    // add any remaining tags
-    if (!sourceTokenIndex2tags.isEmpty()) {
-      List<Integer> keys = new ArrayList<>(sourceTokenIndex2tags.keySet());
-      Collections.sort(keys);
-      for (Integer oneKey : keys) {
-        targetTokensWithTags.addAll(sourceTokenIndex2tags.get(oneKey));
-      }
-    }
-
-    // convert array list to array and return it
-    return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
-  }
-
-
-  /**
    * Advanced version of creating a map from indexes to tags. Take into account the
    * 'direction' of a tag, i.e. isolated and opening tags are assigned to the <b>next</b> token,
    * while a closing tag is assigned to the <b>previous</b> token.
@@ -436,7 +345,7 @@ public class MarianNmtConnector extends BaseConnector {
    *          the source tokens with tags
    * @return the map
    */
-  private static Map<Integer, List<String>> createSourceTokenIndex2Tags(
+  public static Map<Integer, List<String>> createSourceTokenIndex2Tags(
       String[] sourceTokensWithTags) {
 
     Map<Integer, List<String>> index2tags = new HashMap<>();
@@ -614,42 +523,87 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Rebuild the source sentence with tags. Used or debugging
-   * {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
+   * Advanced version to re-insert tags from source. Takes into account the 'direction' of
+   * a tag and special handling of isolated tags at sentence beginning.
    *
-   * @param sourceTokenIndex2tags
-   *          map of source token index to list of associated tags
    * @param sourceTokensWithoutTags
-   *          the original source token sequence without tags
-   * @return list of source tokens with tags
+   *          list of source tokens without tags
+   * @param targetTokensWithoutTags
+   *          list of target tokens without tags
+   * @param algn
+   *          alignments of source and target tokens
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags
+   * @return target tokens with re-inserted tags
    */
-  public static List<String> rebuildSourceSentenceWithTags(
-      Map<Integer, List<String>> sourceTokenIndex2tags,
-      String[] sourceTokensWithoutTags) {
+  public static String[] reinsertTags(
+      String[] sourceTokensWithoutTags, String[] targetTokensWithoutTags,
+      Alignments algn, Map<Integer, List<String>> sourceTokenIndex2tags) {
 
-    List<String> tokens = new ArrayList<>();
+    List<String> targetTokensWithTags = new ArrayList<>();
 
-    for (int i = 0; i < sourceTokensWithoutTags.length; i++) {
-      List<String> tags = sourceTokenIndex2tags.get(i);
-      if (tags == null) {
-        tokens.add(sourceTokensWithoutTags[i]);
-        continue;
-      }
-      List<String> tagsBefore = new ArrayList<>();
-      List<String> tagsAfter = new ArrayList<>();
-      for (String oneTag : tags) {
-        if (isClosingTag(oneTag)) {
-          tagsAfter.add(oneTag);
-        } else {
-          tagsBefore.add(0, oneTag);
+    // handle special case of isolated tag at the beginning of source sentence;
+    // we assume that such tags refer to the whole sentence and not a specific token and
+    // therefore add them at the beginning of the target sentence
+    List<String> sourceTagsAtBeginningOfSentence = sourceTokenIndex2tags.get(0);
+    if (sourceTagsAtBeginningOfSentence != null) {
+      for (String oneSourceTag : new ArrayList<>(sourceTagsAtBeginningOfSentence)) {
+        if (oneSourceTag.charAt(0) == TextFragment.MARKER_ISOLATED) {
+          targetTokensWithTags.add(oneSourceTag);
+          sourceTagsAtBeginningOfSentence.remove(oneSourceTag);
         }
       }
-      tokens.addAll(tagsBefore);
-      tokens.add(sourceTokensWithoutTags[i]);
-      tokens.addAll(tagsAfter);
+      if (sourceTagsAtBeginningOfSentence.isEmpty()) {
+        sourceTokenIndex2tags.remove(0);
+      }
     }
 
-    return tokens;
+    for (int targetTokenIndex = 0; targetTokenIndex < targetTokensWithoutTags.length;
+        targetTokenIndex++) {
+
+      String targetToken = targetTokensWithoutTags[targetTokenIndex];
+
+      List<String> tagsToInsertBefore = new ArrayList<>();
+      List<String> tagsToInsertAfter = new ArrayList<>();
+
+      List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
+      for (int oneSourceTokenIndex : sourceTokenIndexes) {
+        List<String> sourceTags = getTagsForSourceTokenIndex(
+            oneSourceTokenIndex, sourceTokenIndex2tags, sourceTokensWithoutTags);
+        if (sourceTags != null) {
+          for (String oneSourceTag : sourceTags) {
+            if (isBackwardTag(oneSourceTag)) {
+              tagsToInsertAfter.add(oneSourceTag);
+            } else {
+              tagsToInsertBefore.add(oneSourceTag);
+            }
+          }
+        }
+      }
+      targetTokensWithTags.addAll(tagsToInsertBefore);
+      targetTokensWithTags.add(targetToken);
+      targetTokensWithTags.addAll(tagsToInsertAfter);
+    }
+
+    // get EOS tags from source sentence
+    int eosTokenIndex = sourceTokensWithoutTags.length;
+    List<String> eosTags = sourceTokenIndex2tags.get(eosTokenIndex);
+    if (eosTags != null) {
+      targetTokensWithTags.addAll(eosTags);
+      sourceTokenIndex2tags.remove(eosTokenIndex);
+    }
+
+    // add any remaining tags
+    if (!sourceTokenIndex2tags.isEmpty()) {
+      List<Integer> keys = new ArrayList<>(sourceTokenIndex2tags.keySet());
+      Collections.sort(keys);
+      for (Integer oneKey : keys) {
+        targetTokensWithTags.addAll(sourceTokenIndex2tags.get(oneKey));
+      }
+    }
+
+    // convert array list to array and return it
+    return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
   }
 
 
@@ -723,6 +677,59 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return resultTags;
+  }
+
+
+  /**
+   * When doing byte pair encoding, tags can end up between bpe fragments. Move opening and
+   * isolated tags in front of the original token and closing tags after it.
+   *
+   * @param tokens
+   *          the tokens
+   * @return the tokens without any tags between bpe fragments
+   */
+  public static String[] moveTagsFromBetweenBpeFragments(String[] tokens) {
+
+    ArrayList<String> tokenList = new ArrayList<>(Arrays.asList(tokens));
+
+    // start at 1, as the first token cannot be between two bpe fragments
+    for (int i = 1; i < tokenList.size(); i++) {
+      String oneToken = tokenList.get(i);
+      if (isTag(oneToken) && isBpeFragement(tokenList.get(i - 1))) {
+        String removedToken = tokenList.remove(i);
+        if (isBackwardTag(oneToken)) {
+          // get index of closest following token that is not a bpe fragment;
+          // attention: The last bpe fragment has no @@ ending!
+          for (int nextIndex = i; nextIndex < tokenList.size(); nextIndex++) {
+            if (isBpeFragement(tokenList.get(nextIndex))
+                || isTag(tokenList.get(nextIndex))) {
+              continue;
+            }
+            tokenList.add(nextIndex + 1, removedToken);
+            i--;
+            break;
+          }
+        } else {
+          // get index of the closest previous token that is not a bpe fragment
+          boolean swapCompleted = false;
+          for (int prevIndex = i - 1; prevIndex >= 0; prevIndex--) {
+            if (isBpeFragement(tokenList.get(prevIndex))) {
+              continue;
+            }
+            tokenList.add(prevIndex + 1, removedToken);
+            swapCompleted = true;
+            break;
+          }
+          if (!swapCompleted) {
+            // bpe fragment at beginning of sentence, so add tag in front of it
+            tokenList.add(0, removedToken);
+          }
+        }
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
   }
 
 
@@ -825,59 +832,6 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return false;
-  }
-
-
-  /**
-   * When doing byte pair encoding, tags can end up between bpe fragments. Move opening and
-   * isolated tags in front of the original token and closing tags after it.
-   *
-   * @param tokens
-   *          the tokens
-   * @return the tokens without any tags between bpe fragments
-   */
-  public static String[] moveTagsFromBetweenBpeFragments(String[] tokens) {
-
-    ArrayList<String> tokenList = new ArrayList<>(Arrays.asList(tokens));
-
-    // start at 1, as the first token cannot be between two bpe fragments
-    for (int i = 1; i < tokenList.size(); i++) {
-      String oneToken = tokenList.get(i);
-      if (isTag(oneToken) && isBpeFragement(tokenList.get(i - 1))) {
-        String removedToken = tokenList.remove(i);
-        if (isBackwardTag(oneToken)) {
-          // get index of closest following token that is not a bpe fragment;
-          // attention: The last bpe fragment has no @@ ending!
-          for (int nextIndex = i; nextIndex < tokenList.size(); nextIndex++) {
-            if (isBpeFragement(tokenList.get(nextIndex))
-                || isTag(tokenList.get(nextIndex))) {
-              continue;
-            }
-            tokenList.add(nextIndex + 1, removedToken);
-            i--;
-            break;
-          }
-        } else {
-          // get index of the closest previous token that is not a bpe fragment
-          boolean swapCompleted = false;
-          for (int prevIndex = i - 1; prevIndex >= 0; prevIndex--) {
-            if (isBpeFragement(tokenList.get(prevIndex))) {
-              continue;
-            }
-            tokenList.add(prevIndex + 1, removedToken);
-            swapCompleted = true;
-            break;
-          }
-          if (!swapCompleted) {
-            // bpe fragment at beginning of sentence, so add tag in front of it
-            tokenList.add(0, removedToken);
-          }
-        }
-      }
-    }
-
-    String[] resultAsArray = new String[tokenList.size()];
-    return tokenList.toArray(resultAsArray);
   }
 
 
@@ -1207,9 +1161,49 @@ public class MarianNmtConnector extends BaseConnector {
             TextFragment.toIndex(oneToken.charAt(1)));
       } else {
         resultTokens[index] = oneToken;
-}
+      }
     }
 
     return resultTokens;
+  }
+
+
+  /**
+   * Rebuild the source sentence with tags. Used or debugging
+   * {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
+   *
+   * @param sourceTokenIndex2tags
+   *          map of source token index to list of associated tags
+   * @param sourceTokensWithoutTags
+   *          the original source token sequence without tags
+   * @return list of source tokens with tags
+   */
+  public static List<String> rebuildSourceSentenceWithTags(
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      String[] sourceTokensWithoutTags) {
+
+    List<String> tokens = new ArrayList<>();
+
+    for (int i = 0; i < sourceTokensWithoutTags.length; i++) {
+      List<String> tags = sourceTokenIndex2tags.get(i);
+      if (tags == null) {
+        tokens.add(sourceTokensWithoutTags[i]);
+        continue;
+      }
+      List<String> tagsBefore = new ArrayList<>();
+      List<String> tagsAfter = new ArrayList<>();
+      for (String oneTag : tags) {
+        if (isClosingTag(oneTag)) {
+          tagsAfter.add(oneTag);
+        } else {
+          tagsBefore.add(0, oneTag);
+        }
+      }
+      tokens.addAll(tagsBefore);
+      tokens.add(sourceTokensWithoutTags[i]);
+      tokens.addAll(tagsAfter);
+    }
+
+    return tokens;
   }
 }

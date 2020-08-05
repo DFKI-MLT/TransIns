@@ -28,25 +28,16 @@ class MarianNmtConnectorTest {
 
   /**
    * Test {@link MarianNmtConnector#createSourceTokenIndex2Tags(String[], int)}.
-   * This method is private, access for unit test achieved via reflection.
    */
   @Test
-  void testCreateSourceTokenIndex2Tags()
-      throws ReflectiveOperationException {
-
-    // use reflection to make private method accessible
-    String methodName = "createSourceTokenIndex2Tags";
-    Method method =
-        MarianNmtConnector.class.getDeclaredMethod(methodName, String[].class);
-    method.setAccessible(true);
+  void testCreateSourceTokenIndex2Tags() {
 
     String source =
         String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
     String[] sourceTokens = source.split(" ");
 
-    @SuppressWarnings("unchecked")
     Map<Integer, List<String>> index2Tags =
-        (Map<Integer, List<String>>)method.invoke(null, new Object[] { sourceTokens });
+        MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokens);
 
     assertThat(index2Tags).hasSize(4);
     assertThat(index2Tags.get(0)).containsExactly(ISO, OPEN1, CLOSE1);
@@ -136,15 +127,15 @@ class MarianNmtConnectorTest {
 
     // init variables to be re-used between tests
     String target = null;
-    String[] targetTokens = null;
+    String[] targetTokensWithoutTags = null;
     String rawAlignments = null;
     Alignments algn = null;
-    Map<Integer, Integer> closing2OpeningTagId = null;
+    Map<Integer, List<String>> sourceTokenIndex2tags = null;
     String[] targetTokensWithTags = null;
 
     // first test
     target = "Das ist ein Test .";
-    targetTokens = target.split(" ");
+    targetTokensWithoutTags = target.split(" ");
 
     rawAlignments = ""
         + "1,0,0,0,0,0 " // Das
@@ -155,12 +146,11 @@ class MarianNmtConnectorTest {
         + "0,0,0,0,0,1"; // EOS
     algn = new SoftAlignments(rawAlignments);
 
-    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(source);
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
 
     targetTokensWithTags =
         MarianNmtConnector.reinsertTags(
-            sourceTokensWithTags, sourceTokensWithoutTags, targetTokens,
-            closing2OpeningTagId, algn);
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
     assertThat(targetTokensWithTags)
         // provide human-readable string
         .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
@@ -169,7 +159,7 @@ class MarianNmtConnectorTest {
 
     // second test
     target = "Test ein ist das .";
-    targetTokens = target.split(" ");
+    targetTokensWithoutTags = target.split(" ");
 
     rawAlignments = ""
         + "0,0,0,1,0,0 " // Test
@@ -180,12 +170,11 @@ class MarianNmtConnectorTest {
         + "0,0,0,0,0,1"; // EOS
     algn = new SoftAlignments(rawAlignments);
 
-    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(source);
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
 
     targetTokensWithTags =
         MarianNmtConnector.reinsertTags(
-            sourceTokensWithTags, sourceTokensWithoutTags, targetTokens,
-            closing2OpeningTagId, algn);
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
     assertThat(targetTokensWithTags)
         // provide human-readable string
         .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
@@ -208,25 +197,24 @@ class MarianNmtConnectorTest {
 
     // init variables to be re-used between tests
     String target = null;
-    String[] targetTokens = null;
+    String[] targetTokensWithoutTags = null;
     String rawAlignments = null;
     Alignments algn = null;
-    Map<Integer, Integer> closing2OpeningTagId = null;
+    Map<Integer, List<String>> sourceTokenIndex2tags = null;
     String[] targetTokensWithTags = null;
 
     // first test
     target = "Das ist ein Test .";
-    targetTokens = target.split(" ");
+    targetTokensWithoutTags = target.split(" ");
 
     rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
     algn = new HardAlignments(rawAlignments);
 
-    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(source);
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
 
     targetTokensWithTags =
         MarianNmtConnector.reinsertTags(
-            sourceTokensWithTags, sourceTokensWithoutTags, targetTokens,
-            closing2OpeningTagId, algn);
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
     assertThat(targetTokensWithTags)
         // provide human-readable string
@@ -237,17 +225,16 @@ class MarianNmtConnectorTest {
     // second test
     target = "Test ein ist das .";
     //        This is  a   Test .
-    targetTokens = target.split(" ");
+    targetTokensWithoutTags = target.split(" ");
 
     rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
     algn = new HardAlignments(rawAlignments);
 
-    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(source);
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
 
     targetTokensWithTags =
         MarianNmtConnector.reinsertTags(
-            sourceTokensWithTags, sourceTokensWithoutTags, targetTokens,
-            closing2OpeningTagId, algn);
+            sourceTokensWithTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
     assertThat(targetTokensWithTags)
         // provide human-readable string
