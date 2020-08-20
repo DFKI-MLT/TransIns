@@ -169,10 +169,13 @@ public class MarianNmtConnector extends BaseConnector {
           logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
               sourceTokensWithoutTags, targetTokensWithoutTags, algn)));
 
-          Map<Integer, Integer> closing2OpeningTagId = createTagIdMap(preprocessedSourceSentence);
+          // get tag id pairs that correspond to opening/closing tags
+          Map<Integer, Integer> closing2OpeningTagId = createTagIdMap(sourceTokensWithTags);
 
+          // assign each source token its tags
           Map<Integer, List<String>> sourceTokenIndex2tags =
               createSourceTokenIndex2Tags(sourceTokensWithTags);
+          
           moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTagId,
               algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
@@ -306,21 +309,20 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Create map of closing tag ids to opening tag ids from the given preprocessed source
-   * sentence. It is assumed that the tags are balanced.
+   * Create map of closing tag ids to opening tag ids from the given source tokens with tags.
+   * It is assumed that the tags are balanced.
    *
-   * @param preprocessedSourceSentence
-   *          the preprocessed source sentence
+   * @param sourceTokensWithTags
+   *          the source tokens with tags
    * @return map of closing tag ids to opening tag ids
    */
-  public static Map<Integer, Integer> createTagIdMap(String preprocessedSourceSentence) {
+  public static Map<Integer, Integer> createTagIdMap(String[] sourceTokensWithTags) {
 
     Map<Integer, Integer> resultMap = new HashMap<>();
 
     Stack<Integer> openingIdsStack = new Stack<>();
 
-    String[] tokens = preprocessedSourceSentence.split(" ");
-    for (String oneToken : tokens) {
+    for (String oneToken : sourceTokensWithTags) {
       if (isOpeningTag(oneToken)) {
         openingIdsStack.push(getTagId(oneToken));
       } else if (isClosingTag(oneToken)) {

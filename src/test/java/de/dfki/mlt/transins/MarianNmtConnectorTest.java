@@ -365,10 +365,12 @@ class MarianNmtConnectorTest {
   @Test
   void testCreateTagIdMap() {
 
-    String source =
-        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
+    String[] sourceTokensWithTags =
+        String.format("%s %s This %s is a %s test . %s %s", ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO)
+            .split(" ");
 
-    Map<Integer, Integer> closing2OpeningTag = MarianNmtConnector.createTagIdMap(source);
+    Map<Integer, Integer> closing2OpeningTag =
+        MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
     assertThat(closing2OpeningTag).contains(entry(2, 1), entry(4, 3));
   }
 
@@ -380,15 +382,15 @@ class MarianNmtConnectorTest {
   void testBalanceTags() {
 
     // init variables to be re-used between tests
-    String source = null;
+    String[] sourceTokensWithTags = null;
     Map<Integer, Integer> closing2OpeningTag = null;
     String target = null;
     String[] targetTokens = null;
 
     // first test
-    source = String.format("%s %s This is %s %s a test . %s %s",
-        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(source);
+    sourceTokensWithTags = String.format("%s %s This is %s %s a test . %s %s",
+        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO).split(" ");
+    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
     target = String.format("%s Das %s %s ist %s ein Test . %s %s",
         ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
     targetTokens = target.split(" ");
@@ -397,9 +399,9 @@ class MarianNmtConnectorTest {
         ISO, OPEN1, "Das", "ist", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
 
     // second test
-    source = String.format("%s %s %s This is %s %s a test . %s",
-        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO);
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(source);
+    sourceTokensWithTags = String.format("%s %s %s This is %s %s a test . %s",
+        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO).split(" ");
+    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
     target = String.format("%s Das %s %s %s %s ist ein Test . %s",
         ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
     targetTokens = target.split(" ");
@@ -408,9 +410,9 @@ class MarianNmtConnectorTest {
         ISO, OPEN2, OPEN1, "Das", "ist", CLOSE1, CLOSE2, "ein", "Test", ".", ISO);
 
     // first test with bpe fragments
-    source = String.format("%s %s This is %s %s a test . %s %s",
-        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO);
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(source);
+    sourceTokensWithTags = String.format("%s %s This is %s %s a test . %s %s",
+        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO).split(" ");
+    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
     target = String.format("%s Da@@ s %s %s is@@ t %s ein Test . %s %s",
         ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
     targetTokens = target.split(" ");
@@ -419,9 +421,9 @@ class MarianNmtConnectorTest {
         ISO, OPEN1, "Da@@", "s", "is@@", "t", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
 
     // second test with bpe fragments
-    source = String.format("%s %s %s This is %s %s a test . %s",
-        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO);
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(source);
+    sourceTokensWithTags = String.format("%s %s %s This is %s %s a test . %s",
+        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO).split(" ");
+    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
     target = String.format("%s Da@@ s %s %s %s %s is@@ t ein Test . %s",
         ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
     targetTokens = target.split(" ");
@@ -453,7 +455,7 @@ class MarianNmtConnectorTest {
     sourceTokensWithTags = source.split(" ");
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokensWithTags);
     sourceTokens = MarianNmtConnector.removeTags(source).split(" ");
-    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(source);
+    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens, sourceTokens.length);
@@ -470,7 +472,7 @@ class MarianNmtConnectorTest {
     sourceTokensWithTags = source.split(" ");
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokensWithTags);
     sourceTokens = MarianNmtConnector.removeTags(source).split(" ");
-    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(source);
+    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens, sourceTokens.length);
