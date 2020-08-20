@@ -134,15 +134,15 @@ public class Translator {
     String mimeType = MimeTypeMapper.getMimeType(ext);
 
     // parameter summary
-    logger.info("             source file: " + sourceFileName);
-    logger.info("         source language: " + sourceLang);
-    logger.info("         source encoding: " + sourceEnc);
-    logger.info("             target file: " + targetFileName);
-    logger.info("         target language: " + targetLang);
-    logger.info("         target encoding: " + targetEnc);
-    logger.info("           translator id: " + translatorId);
-    logger.info("      MIME type detected: " + mimeType);
-    logger.info("  configuration detected: " + configId);
+    logger.info("             source file: {}", sourceFileName);
+    logger.info("         source language: {}", sourceLang);
+    logger.info("         source encoding: {}", sourceEnc);
+    logger.info("             target file: {}", targetFileName);
+    logger.info("         target language: {}", targetLang);
+    logger.info("         target encoding: {}", targetEnc);
+    logger.info("           translator id: {}", translatorId);
+    logger.info("      MIME type detected: {}", mimeType);
+    logger.info("  configuration detected: {}", configId);
 
     try (RawDocument rawDoc =
         new RawDocument(
@@ -183,7 +183,7 @@ public class Translator {
           driver.addStep(new UppercaseStep());
           break;
         default:
-          logger.error(String.format("unkown translator id \"%s\"", translatorId));
+          logger.error("unkown translator id \"{}\"", translatorId);
           return;
       }
 

@@ -114,8 +114,7 @@ public class MarianNmtConnector extends BaseConnector {
   @Override
   public int query(TextFragment fragment) {
 
-    logger.debug(String.format("translating from %s to %s",
-        super.getSourceLanguage(), super.getTargetLanguage()));
+    logger.debug("translating from {} to {}", super.getSourceLanguage(), super.getTargetLanguage());
 
     open();
 
@@ -126,7 +125,7 @@ public class MarianNmtConnector extends BaseConnector {
       if (!fragment.hasText(false)) {
         return 0;
       }
-      logger.debug(String.format("source sentence: \"%s\"", fragment.getCodedText()));
+      logger.debug("source sentence: \"{}\"", fragment.getCodedText());
 
       // preprocessing
       String sentence = fragment.getCodedText();
@@ -137,14 +136,13 @@ public class MarianNmtConnector extends BaseConnector {
               Mode.PREPROCESS,
               this.params.getPrePostHost(),
               this.params.getPrePostPort());
-      logger.debug(String.format("preprocessed source sentence: \"%s\"",
-          preprocessedSourceSentence));
+      logger.debug("preprocessed source sentence: \"{}\"", preprocessedSourceSentence);
 
       // translate
       String translatorInput = removeTags(preprocessedSourceSentence);
       // add leading token with target language
       translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
-      logger.debug(String.format("send to translator: \"%s\"", translatorInput));
+      logger.debug("send to translator: \"{}\"", translatorInput);
       String translatorResponse = this.translatorClient.send(translatorInput);
 
       // split into translation and alignments
@@ -156,8 +154,8 @@ public class MarianNmtConnector extends BaseConnector {
         // if tags and alignments are available, re-insert tags
         translation = parts[0].trim();
         String rawAlignments = parts[1].trim();
-        logger.debug(String.format("raw target sentence: \"%s\"", translation));
-        logger.debug(String.format("raw alignments: \"%s\"", rawAlignments));
+        logger.debug("raw target sentence: \"{}\"", translation);
+        logger.debug("raw alignments: \"{}\"", rawAlignments);
         Alignments algn = createAlignments(rawAlignments);
         // compensate for leading target language token in source sentence
         algn.shiftSourceIndexes(-1);
@@ -194,7 +192,7 @@ public class MarianNmtConnector extends BaseConnector {
         }
       } else {
         translation = translatorResponse;
-        logger.debug(String.format("raw target sentence: \"%s\"", translation));
+        logger.debug("raw target sentence: \"{}\"", translation);
       }
 
       // postprocessing
@@ -218,10 +216,10 @@ public class MarianNmtConnector extends BaseConnector {
         // print target sentence with human readable tags
         TextFragment postFragment = new TextFragment();
         postFragment.setCodedText(postprocessedSentence, fragment.getClonedCodes(), true);
-        logger.debug(String.format("postprocessed target sentence with tags: \"%s\"",
-            this.util.toCodedHTML(postFragment)));
+        logger.debug("postprocessed target sentence with tags: \"{}\"",
+            this.util.toCodedHTML(postFragment));
       } else {
-        logger.debug(String.format("postprocessed target sentence: \"%s\"", postprocessedSentence));
+        logger.debug("postprocessed target sentence: \"{}\"", postprocessedSentence);
       }
 
       super.result = new QueryResult();

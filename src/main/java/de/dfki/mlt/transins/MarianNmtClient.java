@@ -96,7 +96,7 @@ public class MarianNmtClient implements WebSocket.Listener {
   @Override
   public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
 
-    logger.info(String.format("Session closed because of %s", reason));
+    logger.info("Session closed because of {}", reason);
     return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
   }
 }
