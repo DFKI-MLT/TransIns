@@ -160,7 +160,7 @@ public class MarianNmtConnector extends BaseConnector {
         // compensate for leading target language token in source sentence
         algn.shiftSourceIndexes(-1);
         if (hasTags) {
-          // re-insert tags
+
           String[] sourceTokensWithTags = preprocessedSourceSentence.split(" ");
           String[] targetTokensWithoutTags = translation.split(" ");
 
@@ -176,12 +176,13 @@ public class MarianNmtConnector extends BaseConnector {
           Map<Integer, List<String>> sourceTokenIndex2tags =
               createSourceTokenIndex2Tags(sourceTokensWithTags);
           
+          // move tags in case of no target token pointing to the associated source token
           moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTagId,
               algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
-          String[] targetTokensWithTags = null;
-          targetTokensWithTags = reinsertTags(
+          String[] targetTokensWithTags = reinsertTags(
               sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+
 
           // make sure tags are not between bpe fragments
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
@@ -382,7 +383,7 @@ public class MarianNmtConnector extends BaseConnector {
    * <li>move opening tags forwards until pointing token
    * <li>move closing tags backwards until pointing token
    * </ul>
-   * The provided map is adapted accordingly.
+   * The provided map {@code sourceTokenIndex2tags} is adapted accordingly.
    *
    * @param sourceTokenIndex2tags
    *          map of source token indexes to associated tags
@@ -396,12 +397,13 @@ public class MarianNmtConnector extends BaseConnector {
    */
   public static void moveSourceTagsToPointedTokens(
       Map<Integer, List<String>> sourceTokenIndex2tags,
-      Map<Integer, Integer> closing2OpeningTagId, List<Integer> pointedSourceTokens,
+      Map<Integer, Integer> closing2OpeningTagId,
+      List<Integer> pointedSourceTokens,
       int sourceTokensLength) {
 
     // for each closing tag of non-pointed source tokens, check if there is
     // a pointed source on the way to the corresponding opening tag;
-    // if not remove the tag pair (i.e. move to eos)
+    // if not remove the tag pair (i.e. move to end-of-sentence)
     List<String> eosTags = new ArrayList<>();
     for (var oneEntry : new HashSet<>(sourceTokenIndex2tags.entrySet())) {
       int sourceTokenIndex = oneEntry.getKey();
