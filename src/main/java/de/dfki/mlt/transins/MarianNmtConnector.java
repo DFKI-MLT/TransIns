@@ -560,10 +560,13 @@ public class MarianNmtConnector extends BaseConnector {
       }
     }
 
-    for (int targetTokenIndex = 0; targetTokenIndex < targetTokensWithoutTags.length;
+    for (int targetTokenIndex = 0; targetTokenIndex <= targetTokensWithoutTags.length;
         targetTokenIndex++) {
 
-      String targetToken = targetTokensWithoutTags[targetTokenIndex];
+      String targetToken = null;
+      if (targetTokenIndex < targetTokensWithoutTags.length) {
+        targetToken = targetTokensWithoutTags[targetTokenIndex];
+      }
 
       List<String> tagsToInsertBefore = new ArrayList<>();
       List<String> tagsToInsertAfter = new ArrayList<>();
@@ -583,7 +586,9 @@ public class MarianNmtConnector extends BaseConnector {
         }
       }
       targetTokensWithTags.addAll(tagsToInsertBefore);
+      if (targetToken != null) {
       targetTokensWithTags.add(targetToken);
+      }
       targetTokensWithTags.addAll(tagsToInsertAfter);
     }
 
