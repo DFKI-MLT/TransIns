@@ -233,12 +233,12 @@ class MarianNmtConnectorTest {
     targetTokensWithoutTags = target.split(" ");
 
     rawAlignments = ""
-        + "1,0,0,0,0,0 " // Das
-        + "0,1,0,0,0,0 " // ist
-        + "0,0,1,0,0,0 " // ein
-        + "0,0,0,1,0,0 " // Test
-        + "0,0,0,0,1,0 " // .
-        + "0,0,0,0,0,1"; // EOS
+        + "1,0,0,0,0,0 " // Das -> This
+        + "0,1,0,0,0,0 " // ist -> is
+        + "0,0,1,0,0,0 " // ein -> a
+        + "0,0,0,1,0,0 " // Test -> test
+        + "0,0,0,0,1,0 " // . -> .
+        + "0,0,0,0,0,1"; // EOS -> EOS
     algn = new SoftAlignments(rawAlignments);
 
     sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
@@ -247,7 +247,7 @@ class MarianNmtConnectorTest {
         MarianNmtConnector.reinsertTags(
             sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
     assertThat(targetTokensWithTags)
-        // provide human-readable string
+        // provide human-readable string in case of error
         .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
         .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
@@ -257,12 +257,12 @@ class MarianNmtConnectorTest {
     targetTokensWithoutTags = target.split(" ");
 
     rawAlignments = ""
-        + "0,0,0,1,0,0 " // Test
-        + "0,0,1,0,0,0 " // ein
-        + "0,1,0,0,0,0 " // ist
-        + "1,0,0,0,0,0 " // das
-        + "0,0,0,0,1,0 " // .
-        + "0,0,0,0,0,1"; // EOS
+        + "0,0,0,1,0,0 " // Test -> test
+        + "0,0,1,0,0,0 " // ein -> a
+        + "0,1,0,0,0,0 " // ist -> is
+        + "1,0,0,0,0,0 " // das -> This
+        + "0,0,0,0,1,0 " // . -> .
+        + "0,0,0,0,0,1"; // EOS -> EOS
     algn = new SoftAlignments(rawAlignments);
 
     sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
@@ -271,7 +271,7 @@ class MarianNmtConnectorTest {
         MarianNmtConnector.reinsertTags(
             sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
     assertThat(targetTokensWithTags)
-        // provide human-readable string
+        // provide human-readable string in case of error
         .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
         .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
@@ -312,7 +312,7 @@ class MarianNmtConnectorTest {
             sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
     assertThat(targetTokensWithTags)
-        // provide human-readable string
+        // provide human-readable string in case of error
         .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
         .containsExactly(
             ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
@@ -329,12 +329,93 @@ class MarianNmtConnectorTest {
 
     targetTokensWithTags =
         MarianNmtConnector.reinsertTags(
-            sourceTokensWithTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
     assertThat(targetTokensWithTags)
-        // provide human-readable string
+        // provide human-readable string in case of error
         .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
         .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
+  }
+
+
+  /**
+   * Test
+   * {@link MarianNmtConnector#reinsertTags(String[], String[], String[], Alignments)}
+   * with more complex examples.
+   */
+  @Test
+  void testReinsertTagsComplex() {
+
+    String source =
+        String.format("%s x y z %s a b c", OPEN1, CLOSE1);
+    String[] sourceTokensWithTags = source.split(" ");
+    String[] sourceTokensWithoutTags = MarianNmtConnector.removeTags(source).split(" ");
+
+    // init variables to be re-used between tests
+    String target = null;
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    Alignments algn = null;
+    Map<Integer, List<String>> sourceTokenIndex2tags = null;
+    String[] targetTokensWithTags = null;
+
+    // first test
+    source = String.format("%s x y z %s a b c", OPEN1, CLOSE1);
+    sourceTokensWithTags = source.split(" ");
+    sourceTokensWithoutTags = MarianNmtConnector.removeTags(source).split(" ");
+    target = "X1 N Z X2 N N";
+    targetTokensWithoutTags = target.split(" ");
+
+    rawAlignments = "0-0 0-3 2-2";
+    algn = new HardAlignments(rawAlignments);
+
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
+
+    targetTokensWithTags =
+        MarianNmtConnector.reinsertTags(
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+
+    assertThat(targetTokensWithTags)
+        // provide human-readable string in case of error
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .containsExactly(
+            OPEN1, "X1", "N", "Z", CLOSE1, OPEN1, "X2", "N", "N");
+
+    // second test
+    target = "Z1 Z2 X N N N";
+    targetTokensWithoutTags = target.split(" ");
+
+    rawAlignments = "0-2 2-0 2-1";
+    algn = new HardAlignments(rawAlignments);
+
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
+
+    targetTokensWithTags =
+        MarianNmtConnector.reinsertTags(
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+
+    assertThat(targetTokensWithTags)
+        // provide human-readable string in case of error
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .containsExactly("Z1", CLOSE1, "Z2", CLOSE1, OPEN1, "X", "N", "N", "N");
+
+    // third test
+    target = "Z1 N X1 Z2 N X2";
+    targetTokensWithoutTags = target.split(" ");
+
+    rawAlignments = "0-2 0-5 2-0 2-3";
+    algn = new HardAlignments(rawAlignments);
+
+    sourceTokenIndex2tags = MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokensWithTags);
+
+    targetTokensWithTags =
+        MarianNmtConnector.reinsertTags(
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+
+    assertThat(targetTokensWithTags)
+        // provide human-readable string in case of error
+        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .containsExactly("Z1", CLOSE1, "N", OPEN1, "X1", "Z2", CLOSE1, "N", OPEN1, "X2");
   }
 
 

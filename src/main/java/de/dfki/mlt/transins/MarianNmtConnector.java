@@ -2,7 +2,6 @@ package de.dfki.mlt.transins;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -551,8 +550,9 @@ public class MarianNmtConnector extends BaseConnector {
     List<String> sourceTagsAtBeginningOfSentence = sourceTokenIndex2tags.get(0);
     if (sourceTagsAtBeginningOfSentence != null) {
       for (String oneSourceTag : new ArrayList<>(sourceTagsAtBeginningOfSentence)) {
-        if (oneSourceTag.charAt(0) == TextFragment.MARKER_ISOLATED) {
+        if (isIsolatedTag(oneSourceTag)) {
           targetTokensWithTags.add(oneSourceTag);
+          // these tags are moved (not copied) to the target sentence
           sourceTagsAtBeginningOfSentence.remove(oneSourceTag);
         }
       }
@@ -561,13 +561,11 @@ public class MarianNmtConnector extends BaseConnector {
       }
     }
 
-    for (int targetTokenIndex = 0; targetTokenIndex <= targetTokensWithoutTags.length;
+    // now copy (not move) tags from source to target
+    for (int targetTokenIndex = 0; targetTokenIndex < targetTokensWithoutTags.length;
         targetTokenIndex++) {
 
-      String targetToken = null;
-      if (targetTokenIndex < targetTokensWithoutTags.length) {
-        targetToken = targetTokensWithoutTags[targetTokenIndex];
-      }
+      String targetToken = targetTokensWithoutTags[targetTokenIndex];
 
       List<String> tagsToInsertBefore = new ArrayList<>();
       List<String> tagsToInsertAfter = new ArrayList<>();
@@ -576,7 +574,6 @@ public class MarianNmtConnector extends BaseConnector {
       for (int oneSourceTokenIndex : sourceTokenIndexes) {
         List<String> sourceTags = getTagsForSourceTokenIndex(
             oneSourceTokenIndex, sourceTokenIndex2tags, sourceTokensWithoutTags);
-        if (sourceTags != null) {
           for (String oneSourceTag : sourceTags) {
             if (isBackwardTag(oneSourceTag)) {
               tagsToInsertAfter.add(oneSourceTag);
@@ -585,29 +582,16 @@ public class MarianNmtConnector extends BaseConnector {
             }
           }
         }
-      }
       targetTokensWithTags.addAll(tagsToInsertBefore);
-      if (targetToken != null) {
       targetTokensWithTags.add(targetToken);
-      }
       targetTokensWithTags.addAll(tagsToInsertAfter);
     }
 
-    // get EOS tags from source sentence
+    // get end-of-sentence tags from source sentence
     int eosTokenIndex = sourceTokensWithoutTags.length;
     List<String> eosTags = sourceTokenIndex2tags.get(eosTokenIndex);
     if (eosTags != null) {
       targetTokensWithTags.addAll(eosTags);
-      sourceTokenIndex2tags.remove(eosTokenIndex);
-    }
-
-    // add any remaining tags
-    if (!sourceTokenIndex2tags.isEmpty()) {
-      List<Integer> keys = new ArrayList<>(sourceTokenIndex2tags.keySet());
-      Collections.sort(keys);
-      for (Integer oneKey : keys) {
-        targetTokensWithTags.addAll(sourceTokenIndex2tags.get(oneKey));
-      }
     }
 
     // convert array list to array and return it
@@ -618,8 +602,7 @@ public class MarianNmtConnector extends BaseConnector {
   /**
    * Get all tags from given source tokens associated with the given source token index.
    * If the source token index points to a bpe fragments, this methods collects all tags
-   * from all bpe fragments belonging to the original token.<br>
-   * All collected tags are removed from the given sourceTokenIndex2tags map.
+   * from all bpe fragments belonging to the original token.
    *
    * @param sourceTokenIndex
    *          the source token index
@@ -637,13 +620,12 @@ public class MarianNmtConnector extends BaseConnector {
 
     List<String> resultTags = new ArrayList<>();
 
-    // handle special case of index pointing to EOS of source sentence;
-    // there is NO token for EOS in sourceTokensWithoutTags
+    // handle special case of index pointing to end-of-sentence of source sentence;
+    // there is NO end-of-sentence token in sourceTokensWithoutTags
     if (sourceTokenIndex == sourceTokensWithoutTags.length) {
       List<String> sourceTags = sourceTokenIndex2tags.get(sourceTokenIndex);
       if (sourceTags != null) {
         resultTags = sourceTags;
-        sourceTokenIndex2tags.remove(sourceTokenIndex);
       }
       return resultTags;
     }
@@ -667,7 +649,6 @@ public class MarianNmtConnector extends BaseConnector {
         List<String> sourceTags = sourceTokenIndex2tags.get(i);
         if (sourceTags != null) {
           resultTags.addAll(sourceTokenIndex2tags.get(i));
-          sourceTokenIndex2tags.remove(i);
         }
         if (!isBpeFragement(sourceTokensWithoutTags[i])) {
           // last bpe fragment found
@@ -675,12 +656,10 @@ public class MarianNmtConnector extends BaseConnector {
         }
       }
     } else {
-      // source token points to a non-bpe token, so just return the associated tags and
-      // remove them from the map
+      // source token points to a non-bpe token, so just return the associated tags
       List<String> sourceTags = sourceTokenIndex2tags.get(sourceTokenIndex);
       if (sourceTags != null) {
         resultTags = sourceTags;
-        sourceTokenIndex2tags.remove(sourceTokenIndex);
       }
     }
 
