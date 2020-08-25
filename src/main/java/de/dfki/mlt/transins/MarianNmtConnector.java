@@ -460,8 +460,8 @@ public class MarianNmtConnector extends BaseConnector {
 
     // at this point, all remaining tags are either isolated or have at least on pointing
     // token between the opening and closing tag;
-    // now move opening and isolated tags to the following pointed token and closing tags
-    // to the preceding pointed token
+    // now move opening and isolated tags (when not at sentence beginning) to the
+    // following pointed token and closing tags to the preceding pointed token
     for (var oneEntry : new HashSet<>(sourceTokenIndex2tags.entrySet())) {
       int sourceTokenIndex = oneEntry.getKey();
       if (pointedSourceTokens.contains(sourceTokenIndex)) {
@@ -470,7 +470,8 @@ public class MarianNmtConnector extends BaseConnector {
 
       List<String> tags = oneEntry.getValue();
       for (String oneTag : new ArrayList<>(tags)) {
-        if (isOpeningTag(oneTag) || isIsolatedTag(oneTag)) {
+        if (isOpeningTag(oneTag)
+            || (isIsolatedTag(oneTag) && sourceTokenIndex > 0)) {
           for (int i = sourceTokenIndex + 1; i < sourceTokensLength; i++) {
             if (pointedSourceTokens.contains(i)) {
               List<String> pointedSourceTokenTags = sourceTokenIndex2tags.get(i);

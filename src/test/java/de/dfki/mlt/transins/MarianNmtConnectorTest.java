@@ -100,8 +100,9 @@ class MarianNmtConnectorTest {
     MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens, sourceTokens.length);
 
-    assertThat(sourceTokenIndex2tags).hasSize(3);
-    assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1, ISO);
+    assertThat(sourceTokenIndex2tags).hasSize(4);
+    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO);
+    assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1);
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
     assertThat(sourceTokenIndex2tags.get(5)).containsExactly(OPEN2, ISO, CLOSE2);
 
@@ -121,6 +122,23 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO, OPEN1, OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
     assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO);
+
+    // third test
+    source = String.format("%s %s %s x %s y z a %s b c", ISO, OPEN1, OPEN2, CLOSE2, CLOSE1);
+    pointedSourceTokens = Arrays.asList(new Integer[] { 1, 2 });
+    sourceTokensWithTags = source.split(" ");
+    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokensWithTags);
+    sourceTokens = MarianNmtConnector.removeTags(source).split(" ");
+    closing2OpeningTagId = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
+
+    MarianNmtConnector.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens, sourceTokens.length);
+
+    assertThat(sourceTokenIndex2tags).hasSize(4);
+    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO);
+    assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1);
+    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
+    assertThat(sourceTokenIndex2tags.get(6)).containsExactly(OPEN2, CLOSE2);
   }
 
 
