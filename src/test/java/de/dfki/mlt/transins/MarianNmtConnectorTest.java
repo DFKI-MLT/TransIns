@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -24,6 +25,18 @@ class MarianNmtConnectorTest {
   private static final String CLOSE1 = MarianNmtConnector.createClosingTag(2);
   private static final String OPEN2 = MarianNmtConnector.createOpeningTag(3);
   private static final String CLOSE2 = MarianNmtConnector.createClosingTag(4);
+
+  // map of closing tag ids to opening tag ids
+  private static Map<Integer, Integer> closing2OpeningTagId = null;
+
+
+  @BeforeAll
+  public static void init() {
+
+    closing2OpeningTagId = new HashMap<>();
+    closing2OpeningTagId.put(2, 1);
+    closing2OpeningTagId.put(4, 3);
+  }
 
 
   /**
@@ -248,7 +261,7 @@ class MarianNmtConnectorTest {
             sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
         .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
 
@@ -272,7 +285,7 @@ class MarianNmtConnectorTest {
             sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
         .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
 
@@ -313,9 +326,8 @@ class MarianNmtConnectorTest {
 
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
-        .containsExactly(
-            ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
+        .containsExactly(ISO, OPEN1, "Das", CLOSE1, "ist", "ein", OPEN2, "Test", ".", CLOSE2, ISO);
 
     // second test
     target = "Test ein ist das .";
@@ -333,7 +345,7 @@ class MarianNmtConnectorTest {
 
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
         .containsExactly(ISO, OPEN2, "Test", "ein", "ist", OPEN1, "das", CLOSE1, ".", CLOSE2, ISO);
   }
 
@@ -377,9 +389,8 @@ class MarianNmtConnectorTest {
 
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
-        .containsExactly(
-            OPEN1, "X1", "N", "Z", CLOSE1, OPEN1, "X2", "N", "N");
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
+        .containsExactly(OPEN1, "X1", "N", "Z", CLOSE1, OPEN1, "X2", "N", "N");
 
     // second test
     target = "Z1 Z2 X N N N";
@@ -396,7 +407,7 @@ class MarianNmtConnectorTest {
 
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
         .containsExactly("Z1", CLOSE1, "Z2", CLOSE1, OPEN1, "X", "N", "N", "N");
 
     // third test
@@ -414,7 +425,7 @@ class MarianNmtConnectorTest {
 
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
-        .as(Arrays.asList(MarianNmtConnector.replaceOkapiTags(targetTokensWithTags)) + "")
+        .as(MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTagId))
         .containsExactly("Z1", CLOSE1, "N", OPEN1, "X1", "Z2", CLOSE1, "N", OPEN1, "X2");
   }
 

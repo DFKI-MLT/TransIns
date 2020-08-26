@@ -1124,13 +1124,16 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Replace Okapi tags with human readable tags in given String array.
+   * Replace Okapi tags with human readable tags in given String array and create XML string.
    *
    * @param targetTokensWithTags
    *          string array with tokens
-   * @return string array with human readable tags
+   * @param closing2OpeningTagId
+   *          map of closing tag ids to opening tag ids
+   * @return XML string with appended tokens and replaced Okapi tags
    */
-  public static String[] replaceOkapiTags(String[] targetTokensWithTags) {
+  public static String toXml(
+      String[] targetTokensWithTags, Map<Integer, Integer> closing2OpeningTagId) {
 
     String[] resultTokens = new String[targetTokensWithTags.length];
 
@@ -1144,14 +1147,18 @@ public class MarianNmtConnector extends BaseConnector {
         resultTokens[index] = String.format("<u%d>",
             TextFragment.toIndex(oneToken.charAt(1)));
       } else if (oneToken.charAt(0) == TextFragment.MARKER_CLOSING) {
-        resultTokens[index] = String.format("</u%d>",
-            TextFragment.toIndex(oneToken.charAt(1)));
+        // use the id of the associated opening tag to get valid XML
+        int openingTagId = closing2OpeningTagId.get(TextFragment.toIndex(oneToken.charAt(1)));
+        resultTokens[index] = String.format("</u%d>", openingTagId);
       } else {
         resultTokens[index] = oneToken;
       }
     }
 
-    return resultTokens;
+    return String.format(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>%n<body>%n"
+            + String.join(" ", resultTokens)
+            + "%n</body>");
   }
 
 
