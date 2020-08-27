@@ -2,6 +2,7 @@ package de.dfki.mlt.transins;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -186,8 +187,8 @@ public class MarianNmtConnector extends BaseConnector {
           // make sure tags are not between bpe fragments
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
 
-          // make sure tags are balanced
-          balanceTags(closing2OpeningTagId, targetTokensWithTags);
+          // take care of inverted tags
+          handleInvertedTags(closing2OpeningTagId, targetTokensWithTags);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -720,78 +721,102 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Checks if the tags in the given target sentence are balanced. If not, swaps opening and closing
-   * tags.
+   * Check if the tags in the given target sentence are inverted and try to fix them by swapping.
+   * Example:
+   *
+   * <pre>
+   * {@code
+   * x <\it> y <it> z
+   * }
+   * </pre>
+   * is changed into
+   * <pre>
+   * {@code
+   * <it> x y z </it>
+   * }
+   * </pre>
    *
    * @param closing2OpeningTagId
    *          map of closing tag ids to opening tag ids
    * @param targetTokensWithTags
-   *          target sentence tokens with tags, potentially unbalanced
-   * @return target sentence tokens with balanced tags
+   *          target sentence tokens with tags
+   * @return target sentence tokens with handled inverted tags
    */
-  public static String[] balanceTags(
+  public static String[] handleInvertedTags(
       Map<Integer, Integer> closing2OpeningTagId, String[] targetTokensWithTags) {
 
-    List<Integer> currentOpeningIds = new ArrayList<>();
-    outer:
-    while (true) {
-      boolean swapped = false;
-      for (int i = 0; i < targetTokensWithTags.length; i++) {
-        String oneToken = targetTokensWithTags[i];
-        if (isOpeningTag(oneToken)) {
-          currentOpeningIds.add(getTagId(oneToken));
-        } else if (isClosingTag(oneToken)) {
-          // get opening tag id
-          int openingTagId = closing2OpeningTagId.get(getTagId(oneToken));
-          if (!currentOpeningIds.contains(openingTagId)) {
-            // tags have to be swapped
-            for (int j = i + 1; j < targetTokensWithTags.length; j++) {
-              String oneFollowingToken = targetTokensWithTags[j];
+    List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
+
+    for (var oneEntry : closing2OpeningTagId.entrySet()) {
+
+      int openingTagId = oneEntry.getValue();
+      int closingTagId = oneEntry.getKey();
+
+      // flag to indicated that the current position in the token list is
+      // between an opening and a closing tag
+      boolean betweenTags = false;
+      for (int i = 0; i < tokenList.size(); i++) {
+        String oneToken = tokenList.get(i);
+
+        if (!isTag(oneToken)
+            || (getTagId(oneToken) != openingTagId && getTagId(oneToken) != closingTagId)) {
+          continue;
+        }
+
+        if (betweenTags) {
+          if (isOpeningTag(oneToken)) {
+            betweenTags = true;
+          } else if (isClosingTag(oneToken)) {
+            betweenTags = false;
+          }
+        } else {
+          if (isOpeningTag(oneToken)) {
+            // nothing to do
+            betweenTags = true;
+          } else if (isClosingTag(oneToken)) {
+            // try to find an following opening tag and swap it with this closing tag
+            boolean swapped = false;
+            for (int j = i + 1; j < tokenList.size(); j++) {
+              String oneFollowingToken = tokenList.get(j);
               if (isOpeningTag(oneFollowingToken)
                   && getTagId(oneFollowingToken) == openingTagId) {
                 // we found the corresponding opening tag, now swap them
-                swap(targetTokensWithTags, i, j);
-                // move opening tag in front of the closest preceding non-tag;
-                // tag must NOT end between bpe fragments
+                swapped = true;
+                Collections.swap(tokenList, i, j);
+                // move opening tag in front of the closest preceding non-tag
                 int precIndex = i - 1;
                 while (precIndex >= 0) {
-                  swap(targetTokensWithTags, precIndex, precIndex + 1);
-                  if (!isBetweenBpeFragments(targetTokensWithTags, precIndex)) {
+                  Collections.swap(tokenList, precIndex, precIndex + 1);
+                  if (!isTag(tokenList.get(precIndex + 1))) {
                     break;
                   }
                   precIndex--;
                 }
-                // move closing tag after the closest following non-tag;
-                // tag must NOT end between bpe fragments
+                // move closing tag after the closest following non-tag
                 int follIndex = j + 1;
-                while (follIndex < targetTokensWithTags.length) {
-                  swap(targetTokensWithTags, follIndex - 1, follIndex);
-                  if (!isBetweenBpeFragments(targetTokensWithTags, follIndex)) {
+                i = follIndex;
+                while (follIndex < tokenList.size()) {
+                  i = follIndex;
+                  Collections.swap(tokenList, follIndex - 1, follIndex);
+                  if (!isTag(tokenList.get(follIndex - 1))) {
                     break;
                   }
                   follIndex++;
                 }
+                break;
               }
             }
-            swapped = true;
-            break;
+            if (!swapped) {
+              // there is not following opening tag, so just remove the closing tag
+              tokenList.remove(i);
+            }
           }
         }
       }
-      if (!swapped) {
-        break outer;
-      }
     }
 
-    return targetTokensWithTags;
-  }
-
-
-  private static void swap(String[] array, int firstIndex, int secondIndex) {
-
-    String temp = array[firstIndex];
-    array[firstIndex] = array[secondIndex];
-    array[secondIndex] = temp;
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
   }
 
 

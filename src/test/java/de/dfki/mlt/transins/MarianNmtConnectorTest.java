@@ -431,6 +431,158 @@ class MarianNmtConnectorTest {
 
 
   /**
+   * Test {@link MarianNmtConnector#handleInvertedTags(Map, String[])}.
+   */
+  @Test
+  void testHandleInvertedTags() {
+
+    // init variables to be re-used between tests
+    String target = null;
+    String[] targetTokens = null;
+
+    // single closing tag
+    target = String.format("x %s y", CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y");
+
+    // multiple closing tags
+    target = String.format("x %s y %s z", CLOSE1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y", "z");
+
+    // multiple closing tags
+    target = String.format("x %s y %s z", CLOSE1, CLOSE2);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y", "z");
+
+    // single closing tag at beginning
+    target = String.format("%s x y", CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y");
+
+    // single closing tag at end
+    target = String.format("x y %s", CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y");
+
+    // closing tag followed by opening tag
+    target = String.format("x %s y %s z", CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(OPEN1, "x", "y", "z", CLOSE1);
+
+    // closing tag at beginning followed by opening tag
+    target = String.format("%s x y %s z", CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(OPEN1, "x", "y", "z", CLOSE1);
+
+    // closing tag followed by opening tag at end
+    target = String.format("x %s y z %s", CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(OPEN1, "x", "y", "z", CLOSE1);
+
+    // closing tag at beginning followed by opening tag at end
+    target = String.format("%s x y z %s", CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(OPEN1, "x", "y", "z", CLOSE1);
+
+    // two inverted tags with gap
+    target = String.format("x %s y %s z a %s b %s c", CLOSE1, OPEN1, CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", "y", "z", CLOSE1, OPEN1, "a", "b", "c", CLOSE1);
+
+    // two inverted tags without gap
+    target = String.format("x %s y %s z %s a %s b c", CLOSE1, OPEN1, CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", "y", OPEN1, "z", CLOSE1, "a", "b", CLOSE1, "c");
+
+    // two nested inverted tags with gap
+    target = String.format("x %s y %s z a %s b %s c", CLOSE1, CLOSE1, OPEN1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", "y", CLOSE1, "z", "a", "b", CLOSE1, OPEN1, "c");
+
+    // two nested inverted tags without gap
+    target = String.format("x %s y %s z %s a %s b c", CLOSE1, CLOSE1, OPEN1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", "y", CLOSE1, "z", "a", CLOSE1, OPEN1, "b", "c");
+
+    // two nested inverted tags with gap, mixed
+    target = String.format("x %s y %s z a %s b %s c", CLOSE1, CLOSE2, OPEN2, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", OPEN2, "y", "z", "a", "b", CLOSE2, "c", CLOSE1);
+
+    // two nested inverted tags with gap, mixed, overlapping
+    target = String.format("x %s y %s z a %s b %s c", CLOSE1, CLOSE2, OPEN1, OPEN2);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", OPEN2, "y", "z", "a", "b", CLOSE1, "c", CLOSE2);
+
+    // inverted tags followed by non-inverted tags with gap
+    target = String.format("x %s y %s z a %s b %s c", CLOSE1, OPEN1, OPEN1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", "y", "z", CLOSE1, "a", OPEN1, "b", CLOSE1, "c");
+
+    // non-inverted tags followed by inverted tags with gap
+    target = String.format("x %s y %s z a %s b %s c", OPEN1, CLOSE1, CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        "x", OPEN1, "y", CLOSE1, "z", OPEN1, "a", "b", "c", CLOSE1);
+
+    // inverted tags followed by non-inverted tags without gap
+    target = String.format("x %s y %s z %s a %s b", CLOSE1, OPEN1, OPEN1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        OPEN1, "x", "y", "z", CLOSE1, OPEN1, "a", CLOSE1, "b");
+
+    // non-inverted tags followed by inverted tags without gap
+    target = String.format("x %s y %s z %s a %s b", OPEN1, CLOSE1, CLOSE1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        "x", OPEN1, "y", CLOSE1, OPEN1, "z", "a", "b", CLOSE1);
+
+    // mixed with isolated tags
+    target = String.format("%s Das %s %s ist %s ein Test . %s %s",
+        ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        ISO, OPEN1, "Das", "ist", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
+
+    // mixed with isolated tags, nested
+    target = String.format("%s Das %s %s %s %s ist ein Test . %s",
+        ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        ISO, OPEN1, OPEN2, "Das", "ist", CLOSE2, CLOSE1, "ein", "Test", ".", ISO);
+  }
+
+
+  /**
    * Test {@link MarianNmtConnector#detokenizeTags(String)}.
    */
   @Test
@@ -543,64 +695,6 @@ class MarianNmtConnectorTest {
     masked = "a b c " + ISO + "c " + OPEN1 + "c";
     assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
     assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
-  }
-
-
-  /**
-   * Test {@link MarianNmtConnector#balanceTags(String, String[])}.
-   */
-  @Test
-  void testBalanceTags() {
-
-    // init variables to be re-used between tests
-    String[] sourceTokensWithTags = null;
-    Map<Integer, Integer> closing2OpeningTag = null;
-    String target = null;
-    String[] targetTokens = null;
-
-    // first test
-    sourceTokensWithTags = String.format("%s %s This is %s %s a test . %s %s",
-        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO).split(" ");
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
-    target = String.format("%s Das %s %s ist %s ein Test . %s %s",
-        ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
-    targetTokens = target.split(" ");
-    MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokens);
-    assertThat(targetTokens).containsExactly(
-        ISO, OPEN1, "Das", "ist", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
-
-    // second test
-    sourceTokensWithTags = String.format("%s %s %s This is %s %s a test . %s",
-        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO).split(" ");
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
-    target = String.format("%s Das %s %s %s %s ist ein Test . %s",
-        ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
-    targetTokens = target.split(" ");
-    MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokens);
-    assertThat(targetTokens).containsExactly(
-        ISO, OPEN2, OPEN1, "Das", "ist", CLOSE1, CLOSE2, "ein", "Test", ".", ISO);
-
-    // first test with bpe fragments
-    sourceTokensWithTags = String.format("%s %s This is %s %s a test . %s %s",
-        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, ISO).split(" ");
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
-    target = String.format("%s Da@@ s %s %s is@@ t %s ein Test . %s %s",
-        ISO, CLOSE1, OPEN1, OPEN2, CLOSE2, ISO);
-    targetTokens = target.split(" ");
-    MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokens);
-    assertThat(targetTokens).containsExactly(
-        ISO, OPEN1, "Da@@", "s", "is@@", "t", CLOSE1, OPEN2, "ein", "Test", ".", CLOSE2, ISO);
-
-    // second test with bpe fragments
-    sourceTokensWithTags = String.format("%s %s %s This is %s %s a test . %s",
-        ISO, OPEN1, OPEN2, CLOSE2, CLOSE1, ISO).split(" ");
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
-    target = String.format("%s Da@@ s %s %s %s %s is@@ t ein Test . %s",
-        ISO, CLOSE2, CLOSE1, OPEN1, OPEN2, ISO);
-    targetTokens = target.split(" ");
-    MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokens);
-    assertThat(targetTokens).containsExactly(
-        ISO, OPEN2, OPEN1, "Da@@", "s", "is@@", "t", CLOSE1, CLOSE2, "ein", "Test", ".", ISO);
   }
 
 
