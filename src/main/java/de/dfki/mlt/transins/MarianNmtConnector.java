@@ -174,7 +174,7 @@ public class MarianNmtConnector extends BaseConnector {
           // assign each source token its tags
           Map<Integer, List<String>> sourceTokenIndex2tags =
               createSourceTokenIndex2Tags(sourceTokensWithTags);
-          
+
           // move tags in case of no target token pointing to the associated source token
           moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTagId,
               algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
@@ -486,7 +486,6 @@ public class MarianNmtConnector extends BaseConnector {
               break;
             }
           }
-
         } else if (isClosingTag(oneTag)) {
           for (int i = sourceTokenIndex - 1; i >= 0; i--) {
             if (pointedSourceTokens.contains(i)) {
@@ -574,14 +573,14 @@ public class MarianNmtConnector extends BaseConnector {
       for (int oneSourceTokenIndex : sourceTokenIndexes) {
         List<String> sourceTags = getTagsForSourceTokenIndex(
             oneSourceTokenIndex, sourceTokenIndex2tags, sourceTokensWithoutTags);
-          for (String oneSourceTag : sourceTags) {
-            if (isBackwardTag(oneSourceTag)) {
-              tagsToInsertAfter.add(oneSourceTag);
-            } else {
-              tagsToInsertBefore.add(oneSourceTag);
-            }
+        for (String oneSourceTag : sourceTags) {
+          if (isBackwardTag(oneSourceTag)) {
+            tagsToInsertAfter.add(oneSourceTag);
+          } else {
+            tagsToInsertBefore.add(oneSourceTag);
           }
         }
+      }
       targetTokensWithTags.addAll(tagsToInsertBefore);
       targetTokensWithTags.add(targetToken);
       targetTokensWithTags.addAll(tagsToInsertAfter);
@@ -1163,7 +1162,7 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Rebuild the source sentence with tags. Used or debugging
+   * Rebuild the source sentence with tags. Used for debugging
    * {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
    *
    * @param sourceTokenIndex2tags
