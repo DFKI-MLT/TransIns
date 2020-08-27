@@ -583,6 +583,80 @@ class MarianNmtConnectorTest {
 
 
   /**
+   * Test {@link MarianNmtConnector#removeRedundantTags(Map, String[])}.
+   */
+  @Test
+  void testRemoveRedundantTags() {
+
+    // init variables to be re-used between tests
+    String target = null;
+    String[] targetTokens = null;
+
+    // single opening tag
+    target = String.format("x %s y", OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y");
+
+    // multiple opening tags
+    target = String.format("x %s y %s", OPEN1, OPEN1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", "y");
+
+    // multiple opening tags and multiple closing tags
+    target = String.format("x %s y %s z %s a b %s c", OPEN1, OPEN1, CLOSE1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", OPEN1, "y", "z", "a", "b", CLOSE1, "c");
+
+    // multiple opening tags and single closing tag
+    target = String.format("x %s y %s z %s a b c", OPEN1, OPEN1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", OPEN1, "y", "z", CLOSE1, "a", "b", "c");
+
+    // single opening tag and multiple closing tags
+    target = String.format("x %s y z %s a b %s c", OPEN1, CLOSE1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly("x", OPEN1, "y", "z", "a", "b", CLOSE1, "c");
+
+    // multiple opening tags and multiple closing tags followed by tag pair
+    target = String.format("x %s y %s z %s a b %s c %s i j %s k",
+        OPEN1, OPEN1, CLOSE1, CLOSE1, OPEN1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        "x", OPEN1, "y", "z", "a", "b", CLOSE1, "c", OPEN1, "i", "j", CLOSE1, "k");
+
+    // mixed tag pairs
+    target = String.format("x %s y %s z %s a b %s c %s i %s j %s k",
+        OPEN1, OPEN1, CLOSE1, CLOSE1, OPEN2, OPEN2, CLOSE2);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        "x", OPEN1, "y", "z", "a", "b", CLOSE1, "c", OPEN2, "i", "j", CLOSE2, "k");
+
+    // mixed tag pairs, nested
+    target = String.format("x %s y %s z %s a b %s c %s i %s j %s k",
+        OPEN1, OPEN1, OPEN2, OPEN2, CLOSE2, CLOSE1, CLOSE1);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        "x", OPEN1, "y", "z", OPEN2, "a", "b", "c", CLOSE2, "i", "j", CLOSE1, "k");
+
+    // mixed tag pairs, overlapping
+    target = String.format("x %s y %s z %s a b %s c %s i %s j %s k",
+        OPEN1, OPEN1, OPEN2, OPEN2, CLOSE1, CLOSE1, CLOSE2);
+    targetTokens = target.split(" ");
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    assertThat(targetTokens).containsExactly(
+        "x", OPEN1, "y", "z", OPEN2, "a", "b", "c", "i", CLOSE1, "j", CLOSE2, "k");
+  }
+
+
+  /**
    * Test {@link MarianNmtConnector#detokenizeTags(String)}.
    */
   @Test

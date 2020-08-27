@@ -187,8 +187,9 @@ public class MarianNmtConnector extends BaseConnector {
           // make sure tags are not between bpe fragments
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
 
-          // take care of inverted tags
+          // clean up tags
           handleInvertedTags(closing2OpeningTagId, targetTokensWithTags);
+          removeRedundantTags(closing2OpeningTagId, targetTokensWithTags);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -810,6 +811,88 @@ public class MarianNmtConnector extends BaseConnector {
               // there is not following opening tag, so just remove the closing tag
               tokenList.remove(i);
             }
+          }
+        }
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
+  }
+
+
+  /**
+   * Remove all but the outer tags in tag pairs.<br/>
+   * Example:
+   *
+   * <pre>
+   * {@code
+   * x <it> y <it> z a </it> b c </it>
+   * }
+   * </pre>
+   * is changed into
+   * <pre>
+   * {@code
+   * x <it> y z a b c </it>
+   * }
+   * </pre>
+   *
+   * @param closing2OpeningTagId
+   *          map of closing tag ids to opening tag ids
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags
+   * @return target sentence tokens with removed redundant tags
+   */
+  public static String[] removeRedundantTags(
+      Map<Integer, Integer> closing2OpeningTagId, String[] targetTokensWithTags) {
+
+    List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
+
+    for (var oneEntry : closing2OpeningTagId.entrySet()) {
+
+      int openingTagId = oneEntry.getValue();
+      int closingTagId = oneEntry.getKey();
+
+      // flag to indicated that the current position in the token list is
+      // between an opening and a closing tag
+      boolean betweenTags = false;
+      int previousClosingTagIndex = -1;
+      for (int i = 0; i < tokenList.size(); i++) {
+        String oneToken = tokenList.get(i);
+        if (!isTag(oneToken)
+            || (getTagId(oneToken) != openingTagId && getTagId(oneToken) != closingTagId)) {
+          continue;
+        }
+        if (betweenTags) {
+          if (isOpeningTag(oneToken)) {
+            // remove opening tag
+            tokenList.remove(i);
+            i--;
+          } else if (isClosingTag(oneToken)) {
+            betweenTags = false;
+            previousClosingTagIndex = i;
+          }
+        } else {
+          if (isOpeningTag(oneToken)) {
+            betweenTags = true;
+            previousClosingTagIndex = -1;
+          } else if (isClosingTag(oneToken)) {
+            // remove previous closing tag; if available
+            if (previousClosingTagIndex != -1) {
+              tokenList.remove(previousClosingTagIndex);
+              i--;
+            }
+          }
+        }
+      }
+
+      if (betweenTags) {
+        // there is an opening tag but not a corresponding closing one, so remove the opening tag
+        for (int i = tokenList.size() - 1; i >= 0; i--) {
+          String oneToken = tokenList.get(i);
+          if (isTag(oneToken) && getTagId(oneToken) == openingTagId) {
+            tokenList.remove(i);
+            break;
           }
         }
       }
