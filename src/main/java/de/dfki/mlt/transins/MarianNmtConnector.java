@@ -294,6 +294,33 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Remove Okapi codes from the given tokens.
+   *
+   * @param tokens
+   *          the tokens to remove the codes from
+   * @return the resulting tokens
+   */
+  public static String[] removeTags(String[] tokens) {
+
+    List<String> tokenList = new ArrayList<>();
+    for (int i = 0; i < tokens.length; i++) {
+      String oneToken = tokens[i];
+      switch (oneToken.charAt(0)) {
+        case TextFragment.MARKER_OPENING:
+        case TextFragment.MARKER_CLOSING:
+        case TextFragment.MARKER_ISOLATED:
+          continue;
+        default:
+          tokenList.add(oneToken);
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
+  }
+
+
+  /**
    * Create either hard or soft alignments instance, depending on the given raw alignments
    *
    * @param rawAlignments
