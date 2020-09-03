@@ -8,10 +8,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -1029,5 +1031,65 @@ class MarianNmtConnectorTest {
     }
 
     return result.toString().trim();
+  }
+
+
+  /**
+   * @param args
+   *          the arguments; not used here
+   */
+  public static void main(String[] args) {
+
+    init();
+    testTagCleanup();
+  }
+
+
+  /**
+   * Stress test of tag cleanup.
+   */
+  //@Test
+  static void testTagCleanup() {
+
+    List<String> baseTokens = Arrays.asList(new String[] {
+        "x", "y", "z", "a", "b", "c"
+    });
+    List<String> tags = Arrays.asList(new String[] {
+        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, OPEN3, CLOSE3
+    });
+
+    // randomly insert tags in tokens
+    Random random = new Random(System.currentTimeMillis());
+
+    for (int run = 1; run <= 1000; run++) {
+      for (int numberOfTags = 1; numberOfTags <= 20; numberOfTags++) {
+        List<String> tokens = new ArrayList<>(baseTokens);
+        List<String> tagsToInsert = new ArrayList<>();
+        for (int i = 0; i < numberOfTags; i++) {
+          tagsToInsert.add(tags.get(random.nextInt(tags.size())));
+        }
+        for (String oneTag : tagsToInsert) {
+          tokens.add(random.nextInt(tokens.size() + 1), oneTag);
+        }
+        String[] targetTokensWithTags = tokens.toArray(new String[tokens.size()]);
+        System.out.println(String.format("tags: %d run: %d", numberOfTags, run));
+        System.out.println("input:               " + toString(targetTokensWithTags));
+        targetTokensWithTags =
+            MarianNmtConnector.handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
+        System.out.println("handleInvertedTags:  " + toString(targetTokensWithTags));
+        targetTokensWithTags =
+            MarianNmtConnector.removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
+        System.out.println("removeRedundantTags: " + toString(targetTokensWithTags));
+        targetTokensWithTags =
+            MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokensWithTags);
+        System.out.println("balanceTags:         " + toString(targetTokensWithTags));
+        String xml = MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTag);
+        System.out.println(xml);
+        if (!isValidXml(xml)) {
+          System.err.println(String.format("xml not valid:%n%s", xml));
+          System.exit(1);
+        }
+      }
+    }
   }
 }
