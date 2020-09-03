@@ -991,6 +991,72 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Sort the closing tags sequence in the given range of the given tokens in the reversed order
+   * of their preceding corresponding opening tags.
+   *
+   * @param startIndex
+   *          start index position of the closing tags (inclusive)
+   * @param endIndex
+   *          end index position of the closing tags (exclusive)
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
+   * @return target sentence tokens with sorted closing tags
+   */
+  private static String[] sortClosingTags(
+      int startIndex, int endIndex, String[] targetTokensWithTags,
+      Map<String, String> closing2OpeningTag) {
+
+    // collect closing tags
+    List<String> closingTags = new ArrayList<>();
+    for (int i = startIndex; i < endIndex; i++) {
+      if (isClosingTag(targetTokensWithTags[i])) {
+        closingTags.add(targetTokensWithTags[i]);
+      } else {
+        throw new OkapiException(String.format(
+            "non-closing tag \"%s\" found at position %d", targetTokensWithTags[i], i));
+      }
+    }
+
+    // sort closing tags
+    List<String> sortedClosingTags = new ArrayList<>();
+    outer:
+    for (int i = startIndex - 1; i >= 0; i--) {
+      String oneToken = targetTokensWithTags[i];
+      if (isOpeningTag(oneToken)) {
+        for (var oneEntry : closing2OpeningTag.entrySet()) {
+          if (oneEntry.getValue().equals(oneToken)
+              && closingTags.contains(oneEntry.getKey())) {
+            sortedClosingTags.add(oneEntry.getKey());
+            closingTags.remove(oneEntry.getKey());
+            if (closingTags.isEmpty()) {
+              break outer;
+            }
+            break;
+          }
+        }
+      }
+    }
+    if (!closingTags.isEmpty()) {
+      throw new OkapiException(String.format(
+          "could not find opening tags for all %d closing tags", (endIndex - startIndex)));
+    }
+
+    // insert sorted closing tags in target tokens
+    String[] targetTokensWithSortedTags =
+        Arrays.copyOf(targetTokensWithTags, targetTokensWithTags.length);
+    int tagIndex = 0;
+    for (int i = startIndex; i < endIndex; i++) {
+      targetTokensWithSortedTags[i] = sortedClosingTags.get(tagIndex);
+      tagIndex++;
+    }
+
+    return targetTokensWithSortedTags;
+  }
+
+
+  /**
    * Check if token at the given index is between bpe fragments.
    *
    * @param targetTokensWithTags

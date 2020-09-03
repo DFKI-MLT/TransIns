@@ -611,6 +611,55 @@ class MarianNmtConnectorTest {
   }
 
 
+  /**
+   * Test {@link MarianNmtConnector#sortClosingTags(int, int, String[], Map)}.
+   * This method is private, access for unit test achieved via reflection.
+   */
+  @Test
+  void testSortClosingTags()
+      throws ReflectiveOperationException {
+
+    // use reflection to make private method accessible
+    String methodName = "sortClosingTags";
+    Method method = MarianNmtConnector.class.getDeclaredMethod(
+        methodName, int.class, int.class, String[].class, Map.class);
+    method.setAccessible(true);
+
+    // init variables to be re-used between tests
+    String[] targetTokens = null;
+    String[] expectedResult = null;
+
+    // closing tags in same order
+    targetTokens = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b");
+    expectedResult = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    testSortTags(targetTokens, 7, 10, expectedResult, method);
+
+    // closing tags in inverse order
+    targetTokens = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    expectedResult = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    testSortTags(targetTokens, 7, 10, expectedResult, method);
+
+    // closing tags mixed
+    targetTokens = toArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
+    expectedResult = toArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
+    testSortTags(targetTokens, 6, 8, expectedResult, method);
+
+    // non-tag in range
+    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
+        () -> {
+          method.invoke(null, 6, 10,
+              toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
+        }).withCauseInstanceOf(OkapiException.class);
+
+    // not enough opening tags
+    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
+        () -> {
+          method.invoke(null, 6, 9,
+              toArray("x y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
+        }).withCauseInstanceOf(OkapiException.class);
+  }
+
+
   private void testSortTags(
       String[] targetTokens, int startIndex, int endIndex, String[] expectedResult, Method method)
       throws ReflectiveOperationException {
