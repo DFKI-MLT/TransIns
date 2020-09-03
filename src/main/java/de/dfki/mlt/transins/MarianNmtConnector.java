@@ -169,15 +169,15 @@ public class MarianNmtConnector extends BaseConnector {
           logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
               sourceTokensWithoutTags, targetTokensWithoutTags, algn)));
 
-          // get tag id pairs that correspond to opening/closing tags
-          Map<Integer, Integer> closing2OpeningTagId = createTagIdMap(sourceTokensWithTags);
+          // get mapping of closing to opening tags
+          Map<String, String> closing2OpeningTag = createTagMap(sourceTokensWithTags);
 
           // assign each source token its tags
           Map<Integer, List<String>> sourceTokenIndex2tags =
               createSourceTokenIndex2Tags(sourceTokensWithTags);
 
           // move tags in case of no target token pointing to the associated source token
-          moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTagId,
+          moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTag,
               algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
           String[] targetTokensWithTags = reinsertTags(
@@ -188,8 +188,8 @@ public class MarianNmtConnector extends BaseConnector {
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
 
           // clean up tags
-          handleInvertedTags(closing2OpeningTagId, targetTokensWithTags);
-          removeRedundantTags(closing2OpeningTagId, targetTokensWithTags);
+          handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
+          removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -338,26 +338,25 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Create map of closing tag ids to opening tag ids from the given source tokens with tags.
+   * Create map of closing tags to opening tags from the given source tokens with tags.
    * It is assumed that the tags are balanced.
    *
    * @param sourceTokensWithTags
    *          the source tokens with tags
-   * @return map of closing tag ids to opening tag ids
+   * @return map of closing tags to opening tags
    */
-  public static Map<Integer, Integer> createTagIdMap(String[] sourceTokensWithTags) {
+  public static Map<String, String> createTagMap(String[] sourceTokensWithTags) {
 
-    Map<Integer, Integer> resultMap = new HashMap<>();
+    Map<String, String> resultMap = new HashMap<>();
 
-    Stack<Integer> openingIdsStack = new Stack<>();
+    Stack<String> openingTagsStack = new Stack<>();
 
     for (String oneToken : sourceTokensWithTags) {
       if (isOpeningTag(oneToken)) {
-        openingIdsStack.push(getTagId(oneToken));
+        openingTagsStack.push(oneToken);
       } else if (isClosingTag(oneToken)) {
-        int closingTagId = getTagId(oneToken);
-        int openingTagId = openingIdsStack.pop();
-        resultMap.put(closingTagId, openingTagId);
+        String openingTag = openingTagsStack.pop();
+        resultMap.put(oneToken, openingTag);
       }
     }
 
@@ -415,8 +414,8 @@ public class MarianNmtConnector extends BaseConnector {
    *
    * @param sourceTokenIndex2tags
    *          map of source token indexes to associated tags
-   * @param closing2OpeningTagId
-   *          map of closing tag ids to corresponding opening tag ids
+   * @param closing2OpeningTag
+   *          map of closing tags to corresponding opening tags
    * @param pointedSourceTokens
    *          all source token indexes for which there is at least one target token pointing at them
    *          in the alignments
@@ -425,7 +424,7 @@ public class MarianNmtConnector extends BaseConnector {
    */
   public static void moveSourceTagsToPointedTokens(
       Map<Integer, List<String>> sourceTokenIndex2tags,
-      Map<Integer, Integer> closing2OpeningTagId,
+      Map<String, String> closing2OpeningTag,
       List<Integer> pointedSourceTokens,
       int sourceTokensLength) {
 
@@ -443,8 +442,7 @@ public class MarianNmtConnector extends BaseConnector {
       for (String oneTag : new ArrayList<>(tags)) {
         if (isClosingTag(oneTag)) {
           // find corresponding opening tag in front of it
-          int openingTagId = closing2OpeningTagId.get(getTagId(oneTag));
-          String openingTag = createOpeningTag(openingTagId);
+          String openingTag = closing2OpeningTag.get(oneTag);
           int openingTagSourceTokenIndex = -1;
           List<String> previousTags = null;
           for (int i = sourceTokenIndex; i >= 0; i--) {
@@ -764,21 +762,21 @@ public class MarianNmtConnector extends BaseConnector {
    * }
    * </pre>
    *
-   * @param closing2OpeningTagId
-   *          map of closing tag ids to opening tag ids
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
    * @param targetTokensWithTags
    *          target sentence tokens with tags
    * @return target sentence tokens with handled inverted tags
    */
   public static String[] handleInvertedTags(
-      Map<Integer, Integer> closing2OpeningTagId, String[] targetTokensWithTags) {
+      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
 
     List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
 
-    for (var oneEntry : closing2OpeningTagId.entrySet()) {
+    for (var oneEntry : closing2OpeningTag.entrySet()) {
 
-      int openingTagId = oneEntry.getValue();
-      int closingTagId = oneEntry.getKey();
+      String openingTag = oneEntry.getValue();
+      String closingTag = oneEntry.getKey();
 
       // flag to indicated that the current position in the token list is
       // between an opening and a closing tag
@@ -786,8 +784,7 @@ public class MarianNmtConnector extends BaseConnector {
       for (int i = 0; i < tokenList.size(); i++) {
         String oneToken = tokenList.get(i);
 
-        if (!isTag(oneToken)
-            || (getTagId(oneToken) != openingTagId && getTagId(oneToken) != closingTagId)) {
+        if (!oneToken.equals(openingTag) && !oneToken.equals(closingTag)) {
           continue;
         }
 
@@ -807,7 +804,7 @@ public class MarianNmtConnector extends BaseConnector {
             for (int j = i + 1; j < tokenList.size(); j++) {
               String oneFollowingToken = tokenList.get(j);
               if (isOpeningTag(oneFollowingToken)
-                  && getTagId(oneFollowingToken) == openingTagId) {
+                  && oneFollowingToken.equals(openingTag)) {
                 // we found the corresponding opening tag, now swap them
                 swapped = true;
                 Collections.swap(tokenList, i, j);
@@ -864,21 +861,21 @@ public class MarianNmtConnector extends BaseConnector {
    * }
    * </pre>
    *
-   * @param closing2OpeningTagId
-   *          map of closing tag ids to opening tag ids
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
    * @param targetTokensWithTags
    *          target sentence tokens with tags
    * @return target sentence tokens with removed redundant tags
    */
   public static String[] removeRedundantTags(
-      Map<Integer, Integer> closing2OpeningTagId, String[] targetTokensWithTags) {
+      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
 
     List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
 
-    for (var oneEntry : closing2OpeningTagId.entrySet()) {
+    for (var oneEntry : closing2OpeningTag.entrySet()) {
 
-      int openingTagId = oneEntry.getValue();
-      int closingTagId = oneEntry.getKey();
+      String openingTag = oneEntry.getValue();
+      String closingTag = oneEntry.getKey();
 
       // flag to indicated that the current position in the token list is
       // between an opening and a closing tag
@@ -886,8 +883,7 @@ public class MarianNmtConnector extends BaseConnector {
       int previousClosingTagIndex = -1;
       for (int i = 0; i < tokenList.size(); i++) {
         String oneToken = tokenList.get(i);
-        if (!isTag(oneToken)
-            || (getTagId(oneToken) != openingTagId && getTagId(oneToken) != closingTagId)) {
+        if (!oneToken.equals(openingTag) && !oneToken.equals(closingTag)) {
           continue;
         }
         if (betweenTags) {
@@ -917,7 +913,7 @@ public class MarianNmtConnector extends BaseConnector {
         // there is an opening tag but not a corresponding closing one, so remove the opening tag
         for (int i = tokenList.size() - 1; i >= 0; i--) {
           String oneToken = tokenList.get(i);
-          if (isTag(oneToken) && getTagId(oneToken) == openingTagId) {
+          if (oneToken.equals(openingTag)) {
             tokenList.remove(i);
             break;
           }
@@ -1262,27 +1258,25 @@ public class MarianNmtConnector extends BaseConnector {
    *
    * @param targetTokensWithTags
    *          string array with tokens
-   * @param closing2OpeningTagId
-   *          map of closing tag ids to opening tag ids
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
    * @return XML string with appended tokens and replaced Okapi tags
    */
   public static String toXml(
-      String[] targetTokensWithTags, Map<Integer, Integer> closing2OpeningTagId) {
+      String[] targetTokensWithTags, Map<String, String> closing2OpeningTag) {
 
     String[] resultTokens = new String[targetTokensWithTags.length];
 
     int index = -1;
     for (String oneToken : targetTokensWithTags) {
       index++;
-      if (oneToken.charAt(0) == TextFragment.MARKER_ISOLATED) {
-        resultTokens[index] = String.format("<iso%d/>",
-            TextFragment.toIndex(oneToken.charAt(1)));
-      } else if (oneToken.charAt(0) == TextFragment.MARKER_OPENING) {
-        resultTokens[index] = String.format("<u%d>",
-            TextFragment.toIndex(oneToken.charAt(1)));
-      } else if (oneToken.charAt(0) == TextFragment.MARKER_CLOSING) {
+      if (isIsolatedTag(oneToken)) {
+        resultTokens[index] = String.format("<iso%d/>", getTagId(oneToken));
+      } else if (isOpeningTag(oneToken)) {
+        resultTokens[index] = String.format("<u%d>", getTagId(oneToken));
+      } else if (isClosingTag(oneToken)) {
         // use the id of the associated opening tag to get valid XML
-        int openingTagId = closing2OpeningTagId.get(TextFragment.toIndex(oneToken.charAt(1)));
+        int openingTagId = getTagId(closing2OpeningTag.get(oneToken));
         resultTokens[index] = String.format("</u%d>", openingTagId);
       } else {
         resultTokens[index] = oneToken;

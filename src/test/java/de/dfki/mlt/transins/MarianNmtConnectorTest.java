@@ -26,38 +26,37 @@ class MarianNmtConnectorTest {
   private static final String OPEN2 = MarianNmtConnector.createOpeningTag(3);
   private static final String CLOSE2 = MarianNmtConnector.createClosingTag(4);
 
-  // map of closing tag ids to opening tag ids
-  private static Map<Integer, Integer> closing2OpeningTagId = null;
-
+  // map of closing tags to opening tags
+  private static Map<String, String> closing2OpeningTag = null;
 
   @BeforeAll
   public static void init() {
 
-    closing2OpeningTagId = new HashMap<>();
-    closing2OpeningTagId.put(2, 1);
-    closing2OpeningTagId.put(4, 3);
+    closing2OpeningTag = new HashMap<>();
+    closing2OpeningTag.put(CLOSE1, OPEN1);
+    closing2OpeningTag.put(CLOSE2, OPEN2);
   }
 
 
   /**
-   * Test {@link MarianNmtConnector#createTagIdMap(String)}.
+   * Test {@link MarianNmtConnector#createTagMap(String)}.
    */
   @Test
-  void testCreateTagIdMap() {
+  void testCreateTagMap() {
 
     // init variables to be re-used between tests
     String[] sourceTokensWithTags = null;
-    Map<Integer, Integer> closing2OpeningTag = null;
+    Map<String, String> localClosing2OpeningTag = null;
 
     // first test
     sourceTokensWithTags = toArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
-    assertThat(closing2OpeningTag).contains(entry(2, 1), entry(4, 3));
+    localClosing2OpeningTag = MarianNmtConnector.createTagMap(sourceTokensWithTags);
+    assertThat(localClosing2OpeningTag).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
 
     // second test
     sourceTokensWithTags = toArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
-    closing2OpeningTag = MarianNmtConnector.createTagIdMap(sourceTokensWithTags);
-    assertThat(closing2OpeningTag).contains(entry(2, 1), entry(4, 3));
+    localClosing2OpeningTag = MarianNmtConnector.createTagMap(sourceTokensWithTags);
+    assertThat(localClosing2OpeningTag).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
   }
 
 
@@ -98,7 +97,7 @@ class MarianNmtConnectorTest {
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens,
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
         MarianNmtConnector.removeTags(sourceTokens).length);
 
     assertThat(sourceTokenIndex2tags).hasSize(4);
@@ -113,7 +112,7 @@ class MarianNmtConnectorTest {
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens,
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
         MarianNmtConnector.removeTags(sourceTokens).length);
 
     assertThat(sourceTokenIndex2tags).hasSize(3);
@@ -127,7 +126,7 @@ class MarianNmtConnectorTest {
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTagId, pointedSourceTokens,
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
         MarianNmtConnector.removeTags(sourceTokens).length);
 
     assertThat(sourceTokenIndex2tags).hasSize(4);
@@ -469,7 +468,7 @@ class MarianNmtConnectorTest {
 
   private void testHandleInvertedTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTagId, targetTokens);
+    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTag, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -537,7 +536,7 @@ class MarianNmtConnectorTest {
 
   private void testRemoveRedundantTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTagId, targetTokens);
+    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTag, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
