@@ -832,8 +832,9 @@ public class MarianNmtConnector extends BaseConnector {
               }
             }
             if (!swapped) {
-              // there is not following opening tag, so just remove the closing tag
+              // there is no following opening tag, so just remove the closing tag
               tokenList.remove(i);
+              i--;
             }
           }
         }

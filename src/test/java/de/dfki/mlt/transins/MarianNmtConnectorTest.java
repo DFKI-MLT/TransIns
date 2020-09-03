@@ -379,8 +379,18 @@ class MarianNmtConnectorTest {
     expectedResult = toArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
+    // multiple closing tags at beginning
+    targetTokens = toArray("CLOSE1 CLOSE1 x y");
+    expectedResult = toArray("x y");
+    testHandleInvertedTags(targetTokens, expectedResult);
+
     // single closing tag at end
     targetTokens = toArray("x y CLOSE1");
+    expectedResult = toArray("x y");
+    testHandleInvertedTags(targetTokens, expectedResult);
+
+    // multiple closing tags at end
+    targetTokens = toArray("x y CLOSE1 CLOSE1");
     expectedResult = toArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
