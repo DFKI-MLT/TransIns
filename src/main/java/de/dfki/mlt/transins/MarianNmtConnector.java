@@ -183,13 +183,11 @@ public class MarianNmtConnector extends BaseConnector {
           String[] targetTokensWithTags = reinsertTags(
               sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
-
-          // make sure tags are not between bpe fragments
-          targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
-
           // clean up tags
-          handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
-          removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
+          targetTokensWithTags = handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
+          targetTokensWithTags = removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
+          targetTokensWithTags = balanceTags(closing2OpeningTag, targetTokensWithTags);
+          targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -929,6 +927,133 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Balance tags so that they are XML conform.<br/>
+   * Example 1:
+   *
+   * <pre>
+   * {@code
+   * x <it> y <b> z </it> a </b> b
+   * }
+   * </pre>
+   * is changed into
+   * <pre>
+   * {@code
+   * x <it> y <b> z </b> </it> <b> a </b> b
+   * }
+   * </pre>
+   * Example 2:
+   *
+   * <pre>
+   * {@code
+   * <it> x <b> y z </it> </b> a
+   * }
+   * </pre>
+   * is changed into
+   * <pre>
+   * {@code
+   * <it> x <b> y z </b> </it> a
+   * }
+   * </pre>
+   *
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags, potentially unbalanced
+   * @return target sentence tokens with balanced tags
+   */
+  public static String[] balanceTags(
+      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
+
+    // sort consecutive sequences of opening tags
+    int openingStartIndex = -1;
+    for (int i = 0; i < targetTokensWithTags.length; i++) {
+      if (isOpeningTag(targetTokensWithTags[i])) {
+        if (openingStartIndex == -1) {
+          openingStartIndex = i;
+        }
+      } else {
+        if (openingStartIndex != -1 && i - openingStartIndex > 1) {
+          //sort
+          targetTokensWithTags =
+              sortOpeningTags(openingStartIndex, i, targetTokensWithTags, closing2OpeningTag);
+        }
+        openingStartIndex = -1;
+      }
+    }
+
+    // sort consecutive sequences of closing tags
+    int closingStartIndex = -1;
+    for (int i = 0; i < targetTokensWithTags.length; i++) {
+      if (isClosingTag(targetTokensWithTags[i])) {
+        if (closingStartIndex == -1) {
+          closingStartIndex = i;
+        }
+      } else {
+        if (closingStartIndex != -1 && i - closingStartIndex > 1) {
+          //sort
+          targetTokensWithTags =
+              sortClosingTags(closingStartIndex, i, targetTokensWithTags, closing2OpeningTag);
+        }
+        closingStartIndex = -1;
+      }
+    }
+    // handle closing tag sequence at end of sentence
+    if (closingStartIndex != -1 && targetTokensWithTags.length - closingStartIndex > 1) {
+      //sort
+      targetTokensWithTags =
+          sortClosingTags(
+              closingStartIndex, targetTokensWithTags.length, targetTokensWithTags,
+              closing2OpeningTag);
+    }
+
+    // fix overlapping tag ranges
+    List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
+    Stack<String> openingTags = new Stack<>();
+
+    // we also need a mapping from opening to closing tag ids
+    Map<String, String> opening2ClosingTag = new HashMap<>();
+    for (var oneEntry : closing2OpeningTag.entrySet()) {
+      opening2ClosingTag.put(oneEntry.getValue(), oneEntry.getKey());
+    }
+    for (int i = 0; i < tokenList.size(); i++) {
+      String oneToken = tokenList.get(i);
+      if (!isTag(oneToken) || isIsolatedTag(oneToken)) {
+        continue;
+      }
+      if (isOpeningTag(oneToken)) {
+        openingTags.push(oneToken);
+      } else if (isClosingTag(oneToken)) {
+        // check if top tag on stack matches
+        // if not:
+        // - pop stack until matching tag is found
+        // - close all tags that have been popped BEFORE current closing tag
+        // - open all tags that have been popped AFTER current closing tag
+        String matchingOpeningTag = closing2OpeningTag.get(oneToken);
+        Stack<String> tempStack = new Stack<>();
+        while (!openingTags.peek().equals(matchingOpeningTag)) {
+          tempStack.push(openingTags.pop());
+        }
+        for (int j = tempStack.size() - 1; j >= 0; j--) {
+          tokenList.add(i, opening2ClosingTag.get(tempStack.get(j)));
+        }
+        for (int j = 0; j < tempStack.size(); j++) {
+          tokenList.add(i + tempStack.size() + 1, tempStack.get(j));
+        }
+        i = i + 2 * tempStack.size();
+        // remove the match opening tag of oneToken
+        openingTags.pop();
+        while (!tempStack.isEmpty()) {
+          openingTags.push(tempStack.pop());
+        }
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
+  }
+
+
+  /**
    * Sort the opening tags sequence in the given range of the given tokens in the reversed order
    * of their following corresponding closing tags.
    *
@@ -1053,32 +1178,6 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return targetTokensWithSortedTags;
-  }
-
-
-  /**
-   * Check if token at the given index is between bpe fragments.
-   *
-   * @param targetTokensWithTags
-   *          the tokens
-   * @param tokenIndex
-   *          the index of the token to check
-   * @return {@code true} if between bpe fragments, {@code false} otherwise
-   */
-  private static boolean isBetweenBpeFragments(
-      String[] targetTokensWithTags, int tokenIndex) {
-
-    if (tokenIndex == 0
-        || tokenIndex == targetTokensWithTags.length - 1) {
-      // token at beginning or end cannot be between bpe fragments
-      return false;
-    }
-
-    if (isBpeFragement(targetTokensWithTags[tokenIndex - 1])) {
-      return true;
-    }
-
-    return false;
   }
 
 

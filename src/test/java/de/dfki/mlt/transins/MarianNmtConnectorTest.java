@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -11,8 +13,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import net.sf.okapi.common.exceptions.OkapiException;
 
@@ -35,6 +43,10 @@ class MarianNmtConnectorTest {
   // map of closing tags to opening tags
   private static Map<String, String> closing2OpeningTag = null;
 
+  // builder to check for valid XML
+  private static DocumentBuilder builder = null;
+
+
   @BeforeAll
   public static void init() {
 
@@ -42,6 +54,12 @@ class MarianNmtConnectorTest {
     closing2OpeningTag.put(CLOSE1, OPEN1);
     closing2OpeningTag.put(CLOSE2, OPEN2);
     closing2OpeningTag.put(CLOSE3, OPEN3);
+
+    try {
+      builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    } catch (ParserConfigurationException e) {
+      e.printStackTrace();
+    }
   }
 
 
@@ -671,6 +689,95 @@ class MarianNmtConnectorTest {
         .as(String.format("%nexpected: %s%nactual: %s",
             toString(expectedResult), toString(targetTokens)))
         .containsExactly(expectedResult);
+  }
+
+
+  /**
+   * Test {@link MarianNmtConnector#balanceTags(Map, String[])}.
+   */
+  @Test
+  void testBalanceTags() {
+
+    // init variables to be re-used between tests
+    String[] targetTokens = null;
+    String[] expectedResult = null;
+
+    // opening tag sequence
+    targetTokens = toArray("x OPEN1 OPEN2 y z CLOSE1 a CLOSE2");
+    expectedResult = toArray("x OPEN2 OPEN1 y z CLOSE1 a CLOSE2");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // opening tag
+    targetTokens = toArray("x OPEN1 y z CLOSE1 a");
+    expectedResult = toArray("x OPEN1 y z CLOSE1 a");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // opening tag sequence at beginning
+    targetTokens = toArray("OPEN1 OPEN2 x y CLOSE1 a CLOSE2");
+    expectedResult = toArray("OPEN2 OPEN1 x y CLOSE1 a CLOSE2");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // opening tag at beginning
+    targetTokens = toArray("OPEN1 x y CLOSE1 a");
+    expectedResult = toArray("OPEN1 x y CLOSE1 a");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // closing tag sequence
+    targetTokens = toArray("x OPEN1 y OPEN2 z a CLOSE1 CLOSE2 b");
+    expectedResult = toArray("x OPEN1 y OPEN2 z a CLOSE2 CLOSE1 b");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // closing tag
+    targetTokens = toArray("x OPEN1 y z a CLOSE1 b");
+    expectedResult = toArray("x OPEN1 y z a CLOSE1 b");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // closing tag sequence at end
+    targetTokens = toArray("x OPEN1 y OPEN2 z a CLOSE1 CLOSE2");
+    expectedResult = toArray("x OPEN1 y OPEN2 z a CLOSE2 CLOSE1");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // closing tag at end
+    targetTokens = toArray("x OPEN1 y z a CLOSE1");
+    expectedResult = toArray("x OPEN1 y z a CLOSE1");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // single overlapping range
+    targetTokens = toArray("x OPEN1 y OPEN2 z CLOSE1 a CLOSE2");
+    expectedResult = toArray("x OPEN1 y OPEN2 z CLOSE2 CLOSE1 OPEN2 a CLOSE2");
+    testBalanceTags(targetTokens, expectedResult);
+
+    // double overlapping range
+    targetTokens = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 b CLOSE2 c CLOSE3");
+    expectedResult = toArray(
+        "x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 OPEN2 OPEN3 b "
+            + "CLOSE3 CLOSE2 OPEN3 c CLOSE3");
+    testBalanceTags(targetTokens, expectedResult);
+  }
+
+
+  private void testBalanceTags(String[] targetTokens, String[] expectedResult) {
+
+    targetTokens = MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokens);
+    assertThat(targetTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            toString(expectedResult), toString(targetTokens)))
+        .containsExactly(expectedResult);
+    String xml = MarianNmtConnector.toXml(targetTokens, closing2OpeningTag);
+    assertThat(isValidXml(xml));
+  }
+
+
+  private static boolean isValidXml(String input) {
+
+    try {
+      builder.parse(new InputSource(new StringReader(input)));
+    } catch (SAXException | IOException e) {
+      return false;
+    }
+
+    return true;
   }
 
 
