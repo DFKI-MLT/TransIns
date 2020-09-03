@@ -517,9 +517,14 @@ class MarianNmtConnectorTest {
     expectedResult = toArray("x OPEN1 y z CLOSE1 a b c");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
-    // single opening tag and multiple closing tags
+    // single opening tag and two closing tags
     targetTokens = toArray("x OPEN1 y z CLOSE1 a b CLOSE1 c");
     expectedResult = toArray("x OPEN1 y z a b CLOSE1 c");
+    testRemoveRedundantTags(targetTokens, expectedResult);
+
+    // single opening tag and three closing tags
+    targetTokens = toArray("x OPEN1 y z CLOSE1 a b CLOSE1 c CLOSE1 d");
+    expectedResult = toArray("x OPEN1 y z a b c CLOSE1 d");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // multiple opening tags and multiple closing tags followed by tag pair

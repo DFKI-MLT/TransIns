@@ -905,6 +905,7 @@ public class MarianNmtConnector extends BaseConnector {
             if (previousClosingTagIndex != -1) {
               tokenList.remove(previousClosingTagIndex);
               i--;
+              previousClosingTagIndex = i;
             }
           }
         }
