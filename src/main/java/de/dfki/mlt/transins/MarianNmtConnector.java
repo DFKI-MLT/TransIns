@@ -929,6 +929,68 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Sort the opening tags sequence in the given range of the given tokens in the reversed order
+   * of their following corresponding closing tags.
+   *
+   * @param startIndex
+   *          start index position of the opening tags (inclusive)
+   * @param endIndex
+   *          end index position of the opening tags (exclusive)
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
+   * @return target sentence tokens with sorted opening tags
+   */
+  private static String[] sortOpeningTags(
+      int startIndex, int endIndex, String[] targetTokensWithTags,
+      Map<String, String> closing2OpeningTag) {
+
+    // collect opening tags
+    List<String> openingTags = new ArrayList<>();
+    for (int i = startIndex; i < endIndex; i++) {
+      if (isOpeningTag(targetTokensWithTags[i])) {
+        openingTags.add(targetTokensWithTags[i]);
+      } else {
+        throw new OkapiException(String.format(
+            "non-opening tag \"%s\" found at position %d", targetTokensWithTags[i], i));
+      }
+    }
+
+    // sort opening tags
+    List<String> sortedOpeningTags = new ArrayList<>();
+    for (int i = endIndex; i < targetTokensWithTags.length; i++) {
+      String oneToken = targetTokensWithTags[i];
+      if (isClosingTag(oneToken)) {
+        String matchingOpeningTag = closing2OpeningTag.get(oneToken);
+        if (openingTags.contains(matchingOpeningTag)) {
+          sortedOpeningTags.add(0, matchingOpeningTag);
+          openingTags.remove(matchingOpeningTag);
+          if (openingTags.isEmpty()) {
+            break;
+          }
+        }
+      }
+    }
+    if (!openingTags.isEmpty()) {
+      throw new OkapiException(String.format(
+          "could not find closing tags for all %d opening tags", (endIndex - startIndex)));
+    }
+
+    // insert sorted opening tags in target tokens
+    String[] targetTokensWithSortedTags =
+        Arrays.copyOf(targetTokensWithTags, targetTokensWithTags.length);
+    int tagIndex = 0;
+    for (int i = startIndex; i < endIndex; i++) {
+      targetTokensWithSortedTags[i] = sortedOpeningTags.get(tagIndex);
+      tagIndex++;
+    }
+
+    return targetTokensWithSortedTags;
+  }
+
+
+  /**
    * Check if token at the given index is between bpe fragments.
    *
    * @param targetTokensWithTags

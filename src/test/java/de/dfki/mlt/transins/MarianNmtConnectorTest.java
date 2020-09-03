@@ -1,8 +1,10 @@
 package de.dfki.mlt.transins;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,6 +13,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import net.sf.okapi.common.exceptions.OkapiException;
 
 /**
  * Test class for {@link MarianNmtConnector}.
@@ -25,6 +29,8 @@ class MarianNmtConnectorTest {
   private static final String CLOSE1 = MarianNmtConnector.createClosingTag(2);
   private static final String OPEN2 = MarianNmtConnector.createOpeningTag(3);
   private static final String CLOSE2 = MarianNmtConnector.createClosingTag(4);
+  private static final String OPEN3 = MarianNmtConnector.createOpeningTag(5);
+  private static final String CLOSE3 = MarianNmtConnector.createClosingTag(6);
 
   // map of closing tags to opening tags
   private static Map<String, String> closing2OpeningTag = null;
@@ -35,6 +41,7 @@ class MarianNmtConnectorTest {
     closing2OpeningTag = new HashMap<>();
     closing2OpeningTag.put(CLOSE1, OPEN1);
     closing2OpeningTag.put(CLOSE2, OPEN2);
+    closing2OpeningTag.put(CLOSE3, OPEN3);
   }
 
 
@@ -561,6 +568,64 @@ class MarianNmtConnectorTest {
 
 
   /**
+   * Test {@link MarianNmtConnector#sortOpeningTags(int, int, String[], Map)}.
+   * This method is private, access for unit test achieved via reflection.
+   */
+  @Test
+  void testSortOpeningTags()
+      throws ReflectiveOperationException {
+
+    // use reflection to make private method accessible
+    String methodName = "sortOpeningTags";
+    Method method = MarianNmtConnector.class.getDeclaredMethod(
+        methodName, int.class, int.class, String[].class, Map.class);
+    method.setAccessible(true);
+
+    // init variables to be re-used between tests
+    String[] targetTokens = null;
+    String[] expectedResult = null;
+
+    // closing tags in same order
+    targetTokens = toArray("x OPEN1 OPEN2 OPEN3 y CLOSE1 z CLOSE2 a CLOSE3");
+    expectedResult = toArray("x OPEN3 OPEN2 OPEN1 y CLOSE1 z CLOSE2 a CLOSE3");
+    testSortTags(targetTokens, 1, 4, expectedResult, method);
+
+    // closing tags in inverse order
+    targetTokens = toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
+    expectedResult = toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
+    testSortTags(targetTokens, 1, 4, expectedResult, method);
+
+    // non-tag in range
+    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
+        () -> {
+          method.invoke(null, 0, 4,
+              toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"), closing2OpeningTag);
+        }).withCauseInstanceOf(OkapiException.class);
+
+    // not enough closing tags
+    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
+        () -> {
+          method.invoke(null, 1, 4,
+              toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"), closing2OpeningTag);
+        }).withCauseInstanceOf(OkapiException.class);
+  }
+
+
+  private void testSortTags(
+      String[] targetTokens, int startIndex, int endIndex, String[] expectedResult, Method method)
+      throws ReflectiveOperationException {
+
+    targetTokens =
+        (String[])method.invoke(null, startIndex, endIndex, targetTokens, closing2OpeningTag);
+    assertThat(targetTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            toString(expectedResult), toString(targetTokens)))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
    * Test {@link MarianNmtConnector#detokenizeTags(String)}.
    */
   @Test
@@ -761,6 +826,12 @@ class MarianNmtConnectorTest {
         case "CLOSE2":
           oneToken = CLOSE2;
           break;
+        case "OPEN3":
+          oneToken = OPEN3;
+          break;
+        case "CLOSE3":
+          oneToken = CLOSE3;
+          break;
         default:
           // do nothing
       }
@@ -792,6 +863,10 @@ class MarianNmtConnectorTest {
         result.append("OPEN2 ");
       } else if (oneToken.equals(CLOSE2)) {
         result.append("CLOSE2 ");
+      } else if (oneToken.equals(OPEN3)) {
+        result.append("OPEN3 ");
+      } else if (oneToken.equals(CLOSE3)) {
+        result.append("CLOSE3 ");
       } else {
         result.append(oneToken + " ");
       }
