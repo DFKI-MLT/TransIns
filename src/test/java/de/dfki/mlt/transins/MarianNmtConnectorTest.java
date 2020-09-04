@@ -377,6 +377,100 @@ class MarianNmtConnectorTest {
 
 
   /**
+   * Test {@link MarianNmtConnector#moveTagsFromBetweenBpeFragments(String[])}.
+   */
+  @Test
+  void testMoveTagsFromBetweenBpeFragments() {
+
+    // init variables to be re-used between tests
+    String[] targetTokens;
+    String[] expectedResult = null;
+
+    // two fragments with opening tag
+    targetTokens = toArray("a b c@@ OPEN1 x y z");
+    expectedResult = toArray("a b OPEN1 c@@ x y z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // three fragments with opening tag
+    targetTokens = toArray("a b@@ c@@ OPEN1 x y z");
+    expectedResult = toArray("a OPEN1 b@@ c@@ x y z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // four fragments with opening tag
+    targetTokens = toArray("a@@ b@@ c@@ OPEN1 x y z");
+    expectedResult = toArray("OPEN1 a@@ b@@ c@@ x y z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // two fragments followed by two fragments with opening tag
+    targetTokens = toArray("a@@ b c@@ OPEN1 x y z");
+    expectedResult = toArray("a@@ b OPEN1 c@@ x y z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // two fragments with closing tag
+    targetTokens = toArray("a b c@@ CLOSE1 x y z");
+    expectedResult = toArray("a b c@@ x CLOSE1 y z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // three fragments with closing tag
+    targetTokens = toArray("a b c@@ CLOSE1 x@@ y z");
+    expectedResult = toArray("a b c@@ x@@ y CLOSE1 z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // four fragments with closing tag
+    targetTokens = toArray("a b c@@ CLOSE1 x@@ y@@ z");
+    expectedResult = toArray("a b c@@ x@@ y@@ z CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // two fragments with closing tag followed by two fragments
+    targetTokens = toArray("a b c@@ CLOSE1 x y@@ z");
+    expectedResult = toArray("a b c@@ x CLOSE1 y@@ z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // opening and closing tags between fragments
+    targetTokens = toArray("a b c@@ OPEN1 CLOSE1 x y@@ z");
+    expectedResult = toArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // closing and opening tags between fragments
+    targetTokens = toArray("a b c@@ CLOSE1 OPEN1 x y@@ z");
+    expectedResult = toArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // two opening and two closing tag between fragments
+    targetTokens = toArray("a OPEN1 b@@ OPEN2 OPEN3 CLOSE2 CLOSE3 c CLOSE1");
+    expectedResult = toArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // two closing and two opening tag between fragments
+    targetTokens = toArray("a OPEN1 b@@ CLOSE2 CLOSE3 OPEN2 OPEN3 c CLOSE1");
+    expectedResult = toArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // fragments at beginning end of sentence
+    targetTokens = toArray("a@@ OPEN1 CLOSE1 b c");
+    expectedResult = toArray("OPEN1 a@@ b CLOSE1 c");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // fragments at end of sentence
+    targetTokens = toArray("a b@@ OPEN1 CLOSE1 c");
+    expectedResult = toArray("a OPEN1 b@@ c CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+  }
+
+
+  private void testMoveTagsFromBetweenBpeFragments(
+      String[] targetTokens, String[] expectedResult) {
+
+    targetTokens = MarianNmtConnector.moveTagsFromBetweenBpeFragments(targetTokens);
+    assertThat(targetTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            toString(expectedResult), toString(targetTokens)))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
    * Test {@link MarianNmtConnector#undoBytePairEncoding(String[])}.
    */
   @Test
@@ -865,80 +959,6 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#moveTagsFromBetweenBpeFragments(String[])}.
-   */
-  @Test
-  void testMoveTagsFromBetweenBpeFragments() {
-
-    // init variables to be re-used between tests
-    String[] targetTokens;
-    String[] expectedResult = null;
-
-    // two fragments with opening tag
-    targetTokens = toArray("a b c@@ OPEN1 x y z");
-    expectedResult = toArray("a b OPEN1 c@@ x y z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // three fragments with opening tag
-    targetTokens = toArray("a b@@ c@@ OPEN1 x y z");
-    expectedResult = toArray("a OPEN1 b@@ c@@ x y z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // four fragments with opening tag
-    targetTokens = toArray("a@@ b@@ c@@ OPEN1 x y z");
-    expectedResult = toArray("OPEN1 a@@ b@@ c@@ x y z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // two fragments followed by two fragments with opening tag
-    targetTokens = toArray("a@@ b c@@ OPEN1 x y z");
-    expectedResult = toArray("a@@ b OPEN1 c@@ x y z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // two fragments with closing tag
-    targetTokens = toArray("a b c@@ CLOSE1 x y z");
-    expectedResult = toArray("a b c@@ x CLOSE1 y z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // three fragments with closing tag
-    targetTokens = toArray("a b c@@ CLOSE1 x@@ y z");
-    expectedResult = toArray("a b c@@ x@@ y CLOSE1 z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // four fragments with closing tag
-    targetTokens = toArray("a b c@@ CLOSE1 x@@ y@@ z");
-    expectedResult = toArray("a b c@@ x@@ y@@ z CLOSE1");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // two fragments with closing tag followed by two fragments
-    targetTokens = toArray("a b c@@ CLOSE1 x y@@ z");
-    expectedResult = toArray("a b c@@ x CLOSE1 y@@ z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // opening and closing tags between fragments
-    targetTokens = toArray("a b c@@ OPEN1 CLOSE1 x y@@ z");
-    expectedResult = toArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-
-    // closing and opening tags between fragments
-    targetTokens = toArray("a b c@@ CLOSE1 OPEN1 x y@@ z");
-    expectedResult = toArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
-    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
-  }
-
-
-  private void testMoveTagsFromBetweenBpeFragments(
-      String[] targetTokens, String[] expectedResult) {
-
-    targetTokens = MarianNmtConnector.moveTagsFromBetweenBpeFragments(targetTokens);
-    assertThat(targetTokens)
-        // provide human-readable string in case of error
-        .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
-        .containsExactly(expectedResult);
-  }
-
-
-  /**
    * Test {@link MarianNmtConnector#maskTags(String[])} and
    * {@link MarianNmtConnector#unmaskTags(String)}.
    */
@@ -1133,7 +1153,7 @@ class MarianNmtConnectorTest {
   static void testTagCleanup() {
 
     List<String> baseTokens = Arrays.asList(new String[] {
-        "x", "y", "z", "a", "b", "c"
+        "x", "y@@", "z", "a", "b@@", "c@@", "i", "j", "k"
     });
     List<String> tags = Arrays.asList(new String[] {
         ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, OPEN3, CLOSE3
@@ -1142,7 +1162,12 @@ class MarianNmtConnectorTest {
     // randomly insert tags in tokens
     Random random = new Random(System.currentTimeMillis());
 
-    for (int run = 1; run <= 1000; run++) {
+    int run = 0;
+    while (true) {
+      run++;
+      if (run % 100_000 == 0) {
+        System.out.println(String.format("run: %,d", run));
+      }
       for (int numberOfTags = 1; numberOfTags <= 20; numberOfTags++) {
         List<String> tokens = new ArrayList<>(baseTokens);
         List<String> tagsToInsert = new ArrayList<>();
@@ -1152,23 +1177,43 @@ class MarianNmtConnectorTest {
         for (String oneTag : tagsToInsert) {
           tokens.add(random.nextInt(tokens.size() + 1), oneTag);
         }
-        String[] targetTokensWithTags = tokens.toArray(new String[tokens.size()]);
-        System.out.println(String.format("tags: %d run: %d", numberOfTags, run));
-        System.out.println("input:               " + toString(targetTokensWithTags));
-        targetTokensWithTags =
-            MarianNmtConnector.handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
-        System.out.println("handleInvertedTags:  " + toString(targetTokensWithTags));
-        targetTokensWithTags =
-            MarianNmtConnector.removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
-        System.out.println("removeRedundantTags: " + toString(targetTokensWithTags));
-        targetTokensWithTags =
-            MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokensWithTags);
-        System.out.println("balanceTags:         " + toString(targetTokensWithTags));
-        String xml = MarianNmtConnector.toXml(targetTokensWithTags, closing2OpeningTag);
-        System.out.println(xml);
+        String[] input = tokens.toArray(new String[tokens.size()]);
+        String[] moveTagsFromBetweenBpeFragments =
+            MarianNmtConnector.moveTagsFromBetweenBpeFragments(input);
+        String[] undoBytePairEncoding =
+            MarianNmtConnector.undoBytePairEncoding(moveTagsFromBetweenBpeFragments);
+        String[] handleInvertedTags =
+            MarianNmtConnector.handleInvertedTags(closing2OpeningTag, undoBytePairEncoding);
+        String[] removeRedundantTags =
+            MarianNmtConnector.removeRedundantTags(closing2OpeningTag, handleInvertedTags);
+        String[] balanceTags =
+            MarianNmtConnector.balanceTags(closing2OpeningTag, removeRedundantTags);
+        String[] mergeNeighborTagPairs =
+            MarianNmtConnector.mergeNeighborTagPairs(closing2OpeningTag, balanceTags);
+        String xml = MarianNmtConnector.toXml(mergeNeighborTagPairs, closing2OpeningTag);
         if (!isValidXml(xml)) {
-          System.err.println(String.format("xml not valid:%n%s", xml));
-          System.exit(1);
+          System.err.println(
+              String.format("input:                           %s",
+                  toString(input)));
+          System.err.println(
+              String.format("moveTagsFromBetweenBpeFragments: %s",
+                  toString(moveTagsFromBetweenBpeFragments)));
+          System.err.println(
+              String.format("undoBytePairEncoding:            %s",
+                  toString(undoBytePairEncoding)));
+          System.err.println(
+              String.format("handleInvertedTags:              %s",
+                  toString(handleInvertedTags)));
+          System.err.println(
+              String.format("removeRedundantTags:             %s",
+                  toString(removeRedundantTags)));
+          System.err.println(
+              String.format("balanceTags:                     %s",
+                  toString(balanceTags)));
+          System.err.println(
+              String.format("mergeNeighborTagPairs:           %s",
+                  toString(mergeNeighborTagPairs)));
+          System.err.println(String.format("xml:%n%s", xml));
         }
       }
     }

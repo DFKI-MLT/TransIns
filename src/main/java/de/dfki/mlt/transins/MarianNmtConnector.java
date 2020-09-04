@@ -194,10 +194,15 @@ public class MarianNmtConnector extends BaseConnector {
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
           translation = maskTags(targetTokensWithTags);
+        } else {
+          // no tags, just undo byte pair encoding
+          translation = translation.replaceAll("@@ ", "");
         }
       } else {
         translation = translatorResponse;
         logger.debug("raw target sentence: \"{}\"", translation);
+        // undo byte pair encoding
+        translation = translation.replaceAll("@@ ", "");
       }
 
       // postprocessing
@@ -705,37 +710,41 @@ public class MarianNmtConnector extends BaseConnector {
 
     ArrayList<String> tokenList = new ArrayList<>(Arrays.asList(tokens));
 
-    // start at 1, as the first token cannot be between two bpe fragments
-    for (int i = 1; i < tokenList.size(); i++) {
+    int fragmentsStartIndex = -1;
+    List<String> currentForwardTags = new ArrayList<>();
+    List<String> currentBackwardTags = new ArrayList<>();
+    for (int i = 0; i < tokenList.size(); i++) {
       String oneToken = tokenList.get(i);
-      if (isTag(oneToken) && isBpeFragement(tokenList.get(i - 1))) {
-        String removedToken = tokenList.remove(i);
-        if (isBackwardTag(oneToken)) {
-          // get index of closest following token that is not a bpe fragment;
-          // attention: The last bpe fragment has no @@ ending!
-          for (int nextIndex = i; nextIndex < tokenList.size(); nextIndex++) {
-            if (isBpeFragement(tokenList.get(nextIndex))
-                || isTag(tokenList.get(nextIndex))) {
-              continue;
+      if (isBpeFragement(oneToken)) {
+        if (fragmentsStartIndex == -1) {
+          fragmentsStartIndex = i;
+        }
+      } else {
+        if (isTag(oneToken)) {
+          if (fragmentsStartIndex != -1) {
+            if (isBackwardTag(oneToken)) {
+              currentBackwardTags.add(oneToken);
+            } else {
+              currentForwardTags.add(oneToken);
             }
-            tokenList.add(nextIndex + 1, removedToken);
+            tokenList.remove(i);
             i--;
-            break;
           }
         } else {
-          // get index of the closest previous token that is not a bpe fragment
-          boolean swapCompleted = false;
-          for (int prevIndex = i - 1; prevIndex >= 0; prevIndex--) {
-            if (isBpeFragement(tokenList.get(prevIndex))) {
-              continue;
+          // non-tag
+          if (fragmentsStartIndex != -1) {
+            // we found the last fragment
+            if (i < tokenList.size()) {
+              tokenList.addAll(i + 1, currentBackwardTags);
+            } else {
+              tokenList.addAll(currentBackwardTags);
             }
-            tokenList.add(prevIndex + 1, removedToken);
-            swapCompleted = true;
-            break;
-          }
-          if (!swapCompleted) {
-            // bpe fragment at beginning of sentence, so add tag in front of it
-            tokenList.add(0, removedToken);
+            i = i + currentBackwardTags.size();
+            tokenList.addAll(fragmentsStartIndex, currentForwardTags);
+            i = i + currentForwardTags.size();
+            fragmentsStartIndex = -1;
+            currentBackwardTags.clear();
+            currentForwardTags.clear();
           }
         }
       }
