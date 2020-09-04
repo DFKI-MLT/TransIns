@@ -127,13 +127,10 @@ def postprocess():
         abort(400, description=error_message)
     sentence = request.args.get('sentence', type=str)
 
-    # undo byte pair encoding
-    sentence_unbpe = sentence.replace('@@ ', '')
-
     # detruecasing; this is language independent
     # remove Okapi markup at beginning of sentence before detruecasing and re-add it afterwards;
     # markup is ONE token, in contrast to preprocessing
-    sentence_tokenized_as_tokens = sentence_unbpe.split()
+    sentence_tokenized_as_tokens = sentence.split()
     removed_tokens = []
     if len(sentence_tokenized_as_tokens) > 1:
         first_token = sentence_tokenized_as_tokens[0]

@@ -377,6 +377,44 @@ class MarianNmtConnectorTest {
 
 
   /**
+   * Test {@link MarianNmtConnector#undoBytePairEncoding(String[])}.
+   */
+  @Test
+  void testUndoBytePairEncoding() {
+
+    // init variables to be re-used between tests
+    String[] targetTokens = null;
+    String[] expectedResult = null;
+
+    // simple case
+    targetTokens = toArray("a b@@ c@@ d x");
+    expectedResult = toArray("a bcd x");
+    testUndoBytePairEncoding(targetTokens, expectedResult);
+
+    // at sentence beginning
+    targetTokens = toArray("b@@ c@@ d x");
+    expectedResult = toArray("bcd x");
+    testUndoBytePairEncoding(targetTokens, expectedResult);
+
+    // at sentence end
+    targetTokens = toArray("a b@@ c@@ d");
+    expectedResult = toArray("a bcd");
+    testUndoBytePairEncoding(targetTokens, expectedResult);
+  }
+
+
+  private void testUndoBytePairEncoding(String[] targetTokens, String[] expectedResult) {
+
+    targetTokens = MarianNmtConnector.undoBytePairEncoding(targetTokens);
+    assertThat(targetTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            toString(expectedResult), toString(targetTokens)))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
    * Test {@link MarianNmtConnector#handleInvertedTags(Map, String[])}.
    */
   @Test

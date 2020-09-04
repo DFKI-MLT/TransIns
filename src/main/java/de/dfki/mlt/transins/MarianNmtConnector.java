@@ -184,11 +184,11 @@ public class MarianNmtConnector extends BaseConnector {
               sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
 
           // clean up tags
+          targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
+          targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
           targetTokensWithTags = handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = balanceTags(closing2OpeningTag, targetTokensWithTags);
-          targetTokensWithTags = mergeNeighborTagPairs(closing2OpeningTag, targetTokensWithTags);
-          targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
           targetTokensWithTags = mergeNeighborTagPairs(closing2OpeningTag, targetTokensWithTags);
 
           // prepare translation for postprocessing;
@@ -738,6 +738,33 @@ public class MarianNmtConnector extends BaseConnector {
             tokenList.add(0, removedToken);
           }
         }
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
+  }
+
+
+  /**
+   * Undo byte pair encoding from given tokens.
+   *
+   * @param tokens
+   *          the tokens
+   * @return the tokens with byte pair encoding undone
+   */
+  public static String[] undoBytePairEncoding(String[] tokens) {
+
+    List<String> tokenList = new ArrayList<>();
+
+    StringBuilder currentToken = new StringBuilder();
+    for (String oneToken : tokens) {
+      if (oneToken.endsWith("@@")) {
+        currentToken.append(oneToken.substring(0, oneToken.length() - 2));
+      } else {
+        currentToken.append(oneToken);
+        tokenList.add(currentToken.toString());
+        currentToken = new StringBuilder();
       }
     }
 
