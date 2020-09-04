@@ -187,7 +187,9 @@ public class MarianNmtConnector extends BaseConnector {
           targetTokensWithTags = handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = balanceTags(closing2OpeningTag, targetTokensWithTags);
+          targetTokensWithTags = mergeNeighborTagPairs(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
+          targetTokensWithTags = mergeNeighborTagPairs(closing2OpeningTag, targetTokensWithTags);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -1178,6 +1180,55 @@ public class MarianNmtConnector extends BaseConnector {
     }
 
     return targetTokensWithSortedTags;
+  }
+
+
+  /**
+   * Merge tag pairs that are immediate neighbors.<br/>
+   * Example:
+   *
+   * <pre>
+   * {@code
+   * x <it> y </it> <it> z a b </it>
+   * }
+   * </pre>
+   * is changed into
+   * <pre>
+   * {@code
+   * x <it> y z a b </it>
+   * }
+   * </pre>
+   *
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags, potentially unbalanced
+   * @return target sentence tokens with handled inverted tags
+   */
+  public static String[] mergeNeighborTagPairs(
+      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
+
+    List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
+
+    for (var oneEntry : closing2OpeningTag.entrySet()) {
+
+      String openingTag = oneEntry.getValue();
+      String closingTag = oneEntry.getKey();
+
+      for (int i = 1; i < tokenList.size(); i++) {
+        String prevToken = tokenList.get(i - 1);
+        String oneToken = tokenList.get(i);
+
+        if (oneToken.equals(openingTag) && prevToken.equals(closingTag)) {
+          tokenList.remove(i);
+          tokenList.remove(i - 1);
+          i = i - 2;
+        }
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
   }
 
 

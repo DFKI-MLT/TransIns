@@ -784,35 +784,45 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#detokenizeTags(String)}.
+   * Test {@link MarianNmtConnector#mergeNeighborTagPairs(Map, String[])}.
    */
   @Test
-  void testDetokenizeTags() {
+  void testMergeNeighborTagPairs() {
 
     // init variables to be re-used between tests
-    String input = null;
-    String expectedResult = null;
+    String[] targetTokens = null;
+    String[] expectedResult = null;
 
-    // standard
-    input = String.format("x y z %s a %s b %s c", ISO, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z %sa %sb%s c", ISO, OPEN1, CLOSE1);
-    testDetokenizeTags(input, expectedResult);
+    // one merge
+    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 a b c");
+    expectedResult = toArray("x OPEN1 y z CLOSE1 a b c");
+    testMergeNeighborTagPairs(targetTokens, expectedResult);
 
-    // multiple whitespaces
-    input = String.format("x y z %s   a   %s  b   %s  c", ISO, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z %sa   %sb%s  c", ISO, OPEN1, CLOSE1);
-    testDetokenizeTags(input, expectedResult);
+    // one merge with ending tag at end
+    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1");
+    expectedResult = toArray("x OPEN1 y z CLOSE1");
+    testMergeNeighborTagPairs(targetTokens, expectedResult);
+
+    // two merges
+    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN1 a b CLOSE1 c");
+    expectedResult = toArray("x OPEN1 y z a b CLOSE1 c");
+    testMergeNeighborTagPairs(targetTokens, expectedResult);
+
+    // mixed tags pairs
+    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN2 a CLOSE2 OPEN2 b CLOSE2 c");
+    expectedResult = toArray("x OPEN1 y z CLOSE1 OPEN2 a b CLOSE2 c");
+    testMergeNeighborTagPairs(targetTokens, expectedResult);
   }
 
 
-  private void testDetokenizeTags(String input, String expectedResult) {
+  void testMergeNeighborTagPairs(String[] targetTokens, String[] expectedResult) {
 
-    input = MarianNmtConnector.detokenizeTags(input);
-    assertThat(input)
+    targetTokens = MarianNmtConnector.mergeNeighborTagPairs(closing2OpeningTag, targetTokens);
+    assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            expectedResult, input))
-        .isEqualTo(expectedResult);
+            toString(expectedResult), toString(targetTokens)))
+        .containsExactly(expectedResult);
   }
 
 
@@ -936,6 +946,39 @@ class MarianNmtConnectorTest {
     masked = "a b c " + ISO + "c " + OPEN1 + "c";
     assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
     assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+  }
+
+
+  /**
+   * Test {@link MarianNmtConnector#detokenizeTags(String)}.
+   */
+  @Test
+  void testDetokenizeTags() {
+
+    // init variables to be re-used between tests
+    String input = null;
+    String expectedResult = null;
+
+    // standard
+    input = String.format("x y z %s a %s b %s c", ISO, OPEN1, CLOSE1);
+    expectedResult = String.format("x y z %sa %sb%s c", ISO, OPEN1, CLOSE1);
+    testDetokenizeTags(input, expectedResult);
+
+    // multiple whitespaces
+    input = String.format("x y z %s   a   %s  b   %s  c", ISO, OPEN1, CLOSE1);
+    expectedResult = String.format("x y z %sa   %sb%s  c", ISO, OPEN1, CLOSE1);
+    testDetokenizeTags(input, expectedResult);
+  }
+
+
+  private void testDetokenizeTags(String input, String expectedResult) {
+
+    input = MarianNmtConnector.detokenizeTags(input);
+    assertThat(input)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            expectedResult, input))
+        .isEqualTo(expectedResult);
   }
 
 
