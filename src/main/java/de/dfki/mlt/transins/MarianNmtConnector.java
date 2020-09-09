@@ -152,8 +152,8 @@ public class MarianNmtConnector extends BaseConnector {
       boolean hasTags = fragment.hasCode();
       if (parts.length == 2) {
         // if tags and alignments are available, re-insert tags
-        translation = parts[0].trim();
-        String rawAlignments = parts[1].trim();
+        translation = parts[0].strip();
+        String rawAlignments = parts[1].strip();
         logger.debug("raw target sentence: \"{}\"", translation);
         logger.debug("raw alignments: \"{}\"", rawAlignments);
         Alignments algn = createAlignments(rawAlignments);
@@ -1300,7 +1300,7 @@ public class MarianNmtConnector extends BaseConnector {
       }
       result.append(currentToken + " ");
     }
-    return result.toString().trim();
+    return result.toString().strip();
   }
 
 

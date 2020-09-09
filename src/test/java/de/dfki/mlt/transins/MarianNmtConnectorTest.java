@@ -9,7 +9,6 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +119,7 @@ class MarianNmtConnectorTest {
 
     // first test
     sourceTokens = toArray("ISO OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO");
-    pointedSourceTokens = Arrays.asList(new Integer[] { 1, 2 });
+    pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
@@ -135,7 +134,7 @@ class MarianNmtConnectorTest {
 
     // second test
     sourceTokens = toArray("ISO OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO");
-    pointedSourceTokens = Arrays.asList(new Integer[] { 0, 1, 2 });
+    pointedSourceTokens = List.of(0, 1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
@@ -149,7 +148,7 @@ class MarianNmtConnectorTest {
 
     // third test
     sourceTokens = toArray("ISO OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b c");
-    pointedSourceTokens = Arrays.asList(new Integer[] { 1, 2 });
+    pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     MarianNmtConnector.moveSourceTagsToPointedTokens(
@@ -1131,7 +1130,7 @@ class MarianNmtConnectorTest {
       }
     }
 
-    return result.toString().trim();
+    return result.toString().strip();
   }
 
 
@@ -1152,12 +1151,8 @@ class MarianNmtConnectorTest {
   //@Test
   static void testTagCleanup() {
 
-    List<String> baseTokens = Arrays.asList(new String[] {
-        "x", "y@@", "z", "a", "b@@", "c@@", "i", "j", "k"
-    });
-    List<String> tags = Arrays.asList(new String[] {
-        ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, OPEN3, CLOSE3
-    });
+    List<String> baseTokens = List.of("x", "y@@", "z", "a", "b@@", "c@@", "i", "j", "k");
+    List<String> tags = List.of(ISO, OPEN1, CLOSE1, OPEN2, CLOSE2, OPEN3, CLOSE3);
 
     // randomly insert tags in tokens
     Random random = new Random(System.currentTimeMillis());
