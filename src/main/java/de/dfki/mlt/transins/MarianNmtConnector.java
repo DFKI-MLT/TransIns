@@ -1607,6 +1607,38 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Replace Okapi tags with human readable tags in given String array and create string.
+   *
+   * @param targetTokensWithTags
+   *          string array with tokens
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
+   * @return string with appended tokens and replaced Okapi tags
+   */
+  public static String toString(
+      String[] targetTokensWithTags, Map<String, String> closing2OpeningTag) {
+
+    StringBuilder result = new StringBuilder();
+
+    for (String oneToken : targetTokensWithTags) {
+      if (isIsolatedTag(oneToken)) {
+        result.append(String.format("<iso%d/> ", getTagId(oneToken)));
+      } else if (isOpeningTag(oneToken)) {
+        result.append(String.format("<u%d> ", getTagId(oneToken)));
+      } else if (isClosingTag(oneToken)) {
+        // use the id of the associated opening tag to get valid XML
+        int openingTagId = getTagId(closing2OpeningTag.get(oneToken));
+        result.append(String.format("</u%d>", openingTagId));
+      } else {
+        result.append(oneToken + " ");
+      }
+    }
+
+    return result.toString().strip();
+  }
+
+
+  /**
    * Rebuild the source sentence with tags. Used for debugging
    * {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
    *
