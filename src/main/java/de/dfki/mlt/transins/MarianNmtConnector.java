@@ -177,8 +177,9 @@ public class MarianNmtConnector extends BaseConnector {
               createSourceTokenIndex2Tags(sourceTokensWithTags);
 
           // move tags in case of no target token pointing to the associated source token
-          moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTag,
-              algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
+          List<String> unusedTags =
+              moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTag,
+                  algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
           String[] targetTokensWithTags = reinsertTags(
               sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
@@ -190,6 +191,7 @@ public class MarianNmtConnector extends BaseConnector {
           targetTokensWithTags = removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = balanceTags(closing2OpeningTag, targetTokensWithTags);
           targetTokensWithTags = mergeNeighborTagPairs(closing2OpeningTag, targetTokensWithTags);
+          targetTokensWithTags = addUnusedTags(targetTokensWithTags, unusedTags);
 
           // prepare translation for postprocessing;
           // mask tags so that detokenizer in postprocessing works correctly
@@ -426,8 +428,9 @@ public class MarianNmtConnector extends BaseConnector {
    *          in the alignments
    * @param sourceTokensLength
    *          the number of source tokens
+   * @return list of tags that cannot be assigned to a pointed token
    */
-  public static void moveSourceTagsToPointedTokens(
+  public static List<String> moveSourceTagsToPointedTokens(
       Map<Integer, List<String>> sourceTokenIndex2tags,
       Map<String, String> closing2OpeningTag,
       List<Integer> pointedSourceTokens,
@@ -435,8 +438,8 @@ public class MarianNmtConnector extends BaseConnector {
 
     // for each closing tag of non-pointed source tokens, check if there is
     // a pointed source on the way to the corresponding opening tag;
-    // if not remove the tag pair (i.e. move to end-of-sentence)
-    List<String> eosTags = new ArrayList<>();
+    // if not remove the tag pair
+    List<String> unusedTags = new ArrayList<>();
     for (var oneEntry : new HashSet<>(sourceTokenIndex2tags.entrySet())) {
       int sourceTokenIndex = oneEntry.getKey();
       if (pointedSourceTokens.contains(sourceTokenIndex)) {
@@ -482,8 +485,8 @@ public class MarianNmtConnector extends BaseConnector {
                 sourceTokenIndex2tags.remove(openingTagSourceTokenIndex);
               }
             }
-            eosTags.add(oneTag);
-            eosTags.add(0, openingTag);
+            unusedTags.add(oneTag);
+            unusedTags.add(0, openingTag);
           }
         }
       }
@@ -502,7 +505,11 @@ public class MarianNmtConnector extends BaseConnector {
       List<String> tags = oneEntry.getValue();
       for (String oneTag : new ArrayList<>(tags)) {
         if (isOpeningTag(oneTag)
-            || (isIsolatedTag(oneTag) && sourceTokenIndex > 0)) {
+            || (isIsolatedTag(oneTag)
+                // check for isolated tags not at beginning or end of sentence
+                && sourceTokenIndex > 0
+                && sourceTokenIndex < sourceTokensLength)) {
+          boolean pointedSourceTokenFound = false;
           for (int i = sourceTokenIndex + 1; i < sourceTokensLength; i++) {
             if (pointedSourceTokens.contains(i)) {
               List<String> pointedSourceTokenTags = sourceTokenIndex2tags.get(i);
@@ -511,12 +518,23 @@ public class MarianNmtConnector extends BaseConnector {
                 sourceTokenIndex2tags.put(i, pointedSourceTokenTags);
               }
               pointedSourceTokenTags.add(0, oneTag);
-              tags.remove(oneTag);
-              if (tags.isEmpty()) {
-                sourceTokenIndex2tags.remove(sourceTokenIndex);
-              }
+              pointedSourceTokenFound = true;
               break;
             }
+          }
+          tags.remove(oneTag);
+          if (tags.isEmpty()) {
+            sourceTokenIndex2tags.remove(sourceTokenIndex);
+          }
+          if (!pointedSourceTokenFound) {
+            // this can only happen for isolated tags that have no following pointed token;
+            // these are assigned to end-of-sentence
+            List<String> currentEosTags = sourceTokenIndex2tags.get(sourceTokensLength);
+            if (currentEosTags == null) {
+              currentEosTags = new ArrayList<>();
+              sourceTokenIndex2tags.put(sourceTokensLength, currentEosTags);
+            }
+            currentEosTags.add(oneTag);
           }
         } else if (isClosingTag(oneTag)) {
           for (int i = sourceTokenIndex - 1; i >= 0; i--) {
@@ -538,20 +556,7 @@ public class MarianNmtConnector extends BaseConnector {
       }
     }
 
-    // add end-of-sentence tags;
-    // Okapi will complain if tags from source sentence are missing
-    List<String> currentEosTags = sourceTokenIndex2tags.get(sourceTokensLength);
-    if (currentEosTags == null) {
-      currentEosTags = new ArrayList<>();
-      sourceTokenIndex2tags.put(sourceTokensLength, currentEosTags);
-    }
-    for (String oneTag : eosTags) {
-      if (isClosingTag(oneTag)) {
-        currentEosTags.add(oneTag);
-      } else {
-        currentEosTags.add(0, oneTag);
-      }
-    }
+    return unusedTags;
   }
 
 
@@ -1261,6 +1266,28 @@ public class MarianNmtConnector extends BaseConnector {
           i = i - 2;
         }
       }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
+  }
+
+
+  /**
+   * Add given unused tags at end of sentence.
+   *
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags
+   * @param unusedTags
+   *          unused tags to add
+   * @return target sentence tokens with unused tags added
+   */
+  public static String[] addUnusedTags(String[] targetTokensWithTags, List<String> unusedTags) {
+
+    List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
+
+    for (String oneTag : unusedTags) {
+      tokenList.add(oneTag);
     }
 
     String[] resultAsArray = new String[tokenList.size()];

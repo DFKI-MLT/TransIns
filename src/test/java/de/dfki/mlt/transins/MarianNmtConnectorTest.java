@@ -116,50 +116,108 @@ class MarianNmtConnectorTest {
     String[] sourceTokens = null;
     List<Integer> pointedSourceTokens = null;
     Map<Integer, List<String>> sourceTokenIndex2tags = null;
+    List<String> unusedTags = null;
 
-    // first test
+    // ISO at beginning and end of sentence, both not pointed to
+    sourceTokens = toArray("ISO x y z ISO");
+    pointedSourceTokens = List.of(1);
+    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
+        MarianNmtConnector.removeTags(sourceTokens).length);
+
+    assertThat(unusedTags).isEmpty();
+    assertThat(sourceTokenIndex2tags).hasSize(2);
+    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO);
+    assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO);
+
+    // ISO at beginning and end of sentence, both pointed to
+    sourceTokens = toArray("ISO x y z ISO");
+    pointedSourceTokens = List.of(0, 3);
+    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
+        MarianNmtConnector.removeTags(sourceTokens).length);
+
+    assertThat(unusedTags).isEmpty();
+    assertThat(sourceTokenIndex2tags).hasSize(2);
+    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO);
+    assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO);
+
+    // ISO not pointed to, but following pointed token
+    sourceTokens = toArray("x ISO y z");
+    pointedSourceTokens = List.of(2);
+    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
+        MarianNmtConnector.removeTags(sourceTokens).length);
+
+    assertThat(unusedTags).isEmpty();
+    assertThat(sourceTokenIndex2tags).hasSize(1);
+    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(ISO);
+
+    // ISO not pointed to, no following pointed token
+    sourceTokens = toArray("x ISO y z");
+    pointedSourceTokens = List.of(0);
+    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
+        MarianNmtConnector.removeTags(sourceTokens).length);
+
+    assertThat(unusedTags).isEmpty();
+    assertThat(sourceTokenIndex2tags).hasSize(1);
+    assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO);
+
+    // one tag pair without pointing tokens, ISO at sentence end
     sourceTokens = toArray("ISO OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO");
     pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
-    MarianNmtConnector.moveSourceTagsToPointedTokens(
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
         MarianNmtConnector.removeTags(sourceTokens).length);
 
+    assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2tags).hasSize(4);
     assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO);
     assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1);
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-    assertThat(sourceTokenIndex2tags.get(5)).containsExactly(OPEN2, ISO, CLOSE2);
+    assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO);
 
-    // second test
+    // all tag pairs with pointing tokens, ISO at sentence end
     sourceTokens = toArray("ISO OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO");
     pointedSourceTokens = List.of(0, 1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
-    MarianNmtConnector.moveSourceTagsToPointedTokens(
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
         MarianNmtConnector.removeTags(sourceTokens).length);
 
+    assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(3);
     assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO, OPEN1, OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
     assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO);
 
-    // third test
-    sourceTokens = toArray("ISO OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b c");
+    // one tag pair without pointing tokens, ISO not at sentence end
+    sourceTokens = toArray("ISO OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b ISO c");
     pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
-    MarianNmtConnector.moveSourceTagsToPointedTokens(
+    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
         MarianNmtConnector.removeTags(sourceTokens).length);
 
+    assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2tags).hasSize(4);
     assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO);
     assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1);
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-    assertThat(sourceTokenIndex2tags.get(6)).containsExactly(OPEN2, CLOSE2);
+    assertThat(sourceTokenIndex2tags.get(6)).containsExactly(ISO);
   }
 
 
