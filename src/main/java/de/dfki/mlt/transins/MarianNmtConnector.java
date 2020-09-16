@@ -489,7 +489,7 @@ public class MarianNmtConnector extends BaseConnector {
       }
     }
 
-    // at this point, all remaining tags are either isolated or have at least on pointing
+    // at this point, all remaining tags are either isolated or have at least one pointing
     // token between the opening and closing tag;
     // now move opening and isolated tags (when not at sentence beginning) to the
     // following pointed token and closing tags to the preceding pointed token
@@ -1238,8 +1238,8 @@ public class MarianNmtConnector extends BaseConnector {
    * @param closing2OpeningTag
    *          map of closing tags to opening tags
    * @param targetTokensWithTags
-   *          target sentence tokens with tags, potentially unbalanced
-   * @return target sentence tokens with handled inverted tags
+   *          target sentence tokens with tags
+   * @return target sentence tokens with merged neighbor tags
    */
   public static String[] mergeNeighborTagPairs(
       Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
