@@ -413,9 +413,10 @@ public class MarianNmtConnector extends BaseConnector {
    * Make sure that all source tokens with associated tags are actually 'pointed' to by at least
    * one target token:
    * <ul>
-   * <li>if there is no pointing token between opening and closing tag, move both to eos
-   * <li>move opening tags forwards until pointing token
-   * <li>move closing tags backwards until pointing token
+   * <li>if there is no pointing token between opening and closing tag, remove them
+   * <li>move opening tags forwards until pointed token
+   * <li>move closing tags backwards until pointed token
+   * <li>move isolated tags forward until pointed token or end-of-sentence
    * </ul>
    * The provided map {@code sourceTokenIndex2tags} is adapted accordingly.
    *
@@ -428,13 +429,18 @@ public class MarianNmtConnector extends BaseConnector {
    *          in the alignments
    * @param sourceTokensLength
    *          the number of source tokens
-   * @return list of tags that cannot be assigned to a pointed token
+   * @return list of tags that cannot be assigned to a pointed token;
+   *         contains all tag pairs with no pointed token in between
    */
   public static List<String> moveSourceTagsToPointedTokens(
       Map<Integer, List<String>> sourceTokenIndex2tags,
       Map<String, String> closing2OpeningTag,
       List<Integer> pointedSourceTokens,
       int sourceTokensLength) {
+
+    // get list of tags no to be moved
+    List<String> tagsToIgnore =
+        getTagsToIgnore(sourceTokenIndex2tags, closing2OpeningTag, sourceTokensLength);
 
     // for each closing tag of non-pointed source tokens, check if there is
     // a pointed source on the way to the corresponding opening tag;
@@ -448,6 +454,9 @@ public class MarianNmtConnector extends BaseConnector {
 
       List<String> tags = oneEntry.getValue();
       for (String oneTag : new ArrayList<>(tags)) {
+        if (tagsToIgnore.contains(oneTag)) {
+          continue;
+        }
         if (isClosingTag(oneTag)) {
           // find corresponding opening tag in front of it
           String openingTag = closing2OpeningTag.get(oneTag);
@@ -494,7 +503,7 @@ public class MarianNmtConnector extends BaseConnector {
 
     // at this point, all remaining tags are either isolated or have at least one pointing
     // token between the opening and closing tag;
-    // now move opening and isolated tags (when not at sentence beginning) to the
+    // now move opening and isolated tags (when not at sentence borders) to the
     // following pointed token and closing tags to the preceding pointed token
     for (var oneEntry : new HashSet<>(sourceTokenIndex2tags.entrySet())) {
       int sourceTokenIndex = oneEntry.getKey();
@@ -504,11 +513,10 @@ public class MarianNmtConnector extends BaseConnector {
 
       List<String> tags = oneEntry.getValue();
       for (String oneTag : new ArrayList<>(tags)) {
-        if (isOpeningTag(oneTag)
-            || (isIsolatedTag(oneTag)
-                // check for isolated tags not at beginning or end of sentence
-                && sourceTokenIndex > 0
-                && sourceTokenIndex < sourceTokensLength)) {
+        if (tagsToIgnore.contains(oneTag)) {
+          continue;
+        }
+        if (isOpeningTag(oneTag) || isIsolatedTag(oneTag)) {
           boolean pointedSourceTokenFound = false;
           for (int i = sourceTokenIndex + 1; i < sourceTokensLength; i++) {
             if (pointedSourceTokens.contains(i)) {
@@ -535,6 +543,8 @@ public class MarianNmtConnector extends BaseConnector {
               sourceTokenIndex2tags.put(sourceTokensLength, currentEosTags);
             }
             currentEosTags.add(oneTag);
+            // isolated tags at sentence end are ignored
+            tagsToIgnore.add(oneTag);
           }
         } else if (isClosingTag(oneTag)) {
           for (int i = sourceTokenIndex - 1; i >= 0; i--) {
