@@ -561,6 +561,64 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
+   * Collect tags that are part of tag pairs over the whole sentence or isolated
+   * tags at sentence beginning or end. These are to be ignored when moving tags as they get a
+   * special treatment {@link #reinsertTags(String[], String[], Alignments, Map, Map)}.
+   *
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags
+   * @param closing2OpeningTag
+   *          map of closing tags to corresponding opening tags
+   * @param sourceTokensLength
+   *          the number of source tokens
+   * @return the tags to ignore
+   */
+  private static List<String> getTagsToIgnore(
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      Map<String, String> closing2OpeningTag, int sourceTokensLength) {
+
+    List<String> tagsToIgnore = new ArrayList<>();
+
+    List<String> sourceTagsAtBeginningOfSentence = sourceTokenIndex2tags.get(0);
+    // closing tags are associated with the last token of the sentence
+    List<String> sourceTagsAtEndOfSentence = sourceTokenIndex2tags.get(sourceTokensLength - 1);
+
+    // collect tag pairs over the whole sentence
+    if (sourceTagsAtEndOfSentence != null
+        && sourceTagsAtBeginningOfSentence != null) {
+      for (String oneTag : sourceTagsAtEndOfSentence) {
+        if (isClosingTag(oneTag)) {
+          String openingTag = closing2OpeningTag.get(oneTag);
+          if (sourceTagsAtBeginningOfSentence.contains(openingTag)) {
+            tagsToIgnore.add(openingTag);
+            tagsToIgnore.add(oneTag);
+          }
+        }
+      }
+    }
+
+    // collect isolated tags at sentence beginning
+    if (sourceTagsAtBeginningOfSentence != null) {
+      for (String oneTag : sourceTagsAtBeginningOfSentence) {
+        if (isIsolatedTag(oneTag)) {
+          tagsToIgnore.add(oneTag);
+        }
+      }
+    }
+
+    // collect isolated tags at sentence end;
+    // isolated tag at the end of sentence are associated with the end-of-sentence after
+    // the last token of the sentence
+    List<String> isolatedTagsAtEndOfSentence = sourceTokenIndex2tags.get(sourceTokensLength);
+    if (isolatedTagsAtEndOfSentence != null) {
+      tagsToIgnore.addAll(isolatedTagsAtEndOfSentence);
+    }
+
+    return tagsToIgnore;
+  }
+
+
+  /**
    * Advanced version to re-insert tags from source. Takes into account the 'direction' of
    * a tag and special handling of isolated tags at sentence beginning.
    *

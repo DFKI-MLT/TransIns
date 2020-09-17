@@ -106,6 +106,80 @@ class MarianNmtConnectorTest {
 
 
   /**
+   * Test {@link MarianNmtConnector#getTagsToIgnore(Map, Map, int)}.
+   * This method is private, access for unit test achieved via reflection.
+   */
+  @Test
+  void testGetTagsToIgnore()
+      throws ReflectiveOperationException {
+
+    // init variables to be re-used between tests
+    String[] sourceTokens = null;
+    String[] expectedResult = null;
+
+    // ISO at beginning of sentence
+    sourceTokens = toArray("ISO a b c");
+    expectedResult = toArray("ISO");
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+
+    // ISO at end of sentence
+    sourceTokens = toArray("a b c ISO");
+    expectedResult = toArray("ISO");
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+
+    // ISO at other position
+    sourceTokens = toArray("a ISO b ISO c");
+    expectedResult = new String[0];
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+
+    // tag pair over whole sentence
+    sourceTokens = toArray("OPEN1 a b c CLOSE1");
+    expectedResult = toArray("OPEN1 CLOSE1");
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+
+    // tag pair over beginning of sentence
+    sourceTokens = toArray("OPEN1 a b CLOSE1 c");
+    expectedResult = new String[0];
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+
+    // tag pair over end of sentence
+    sourceTokens = toArray("a OPEN1 b c CLOSE1");
+    expectedResult = new String[0];
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+
+    // tag pair over inner sentence
+    sourceTokens = toArray("a OPEN1 b CLOSE1 c");
+    expectedResult = new String[0];
+    testGetTagsToIgnore(sourceTokens, expectedResult);
+  }
+
+
+  @SuppressWarnings("unchecked")
+  private void testGetTagsToIgnore(String[] sourceTokens, String[] expectedResult)
+      throws ReflectiveOperationException {
+
+    // use reflection to make private method accessible
+    String methodName = "getTagsToIgnore";
+    Method method = MarianNmtConnector.class.getDeclaredMethod(
+        methodName, Map.class, Map.class, int.class);
+    method.setAccessible(true);
+
+    String[] sourceTokensWithoutTags = MarianNmtConnector.removeTags(sourceTokens);
+    Map<Integer, List<String>> sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+
+    List<String> tagsToIgnore = (List<String>)method.invoke(
+        null, sourceTokenIndex2tags, closing2OpeningTag, sourceTokensWithoutTags.length);
+
+    assertThat(tagsToIgnore)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            toString(expectedResult),
+            toString(tagsToIgnore.toArray(new String[tagsToIgnore.size()]))))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
    * Test {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
    */
   @Test
