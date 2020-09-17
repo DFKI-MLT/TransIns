@@ -482,25 +482,58 @@ class MarianNmtConnectorTest {
   @Test
   void testReinsertTagsWithHardAlignments() {
 
-    String[] sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
-
     // init variables to be re-used between tests
+    String[] sourceTokens = null;
     String[] targetTokensWithoutTags = null;
     String rawAlignments = null;
     String[] expectedResult = null;
 
-    // first test
+    // parallel alignment
+    sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
     targetTokensWithoutTags = toArray("Das ist ein Test .");
     rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
     expectedResult = toArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test . CLOSE2 ISO2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
-    // second test
+    // reversed alignment
+    sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
     targetTokensWithoutTags = toArray("Test ein ist das .");
     //                                 This is  a   Test .
     rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
     expectedResult = toArray("ISO1 OPEN2 Test ein ist OPEN1 das CLOSE1 . CLOSE2 ISO2");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // end-of-sentence points to source token with tag
+    sourceTokens = toArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2");
+    targetTokensWithoutTags = toArray("aller au contenu");
+    rawAlignments = "0-0 1-2 2-3";
+    expectedResult = toArray("ISO1 OPEN1 aller au contenu CLOSE1 ISO2");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tags enclosing the whole sentence
+    sourceTokens = toArray("ISO1 OPEN1 a b c d CLOSE1 ISO2");
+    targetTokensWithoutTags = toArray("b a d c");
+    rawAlignments = "0-1 1-0 2-3 4-2";
+    expectedResult = toArray("ISO1 OPEN1 b a d c CLOSE1 ISO2");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tag pair over the whole sentence
+    sourceTokens = toArray("OPEN1 a b c d CLOSE1");
+    targetTokensWithoutTags = toArray("b a d c");
+    rawAlignments = "0-1 1-0 2-3 4-2";
+    expectedResult = toArray("OPEN1 b a d c CLOSE1");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // multiple tag pairs over the whole sentence
+    sourceTokens = toArray("OPEN1 OPEN2 OPEN3 a b c d CLOSE3 CLOSE2 CLOSE1");
+    targetTokensWithoutTags = toArray("b a d c");
+    rawAlignments = "0-1 1-0 2-3 4-2";
+    expectedResult = toArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
@@ -576,7 +609,8 @@ class MarianNmtConnectorTest {
 
     String[] targetTokensWithTags =
         MarianNmtConnector.reinsertTags(
-            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags,
+            closing2OpeningTag);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",

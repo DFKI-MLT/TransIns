@@ -33,6 +33,9 @@ public class MarianNmtConnector extends BaseConnector {
 
   private static final Logger logger = LoggerFactory.getLogger(MarianNmtConnector.class);
 
+  // special token to mark end of sentence of target sentence
+  private static final String EOS = "end-of-target-sentence-marker";
+
   private MarianNmtParameters params;
   private PrePostProcessingClient prepostClient;
   private MarianNmtClient translatorClient;
@@ -182,7 +185,8 @@ public class MarianNmtConnector extends BaseConnector {
                   algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
           String[] targetTokensWithTags = reinsertTags(
-              sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags);
+              sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags,
+              closing2OpeningTag);
 
           // clean up tags
           targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
@@ -630,7 +634,8 @@ public class MarianNmtConnector extends BaseConnector {
 
   /**
    * Advanced version to re-insert tags from source. Takes into account the 'direction' of
-   * a tag and special handling of isolated tags at sentence beginning.
+   * a tag and special handling of isolated tags at the beginning and end of source sentence
+   * and tag pairs over the whole sentence.
    *
    * @param sourceTokensWithoutTags
    *          list of source tokens without tags
@@ -640,17 +645,28 @@ public class MarianNmtConnector extends BaseConnector {
    *          alignments of source and target tokens
    * @param sourceTokenIndex2tags
    *          map of source token indexes to associated tags
+   * @param closing2OpeningTag
+   *          map of closing tags to corresponding opening tags
    * @return target tokens with re-inserted tags
    */
   public static String[] reinsertTags(
       String[] sourceTokensWithoutTags, String[] targetTokensWithoutTags,
-      Alignments algn, Map<Integer, List<String>> sourceTokenIndex2tags) {
+      Alignments algn, Map<Integer, List<String>> sourceTokenIndex2tags,
+      Map<String, String> closing2OpeningTag) {
+
+    // add explicit end-of-sentence marker to target sentence
+    targetTokensWithoutTags =
+        Arrays.copyOfRange(targetTokensWithoutTags, 0, targetTokensWithoutTags.length + 1);
+    targetTokensWithoutTags[targetTokensWithoutTags.length - 1] = EOS;
 
     List<String> targetTokensWithTags = new ArrayList<>();
 
-    // handle special case of isolated tag at the beginning of source sentence;
+    // handle special case of isolated tag at the beginning and end of source sentence
+    // and tag pairs over the whole sentence;
     // we assume that such tags refer to the whole sentence and not a specific token and
-    // therefore add them at the beginning of the target sentence
+    // therefore add them at the beginning and end of the target sentence
+
+    // collect isolated tags at beginning of sentence
     List<String> sourceTagsAtBeginningOfSentence = sourceTokenIndex2tags.get(0);
     if (sourceTagsAtBeginningOfSentence != null) {
       for (String oneSourceTag : new ArrayList<>(sourceTagsAtBeginningOfSentence)) {
@@ -660,8 +676,51 @@ public class MarianNmtConnector extends BaseConnector {
           sourceTagsAtBeginningOfSentence.remove(oneSourceTag);
         }
       }
-      if (sourceTagsAtBeginningOfSentence.isEmpty()) {
-        sourceTokenIndex2tags.remove(0);
+    }
+
+    // here we collect all tags that will be added at the sentence's end later
+    List<String> targetTagsAtEndOfSentence = new ArrayList<>();
+
+    // check for tag pairs over the whole sentence
+    List<String> sourceTagsAtEndOfSentence =
+        sourceTokenIndex2tags.get(sourceTokensWithoutTags.length - 1);
+    if (sourceTagsAtEndOfSentence != null) {
+      List<String> reversedSourceTagsAtEndOfSentence = new ArrayList<>(sourceTagsAtEndOfSentence);
+      Collections.reverse(reversedSourceTagsAtEndOfSentence);
+      for (String oneSourceTag : reversedSourceTagsAtEndOfSentence) {
+        if (isClosingTag(oneSourceTag)
+            && sourceTagsAtBeginningOfSentence != null) {
+          String openingTag = closing2OpeningTag.get(oneSourceTag);
+          if (sourceTagsAtBeginningOfSentence.contains(openingTag)) {
+            targetTokensWithTags.add(openingTag);
+            targetTagsAtEndOfSentence.add(0, oneSourceTag);
+            // these tags are moved (not copied) to the target sentence
+            sourceTagsAtBeginningOfSentence.remove(openingTag);
+            sourceTagsAtEndOfSentence.remove(oneSourceTag);
+          }
+        }
+      }
+      if (sourceTagsAtEndOfSentence.isEmpty()) {
+        sourceTokenIndex2tags.get(sourceTokensWithoutTags.length - 1);
+      }
+    }
+    if (sourceTagsAtBeginningOfSentence != null && sourceTagsAtBeginningOfSentence.isEmpty()) {
+      sourceTokenIndex2tags.remove(0);
+    }
+
+    // collect isolated tags to be added at end of target sentence
+    List<String> sourceIsoTagsAtEndOfSentence =
+        sourceTokenIndex2tags.get(sourceTokensWithoutTags.length);
+    if (sourceIsoTagsAtEndOfSentence != null) {
+      for (String oneSourceIsoTag : new ArrayList<>(sourceIsoTagsAtEndOfSentence)) {
+        // only isolated tags can be assigned to end-of-sentence,
+        // so no check of tag type is required
+        targetTagsAtEndOfSentence.add(oneSourceIsoTag);
+        // these tags are moved (not copied) to the target sentence
+        sourceIsoTagsAtEndOfSentence.remove(oneSourceIsoTag);
+      }
+      if (sourceIsoTagsAtEndOfSentence.isEmpty()) {
+        sourceTokenIndex2tags.remove(sourceTokensWithoutTags.length);
       }
     }
 
@@ -687,16 +746,15 @@ public class MarianNmtConnector extends BaseConnector {
         }
       }
       targetTokensWithTags.addAll(tagsToInsertBefore);
-      targetTokensWithTags.add(targetToken);
+      if (!targetToken.equals(EOS)) {
+        // don't add end-of-sentence marker
+        targetTokensWithTags.add(targetToken);
+      }
       targetTokensWithTags.addAll(tagsToInsertAfter);
     }
 
-    // get end-of-sentence tags from source sentence
-    int eosTokenIndex = sourceTokensWithoutTags.length;
-    List<String> eosTags = sourceTokenIndex2tags.get(eosTokenIndex);
-    if (eosTags != null) {
-      targetTokensWithTags.addAll(eosTags);
-    }
+    // add end-of-sentence tags
+    targetTokensWithTags.addAll(targetTagsAtEndOfSentence);
 
     // convert array list to array and return it
     return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
