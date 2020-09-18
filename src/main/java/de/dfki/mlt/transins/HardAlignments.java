@@ -8,12 +8,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Provide token based alignments based on Marian hard alignments.
  *
  * @author Jörg Steffen, DFKI
  */
 public class HardAlignments implements Alignments {
+
+  private static final Logger logger = LoggerFactory.getLogger(HardAlignments.class);
 
   // mapping of target token index to list of source token indexes
   private Map<Integer, List<Integer>> target2sourcesMapping;
@@ -74,9 +79,16 @@ public class HardAlignments implements Alignments {
     for (var oneEntry : this.target2sourcesMapping.entrySet()) {
       List<Integer> newSourceIndexes = new ArrayList<>();
       for (int oneOldSourceIndex : oneEntry.getValue()) {
-        newSourceIndexes.add(oneOldSourceIndex + offset);
+        int sourceIndexWithOffset = oneOldSourceIndex + offset;
+        if (sourceIndexWithOffset < 0) {
+          logger.warn("shifting source index resulted in negative index, ignoring this index");
+        } else {
+          newSourceIndexes.add(sourceIndexWithOffset);
+        }
       }
-      tempTarget2sourcesMapping.put(oneEntry.getKey(), newSourceIndexes);
+      if (!newSourceIndexes.isEmpty()) {
+        tempTarget2sourcesMapping.put(oneEntry.getKey(), newSourceIndexes);
+      }
     }
 
     this.target2sourcesMapping = tempTarget2sourcesMapping;
@@ -95,7 +107,12 @@ public class HardAlignments implements Alignments {
     Map<Integer, List<Integer>> tempTarget2sourcesMapping = new TreeMap<>();
 
     for (var oneEntry : this.target2sourcesMapping.entrySet()) {
-      tempTarget2sourcesMapping.put(oneEntry.getKey() + offset, oneEntry.getValue());
+      int targetIndexWithOffset = oneEntry.getKey() + offset;
+      if (targetIndexWithOffset < 0) {
+        logger.warn("shifting target index resulted in negative index, ignoring this index");
+      } else {
+        tempTarget2sourcesMapping.put(oneEntry.getKey() + offset, oneEntry.getValue());
+      }
     }
 
     this.target2sourcesMapping = tempTarget2sourcesMapping;

@@ -134,6 +134,8 @@ class HardAlignmentsTest {
     assertThat(algn.toString()).isEqualTo("1-0 2-1 3-2");
     algn.shiftSourceIndexes(2);
     assertThat(algn.toString()).isEqualTo("1-2 2-3 3-4");
+    algn.shiftSourceIndexes(-3);
+    assertThat(algn.toString()).isEqualTo("2-0 3-1");
   }
 
 
@@ -151,5 +153,7 @@ class HardAlignmentsTest {
     assertThat(algn.toString()).isEqualTo("0-1 1-2 2-3");
     algn.shiftTargetIndexes(2);
     assertThat(algn.toString()).isEqualTo("2-1 3-2 4-3");
+    algn.shiftTargetIndexes(-3);
+    assertThat(algn.toString()).isEqualTo("0-2 1-3");
   }
 }

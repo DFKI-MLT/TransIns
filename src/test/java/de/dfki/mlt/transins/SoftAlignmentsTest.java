@@ -151,10 +151,12 @@ class SoftAlignmentsTest {
     SoftAlignments algn = new SoftAlignments(rawAlignments);
     algn.shiftSourceIndexes(0);
     assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-1 1-1 2-1");
-    algn.shiftSourceIndexes(-1);
-    assertThat(algn.toHardAlignments(0.4)).isEqualTo("-1-1 0-1 1-1");
-    algn.shiftSourceIndexes(2);
+    algn.shiftSourceIndexes(1);
     assertThat(algn.toHardAlignments(0.4)).isEqualTo("1-1 2-1 3-1");
+    algn.shiftSourceIndexes(-1);
+    assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-1 1-1 2-1");
+    algn.shiftSourceIndexes(-1);
+    assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-1 1-1");
   }
 
 
@@ -168,9 +170,11 @@ class SoftAlignmentsTest {
     SoftAlignments algn = new SoftAlignments(rawAlignments);
     algn.shiftTargetIndexes(0);
     assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-1 1-1 2-1");
-    algn.shiftTargetIndexes(-1);
-    assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-0 1-0 2-0");
-    algn.shiftTargetIndexes(2);
+    algn.shiftTargetIndexes(1);
     assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-2 1-2 2-2");
+    algn.shiftTargetIndexes(-1);
+    assertThat(algn.toHardAlignments(0.4)).isEqualTo("0-1 1-1 2-1");
+    algn.shiftTargetIndexes(-2);
+    assertThat(algn.toHardAlignments(0.4)).isEmpty();
   }
 }

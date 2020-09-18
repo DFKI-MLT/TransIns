@@ -143,12 +143,14 @@ public class SoftAlignments implements Alignments {
     int maxScoreIndex = -1;
     for (int i = 0; i < this.alignmentScores[targetTokenIndex].length; i++) {
       double algnScore = this.alignmentScores[targetTokenIndex][i];
-      if (algnScore >= threshold && algnScore > maxScore) {
+      if (algnScore >= threshold
+          && algnScore > maxScore
+          && i + this.sourceIndexOffset >= 0) {
         maxScore = algnScore;
         maxScoreIndex = i;
       }
     }
-    return maxScoreIndex + this.sourceIndexOffset;
+    return maxScoreIndex;
   }
 
 
@@ -167,7 +169,10 @@ public class SoftAlignments implements Alignments {
     for (int i = 0; i < this.alignmentScores[targetTokenIndex].length; i++) {
       double algnScore = this.alignmentScores[targetTokenIndex][i];
       if (algnScore >= threshold) {
-        sourceTokenIndexes.add(i + this.sourceIndexOffset);
+        int sourceIndexWithOffset = i + this.sourceIndexOffset;
+        if (sourceIndexWithOffset >= 0) {
+          sourceTokenIndexes.add(sourceIndexWithOffset);
+        }
       }
     }
 
@@ -203,9 +208,11 @@ public class SoftAlignments implements Alignments {
     for (int sourceIndex = 0; sourceIndex < this.alignmentScores[0].length; sourceIndex++) {
       for (int targetIndex = 0; targetIndex < this.alignmentScores.length; targetIndex++) {
         if (this.alignmentScores[targetIndex][sourceIndex] >= threshold) {
-          result.append(String.format("%d-%d ",
-              sourceIndex + this.sourceIndexOffset,
-              targetIndex + this.targetIndexOffset));
+          int sourceIndexWithOffset = sourceIndex + this.sourceIndexOffset;
+          int targetIndexWithOffset = targetIndex + this.targetIndexOffset;
+          if (sourceIndexWithOffset >= 0 && targetIndexWithOffset >= 0) {
+            result.append(String.format("%d-%d ", sourceIndexWithOffset, targetIndexWithOffset));
+          }
         }
       }
     }
@@ -227,14 +234,16 @@ public class SoftAlignments implements Alignments {
       double maxSourceScore = 0.0;
       for (int sourceIndex = 0; sourceIndex < this.alignmentScores[targetIndex].length;
           sourceIndex++) {
-        if (this.alignmentScores[targetIndex][sourceIndex] > maxSourceScore) {
-          maxSourceIndex = sourceIndex;
+        if (this.alignmentScores[targetIndex][sourceIndex] > maxSourceScore
+            && sourceIndex + this.sourceIndexOffset >= 0) {
+          maxSourceIndex = sourceIndex + this.sourceIndexOffset;
           maxSourceScore = this.alignmentScores[targetIndex][sourceIndex];
         }
       }
-      result.append(String.format("%d-%d ",
-          targetIndex + this.targetIndexOffset,
-          maxSourceIndex + this.sourceIndexOffset));
+      int targetIndexWithOffset = targetIndex + this.targetIndexOffset;
+      if (targetIndexWithOffset >= 0) {
+        result.append(String.format("%d-%d ", targetIndexWithOffset, maxSourceIndex));
+      }
     }
     return result.toString().trim();
   }
