@@ -33,14 +33,14 @@ import net.sf.okapi.common.exceptions.OkapiException;
 class MarianNmtConnectorTest {
 
   // declare tags in the format used by Okapi
-  private static final String ISO1 = MarianNmtConnector.createIsolatedTag(0);
-  private static final String ISO2 = MarianNmtConnector.createIsolatedTag(1);
-  private static final String OPEN1 = MarianNmtConnector.createOpeningTag(2);
-  private static final String CLOSE1 = MarianNmtConnector.createClosingTag(3);
-  private static final String OPEN2 = MarianNmtConnector.createOpeningTag(4);
-  private static final String CLOSE2 = MarianNmtConnector.createClosingTag(5);
-  private static final String OPEN3 = MarianNmtConnector.createOpeningTag(6);
-  private static final String CLOSE3 = MarianNmtConnector.createClosingTag(7);
+  private static final String ISO1 = TagUtils.createIsolatedTag(0);
+  private static final String ISO2 = TagUtils.createIsolatedTag(1);
+  private static final String OPEN1 = TagUtils.createOpeningTag(2);
+  private static final String CLOSE1 = TagUtils.createClosingTag(3);
+  private static final String OPEN2 = TagUtils.createOpeningTag(4);
+  private static final String CLOSE2 = TagUtils.createClosingTag(5);
+  private static final String OPEN3 = TagUtils.createOpeningTag(6);
+  private static final String CLOSE3 = TagUtils.createClosingTag(7);
 
   // map of closing tags to opening tags
   private static Map<String, String> closing2OpeningTag = null;
@@ -1149,7 +1149,7 @@ class MarianNmtConnectorTest {
         .as(String.format("%nexpected: %s%nactual: %s",
             toString(expectedResult), toString(targetTokens)))
         .containsExactly(expectedResult);
-    String xml = MarianNmtConnector.toXml(targetTokens, closing2OpeningTag);
+    String xml = TagUtils.asXml(targetTokens, closing2OpeningTag);
     assertThat(isValidXml(xml));
   }
 
@@ -1442,7 +1442,7 @@ class MarianNmtConnectorTest {
             MarianNmtConnector.balanceTags(closing2OpeningTag, removeRedundantTags);
         String[] mergeNeighborTagPairs =
             MarianNmtConnector.mergeNeighborTagPairs(closing2OpeningTag, balanceTags);
-        String xml = MarianNmtConnector.toXml(mergeNeighborTagPairs, closing2OpeningTag);
+        String xml = TagUtils.asXml(mergeNeighborTagPairs, closing2OpeningTag);
         if (!isValidXml(xml)) {
           System.err.println(
               String.format("input:                           %s",

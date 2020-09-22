@@ -1,0 +1,257 @@
+package de.dfki.mlt.transins;
+
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import net.sf.okapi.common.resource.Code;
+import net.sf.okapi.common.resource.TextFragment;
+
+/**
+ * Provide utility methods to work with tags.
+ *
+ * @author Jörg Steffen, DFKI
+ */
+public final class TagUtils {
+
+
+  private static final Logger logger = LoggerFactory.getLogger(TagUtils.class);
+
+
+  private TagUtils() {
+
+    // private constructor to enforce noninstantiability
+  }
+
+
+  /**
+   * Check if given token is an Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true}if token is Okapi tag
+   */
+  public static boolean isTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_OPENING
+        || token.charAt(0) == TextFragment.MARKER_CLOSING
+        || token.charAt(0) == TextFragment.MARKER_ISOLATED;
+  }
+
+
+  /**
+   * Check if the given token is an opening Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true} if token is opening Okapi tag
+   */
+  public static boolean isOpeningTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_OPENING;
+  }
+
+
+  /**
+   * Check if the given token is a closing Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true} if token is closing Okapi tag
+   */
+  public static boolean isClosingTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_CLOSING;
+  }
+
+
+  /**
+   * Check if the given token is an isolated Okapi tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true} if token is isolated Okapi tag
+   */
+  public static boolean isIsolatedTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_ISOLATED;
+  }
+
+
+  /**
+   * Check if given token is an Okapi backward tag.
+   *
+   * @param token
+   *          the token
+   * @return {@code true}if token is backward tag
+   */
+  public static boolean isBackwardTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_CLOSING;
+  }
+
+
+  /**
+   * Check if given token is an Okapi forward tag
+   *
+   * @param token
+   *          the token
+   * @return {@code true}if token is forward tag
+   */
+  public static boolean isForwardTag(String token) {
+
+    return token.charAt(0) == TextFragment.MARKER_OPENING
+        || token.charAt(0) == TextFragment.MARKER_ISOLATED;
+  }
+
+
+  /**
+   * Return the id of the given tag
+   *
+   * @param tag
+   *          the tag
+   * @return the id or -1 if none
+   */
+  public static int getTagId(String tag) {
+  
+    if (!isTag(tag)) {
+      return -1;
+    }
+  
+    return TextFragment.toIndex(tag.charAt(1));
+  }
+
+
+  /**
+   * @param tagId
+   *          the tag id
+   * @return an opening tag with the given tag id
+   */
+  public static String createOpeningTag(int tagId) {
+
+    return String.format("%c%c", TextFragment.MARKER_OPENING, tagId + TextFragment.CHARBASE);
+  }
+
+
+  /**
+   * @param tagId
+   *          the tag id
+   * @return a closing tag with the given tag id
+   */
+  public static String createClosingTag(int tagId) {
+
+    return String.format("%c%c", TextFragment.MARKER_CLOSING, tagId + TextFragment.CHARBASE);
+  }
+
+
+  /**
+   * @param tagId
+   *          the tag id
+   * @return an isolated tag with the given tag id
+   */
+  public static String createIsolatedTag(int tagId) {
+
+    return String.format("%c%c", TextFragment.MARKER_ISOLATED, tagId + TextFragment.CHARBASE);
+  }
+
+
+  /**
+   * Replace Okapi tags with human readable tags in given String array and create XML string.
+   *
+   * @param targetTokensWithTags
+   *          string array with tokens
+   * @param closing2OpeningTag
+   *          map of closing tags to opening tags
+   * @return XML string with appended tokens and replaced Okapi tags
+   */
+  public static String asXml(
+      String[] targetTokensWithTags, Map<String, String> closing2OpeningTag) {
+
+    String[] resultTokens = new String[targetTokensWithTags.length];
+
+    int index = -1;
+    for (String oneToken : targetTokensWithTags) {
+      index++;
+      if (isIsolatedTag(oneToken)) {
+        resultTokens[index] = String.format("<iso%d/>", getTagId(oneToken));
+      } else if (isOpeningTag(oneToken)) {
+        resultTokens[index] = String.format("<u%d>", getTagId(oneToken));
+      } else if (isClosingTag(oneToken)) {
+        // use the id of the associated opening tag to get valid XML
+        int openingTagId = getTagId(closing2OpeningTag.get(oneToken));
+        resultTokens[index] = String.format("</u%d>", openingTagId);
+      } else {
+        resultTokens[index] = oneToken;
+      }
+    }
+
+    return String.format(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>%n<body>%n"
+            + String.join(" ", resultTokens)
+            + "%n</body>");
+  }
+
+
+  /**
+   * Replace Okapi tags with human readable tags in given String array and create string.
+   *
+   * @param targetTokensWithTags
+   *          string array with tokens
+   * @param codes
+   *          list of Okapi codes from the fragment associated with the given text
+   * @return string with appended tokens and replaced Okapi tags
+   */
+  public static String asString(String[] targetTokensWithTags, List<Code> codes) {
+
+    return asString(String.join(" ", targetTokensWithTags).strip(), codes);
+  }
+
+
+  /**
+   * Replace Okapi tags with human readable tags in given text.
+   *
+   * @param text
+   *          text with tags
+   * @param codes
+   *          list of Okapi codes from the fragment associated with the given text
+   * @return string with replaced Okapi tags
+   */
+  public static String asString(String text, List<Code> codes) {
+
+    Code code;
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < text.length(); i++) {
+      switch (text.charAt(i)) {
+        case TextFragment.MARKER_OPENING:
+          code = codes.get(TextFragment.toIndex(text.charAt(++i)));
+          sb.append(String.format("<u id='%d'>", code.getId()));
+          break;
+        case TextFragment.MARKER_CLOSING:
+          i++;
+          sb.append("</u>");
+          break;
+        case TextFragment.MARKER_ISOLATED:
+          code = codes.get(TextFragment.toIndex(text.charAt(++i)));
+          switch (code.getTagType()) {
+            case OPENING:
+              sb.append(String.format("<br id='b%d'/>", code.getId()));
+              break;
+            case CLOSING:
+              sb.append(String.format("<br id='e%d'/>", code.getId()));
+              break;
+            case PLACEHOLDER:
+              sb.append(String.format("<br id='p%d'/>", code.getId()));
+              break;
+            default:
+              logger.warn("unsupported tag type \"{}\"", code.getTagType());
+          }
+          break;
+        default:
+          sb.append(text.charAt(i));
+      }
+    }
+    return sb.toString();
+  }
+}
