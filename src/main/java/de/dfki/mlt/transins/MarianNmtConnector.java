@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
@@ -730,7 +731,8 @@ public class MarianNmtConnector extends BaseConnector {
       }
     }
 
-    // now copy (not move) tags from source to target
+    // now move isolated and copy non-isolated tags from source to target
+    Set<String> usedIsolatedTags = new HashSet<>();
     for (int targetTokenIndex = 0; targetTokenIndex < targetTokensWithoutTags.length;
         targetTokenIndex++) {
 
@@ -747,6 +749,12 @@ public class MarianNmtConnector extends BaseConnector {
           if (isBackwardTag(oneSourceTag)) {
             tagsToInsertAfter.add(oneSourceTag);
           } else {
+            if (isIsolatedTag(oneSourceTag)) {
+              if (usedIsolatedTags.contains(oneSourceTag)) {
+                continue;
+              }
+              usedIsolatedTags.add(oneSourceTag);
+            }
             tagsToInsertBefore.add(oneSourceTag);
           }
         }

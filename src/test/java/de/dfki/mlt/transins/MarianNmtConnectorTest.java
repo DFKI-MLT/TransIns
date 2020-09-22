@@ -536,6 +536,14 @@ class MarianNmtConnectorTest {
     expectedResult = toArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tokens with isolated tags are pointed to multiple times
+    sourceTokens = toArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
+    targetTokensWithoutTags = toArray("a b c");
+    rawAlignments = "1-0 1-1 2-2";
+    expectedResult = toArray("ISO1 ISO2 OPEN1 a OPEN1 b c CLOSE1");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
 
 
