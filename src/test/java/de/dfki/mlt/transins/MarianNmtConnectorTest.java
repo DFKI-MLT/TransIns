@@ -1,5 +1,7 @@
 package de.dfki.mlt.transins;
 
+import static de.dfki.mlt.transins.TagUtils.asXml;
+import static de.dfki.mlt.transins.TagUtils.removeTags;
 import static de.dfki.mlt.transins.TestUtils.CLOSE1;
 import static de.dfki.mlt.transins.TestUtils.CLOSE2;
 import static de.dfki.mlt.transins.TestUtils.CLOSE3;
@@ -170,7 +172,7 @@ class MarianNmtConnectorTest {
         methodName, Map.class, Map.class, int.class);
     method.setAccessible(true);
 
-    String[] sourceTokensWithoutTags = MarianNmtConnector.removeTags(sourceTokens);
+    String[] sourceTokensWithoutTags = removeTags(sourceTokens);
     Map<Integer, List<String>> sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     List<String> tagsToIgnore = (List<String>)method.invoke(
@@ -205,7 +207,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -219,7 +221,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -233,7 +235,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(1);
@@ -246,7 +248,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(1);
@@ -259,7 +261,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2tags).hasSize(4);
@@ -275,7 +277,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(3);
@@ -290,7 +292,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2tags).hasSize(4);
@@ -306,7 +308,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -320,7 +322,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -334,7 +336,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -348,7 +350,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -363,7 +365,7 @@ class MarianNmtConnectorTest {
 
     unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
         sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        MarianNmtConnector.removeTags(sourceTokens).length);
+        removeTags(sourceTokens).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2tags).hasSize(2);
@@ -389,7 +391,7 @@ class MarianNmtConnectorTest {
 
     String[] sourceTokens =
         asArray("ISO1 OPEN1 Th@@ i@@ s CLOSE1 is a OPEN2 te@@ st . CLOSE2 ISO2");
-    String[] sourceTokensWithoutTags = MarianNmtConnector.removeTags(sourceTokens);
+    String[] sourceTokensWithoutTags = removeTags(sourceTokens);
     Map<Integer, List<String>> sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
     List<String> tags = null;
@@ -605,7 +607,7 @@ class MarianNmtConnectorTest {
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
       String[] expectedResult, boolean hardAlignments) {
 
-    String[] sourceTokensWithoutTags = MarianNmtConnector.removeTags(sourceTokens);
+    String[] sourceTokensWithoutTags = removeTags(sourceTokens);
     Alignments algn = null;
     if (hardAlignments) {
       algn = new HardAlignments(rawAlignments);
@@ -1149,7 +1151,7 @@ class MarianNmtConnectorTest {
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
-    String xml = TagUtils.asXml(targetTokens, closing2OpeningTag);
+    String xml = asXml(targetTokens, closing2OpeningTag);
     assertThat(isValidXml(xml));
   }
 
@@ -1359,7 +1361,7 @@ class MarianNmtConnectorTest {
             MarianNmtConnector.balanceTags(closing2OpeningTag, removeRedundantTags);
         String[] mergeNeighborTagPairs =
             MarianNmtConnector.mergeNeighborTagPairs(closing2OpeningTag, balanceTags);
-        String xml = TagUtils.asXml(mergeNeighborTagPairs, closing2OpeningTag);
+        String xml = asXml(mergeNeighborTagPairs, closing2OpeningTag);
         if (!isValidXml(xml)) {
           System.err.println(
               String.format("input:                           %s",

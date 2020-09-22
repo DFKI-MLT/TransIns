@@ -5,6 +5,7 @@ import static de.dfki.mlt.transins.TagUtils.isClosingTag;
 import static de.dfki.mlt.transins.TagUtils.isIsolatedTag;
 import static de.dfki.mlt.transins.TagUtils.isOpeningTag;
 import static de.dfki.mlt.transins.TagUtils.isTag;
+import static de.dfki.mlt.transins.TagUtils.removeTags;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -287,59 +288,6 @@ public class MarianNmtConnector extends BaseConnector {
 
     String codedText = fragment.getCodedText();
     return removeTags(codedText);
-  }
-
-
-  /**
-   * Remove Okapi codes from the given text.
-   *
-   * @param codedText
-   *          the text to remove the codes from
-   * @return the resulting string
-   */
-  public static String removeTags(String codedText) {
-
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < codedText.length(); i++) {
-      switch (codedText.charAt(i)) {
-        case TextFragment.MARKER_OPENING:
-        case TextFragment.MARKER_CLOSING:
-        case TextFragment.MARKER_ISOLATED:
-          // skip the second tag character and the following space
-          i = i + 2;
-          break;
-        default:
-          sb.append(codedText.charAt(i));
-      }
-    }
-    return sb.toString();
-  }
-
-
-  /**
-   * Remove Okapi codes from the given tokens.
-   *
-   * @param tokens
-   *          the tokens to remove the codes from
-   * @return the resulting tokens
-   */
-  public static String[] removeTags(String[] tokens) {
-
-    List<String> tokenList = new ArrayList<>();
-    for (int i = 0; i < tokens.length; i++) {
-      String oneToken = tokens[i];
-      switch (oneToken.charAt(0)) {
-        case TextFragment.MARKER_OPENING:
-        case TextFragment.MARKER_CLOSING:
-        case TextFragment.MARKER_ISOLATED:
-          continue;
-        default:
-          tokenList.add(oneToken);
-      }
-    }
-
-    String[] resultAsArray = new String[tokenList.size()];
-    return tokenList.toArray(resultAsArray);
   }
 
 
