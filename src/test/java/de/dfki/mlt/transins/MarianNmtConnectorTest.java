@@ -1,5 +1,15 @@
 package de.dfki.mlt.transins;
 
+import static de.dfki.mlt.transins.TestUtils.CLOSE1;
+import static de.dfki.mlt.transins.TestUtils.CLOSE2;
+import static de.dfki.mlt.transins.TestUtils.CLOSE3;
+import static de.dfki.mlt.transins.TestUtils.ISO1;
+import static de.dfki.mlt.transins.TestUtils.ISO2;
+import static de.dfki.mlt.transins.TestUtils.OPEN1;
+import static de.dfki.mlt.transins.TestUtils.OPEN2;
+import static de.dfki.mlt.transins.TestUtils.OPEN3;
+import static de.dfki.mlt.transins.TestUtils.asArray;
+import static de.dfki.mlt.transins.TestUtils.asString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
@@ -31,16 +41,6 @@ import net.sf.okapi.common.exceptions.OkapiException;
  * @author Jörg Steffen, DFKI
  */
 class MarianNmtConnectorTest {
-
-  // declare tags in the format used by Okapi
-  private static final String ISO1 = TagUtils.createIsolatedTag(0);
-  private static final String ISO2 = TagUtils.createIsolatedTag(1);
-  private static final String OPEN1 = TagUtils.createOpeningTag(2);
-  private static final String CLOSE1 = TagUtils.createClosingTag(3);
-  private static final String OPEN2 = TagUtils.createOpeningTag(4);
-  private static final String CLOSE2 = TagUtils.createClosingTag(5);
-  private static final String OPEN3 = TagUtils.createOpeningTag(6);
-  private static final String CLOSE3 = TagUtils.createClosingTag(7);
 
   // map of closing tags to opening tags
   private static Map<String, String> closing2OpeningTag = null;
@@ -76,12 +76,12 @@ class MarianNmtConnectorTest {
     Map<String, String> localClosing2OpeningTag = null;
 
     // first test
-    sourceTokensWithTags = toArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
+    sourceTokensWithTags = asArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
     localClosing2OpeningTag = MarianNmtConnector.createTagMap(sourceTokensWithTags);
     assertThat(localClosing2OpeningTag).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
 
     // second test
-    sourceTokensWithTags = toArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
+    sourceTokensWithTags = asArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
     localClosing2OpeningTag = MarianNmtConnector.createTagMap(sourceTokensWithTags);
     assertThat(localClosing2OpeningTag).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
   }
@@ -93,7 +93,7 @@ class MarianNmtConnectorTest {
   @Test
   void testCreateSourceTokenIndex2Tags() {
 
-    String[] sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    String[] sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
 
     Map<Integer, List<String>> index2Tags =
         MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokens);
@@ -119,42 +119,42 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // ISO at beginning of sentence
-    sourceTokens = toArray("ISO1 a b c");
-    expectedResult = toArray("ISO1");
+    sourceTokens = asArray("ISO1 a b c");
+    expectedResult = asArray("ISO1");
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // ISO at end of sentence
-    sourceTokens = toArray("a b c ISO1");
-    expectedResult = toArray("ISO1");
+    sourceTokens = asArray("a b c ISO1");
+    expectedResult = asArray("ISO1");
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // ISO at beginning and end of sentence
-    sourceTokens = toArray("ISO1 a b c ISO2");
-    expectedResult = toArray("ISO1 ISO2");
+    sourceTokens = asArray("ISO1 a b c ISO2");
+    expectedResult = asArray("ISO1 ISO2");
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // ISO at other position
-    sourceTokens = toArray("a ISO1 b ISO2 c");
+    sourceTokens = asArray("a ISO1 b ISO2 c");
     expectedResult = new String[0];
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // tag pair over whole sentence
-    sourceTokens = toArray("OPEN1 a b c CLOSE1");
-    expectedResult = toArray("OPEN1 CLOSE1");
+    sourceTokens = asArray("OPEN1 a b c CLOSE1");
+    expectedResult = asArray("OPEN1 CLOSE1");
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // tag pair over beginning of sentence
-    sourceTokens = toArray("OPEN1 a b CLOSE1 c");
+    sourceTokens = asArray("OPEN1 a b CLOSE1 c");
     expectedResult = new String[0];
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // tag pair over end of sentence
-    sourceTokens = toArray("a OPEN1 b c CLOSE1");
+    sourceTokens = asArray("a OPEN1 b c CLOSE1");
     expectedResult = new String[0];
     testGetTagsToIgnore(sourceTokens, expectedResult);
 
     // tag pair over inner sentence
-    sourceTokens = toArray("a OPEN1 b CLOSE1 c");
+    sourceTokens = asArray("a OPEN1 b CLOSE1 c");
     expectedResult = new String[0];
     testGetTagsToIgnore(sourceTokens, expectedResult);
   }
@@ -179,8 +179,8 @@ class MarianNmtConnectorTest {
     assertThat(tagsToIgnore)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult),
-            toString(tagsToIgnore.toArray(new String[tagsToIgnore.size()]))))
+            asString(expectedResult),
+            asString(tagsToIgnore.toArray(new String[tagsToIgnore.size()]))))
         .containsExactly(expectedResult);
   }
 
@@ -199,7 +199,7 @@ class MarianNmtConnectorTest {
     List<String> unusedTags = null;
 
     // ISO at beginning and end of sentence, both not pointed to
-    sourceTokens = toArray("ISO1 x y z ISO2");
+    sourceTokens = asArray("ISO1 x y z ISO2");
     pointedSourceTokens = List.of(1);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -213,7 +213,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO2);
 
     // ISO at beginning and end of sentence, both pointed to
-    sourceTokens = toArray("ISO1 x y z ISO2");
+    sourceTokens = asArray("ISO1 x y z ISO2");
     pointedSourceTokens = List.of(0, 3);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -227,7 +227,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO2);
 
     // ISO not pointed to, but following pointed token
-    sourceTokens = toArray("x ISO1 y z");
+    sourceTokens = asArray("x ISO1 y z");
     pointedSourceTokens = List.of(2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -240,7 +240,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(ISO1);
 
     // ISO not pointed to, no following pointed token
-    sourceTokens = toArray("x ISO1 y z");
+    sourceTokens = asArray("x ISO1 y z");
     pointedSourceTokens = List.of(0);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -253,7 +253,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO1);
 
     // one tag pair without pointing tokens, ISO at sentence end
-    sourceTokens = toArray("ISO1 OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO2");
+    sourceTokens = asArray("ISO1 OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO2");
     pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -269,7 +269,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO2);
 
     // all tag pairs with pointing tokens, ISO at sentence end
-    sourceTokens = toArray("ISO1 OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO2");
+    sourceTokens = asArray("ISO1 OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO2");
     pointedSourceTokens = List.of(0, 1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -284,7 +284,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO2);
 
     // one tag pair without pointing tokens, ISO not at sentence end
-    sourceTokens = toArray("ISO1 OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b ISO2 c");
+    sourceTokens = asArray("ISO1 OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b ISO2 c");
     pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -300,7 +300,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(6)).containsExactly(ISO2);
 
     // tag pair over the whole sentence, opening tag not pointed to, closing tag not pointed to
-    sourceTokens = toArray("OPEN1 x y z CLOSE1");
+    sourceTokens = asArray("OPEN1 x y z CLOSE1");
     pointedSourceTokens = List.of(1);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -314,7 +314,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
 
     // tag pair over the whole sentence, opening tag pointed to, closing tag not pointed to
-    sourceTokens = toArray("OPEN1 x y z CLOSE1");
+    sourceTokens = asArray("OPEN1 x y z CLOSE1");
     pointedSourceTokens = List.of(0);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -328,7 +328,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
 
     // tag pair over the whole sentence, opening tag not pointed to, closing tag pointed to
-    sourceTokens = toArray("OPEN1 x y z CLOSE1");
+    sourceTokens = asArray("OPEN1 x y z CLOSE1");
     pointedSourceTokens = List.of(2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -342,7 +342,7 @@ class MarianNmtConnectorTest {
     assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
 
     // tag pair over the whole sentence, opening tag pointed to, closing tag pointed to
-    sourceTokens = toArray("OPEN1 x y z CLOSE1");
+    sourceTokens = asArray("OPEN1 x y z CLOSE1");
     pointedSourceTokens = List.of(0, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -357,7 +357,7 @@ class MarianNmtConnectorTest {
 
     // tag pair over the whole sentence, opening tag pointed to, closing tag pointed to,
     // ISO within
-    sourceTokens = toArray("OPEN1 x ISO1 y z CLOSE1");
+    sourceTokens = asArray("OPEN1 x ISO1 y z CLOSE1");
     pointedSourceTokens = List.of(0, 2);
     sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -388,7 +388,7 @@ class MarianNmtConnectorTest {
     method.setAccessible(true);
 
     String[] sourceTokens =
-        toArray("ISO1 OPEN1 Th@@ i@@ s CLOSE1 is a OPEN2 te@@ st . CLOSE2 ISO2");
+        asArray("ISO1 OPEN1 Th@@ i@@ s CLOSE1 is a OPEN2 te@@ st . CLOSE2 ISO2");
     String[] sourceTokensWithoutTags = MarianNmtConnector.removeTags(sourceTokens);
     Map<Integer, List<String>> sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
 
@@ -439,7 +439,7 @@ class MarianNmtConnectorTest {
   @Test
   void testReinsertTagsWithSoftAlignments() {
 
-    String[] sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    String[] sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
 
     // init variables to be re-used between tests
     String[] targetTokensWithoutTags = null;
@@ -455,7 +455,7 @@ class MarianNmtConnectorTest {
         + "0,0,0,1,0,0 " // Test -> test
         + "0,0,0,0,1,0 " // . -> .
         + "0,0,0,0,0,1"; // EOS -> EOS
-    expectedResult = toArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test . CLOSE2 ISO2");
+    expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test . CLOSE2 ISO2");
     testReinsertTagsWithSoftAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
@@ -468,7 +468,7 @@ class MarianNmtConnectorTest {
         + "1,0,0,0,0,0 " // das -> This
         + "0,0,0,0,1,0 " // . -> .
         + "0,0,0,0,0,1"; // EOS -> EOS
-    expectedResult = toArray("ISO1 OPEN2 Test ein ist OPEN1 das CLOSE1 . CLOSE2 ISO2");
+    expectedResult = asArray("ISO1 OPEN2 Test ein ist OPEN1 das CLOSE1 . CLOSE2 ISO2");
     testReinsertTagsWithSoftAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
@@ -489,59 +489,59 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // parallel alignment
-    sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
-    targetTokensWithoutTags = toArray("Das ist ein Test .");
+    sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    targetTokensWithoutTags = asArray("Das ist ein Test .");
     rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
-    expectedResult = toArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test . CLOSE2 ISO2");
+    expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test . CLOSE2 ISO2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // reversed alignment
-    sourceTokens = toArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
-    targetTokensWithoutTags = toArray("Test ein ist das .");
+    sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    targetTokensWithoutTags = asArray("Test ein ist das .");
     //                                 This is  a   Test .
     rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
-    expectedResult = toArray("ISO1 OPEN2 Test ein ist OPEN1 das CLOSE1 . CLOSE2 ISO2");
+    expectedResult = asArray("ISO1 OPEN2 Test ein ist OPEN1 das CLOSE1 . CLOSE2 ISO2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // end-of-sentence points to source token with tag
-    sourceTokens = toArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2");
-    targetTokensWithoutTags = toArray("aller au contenu");
+    sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2");
+    targetTokensWithoutTags = asArray("aller au contenu");
     rawAlignments = "0-0 1-2 2-3";
-    expectedResult = toArray("ISO1 OPEN1 aller au contenu CLOSE1 ISO2");
+    expectedResult = asArray("ISO1 OPEN1 aller au contenu CLOSE1 ISO2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // tags enclosing the whole sentence
-    sourceTokens = toArray("ISO1 OPEN1 a b c d CLOSE1 ISO2");
-    targetTokensWithoutTags = toArray("b a d c");
+    sourceTokens = asArray("ISO1 OPEN1 a b c d CLOSE1 ISO2");
+    targetTokensWithoutTags = asArray("b a d c");
     rawAlignments = "0-1 1-0 2-3 4-2";
-    expectedResult = toArray("ISO1 OPEN1 b a d c CLOSE1 ISO2");
+    expectedResult = asArray("ISO1 OPEN1 b a d c CLOSE1 ISO2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // tag pair over the whole sentence
-    sourceTokens = toArray("OPEN1 a b c d CLOSE1");
-    targetTokensWithoutTags = toArray("b a d c");
+    sourceTokens = asArray("OPEN1 a b c d CLOSE1");
+    targetTokensWithoutTags = asArray("b a d c");
     rawAlignments = "0-1 1-0 2-3 4-2";
-    expectedResult = toArray("OPEN1 b a d c CLOSE1");
+    expectedResult = asArray("OPEN1 b a d c CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // multiple tag pairs over the whole sentence
-    sourceTokens = toArray("OPEN1 OPEN2 OPEN3 a b c d CLOSE3 CLOSE2 CLOSE1");
-    targetTokensWithoutTags = toArray("b a d c");
+    sourceTokens = asArray("OPEN1 OPEN2 OPEN3 a b c d CLOSE3 CLOSE2 CLOSE1");
+    targetTokensWithoutTags = asArray("b a d c");
     rawAlignments = "0-1 1-0 2-3 4-2";
-    expectedResult = toArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
+    expectedResult = asArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // tokens with isolated tags are pointed to multiple times
-    sourceTokens = toArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
-    targetTokensWithoutTags = toArray("a b c");
+    sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
+    targetTokensWithoutTags = asArray("a b c");
     rawAlignments = "1-0 1-1 2-2";
-    expectedResult = toArray("ISO1 ISO2 OPEN1 a OPEN1 b c CLOSE1");
+    expectedResult = asArray("ISO1 ISO2 OPEN1 a OPEN1 b c CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
@@ -555,7 +555,7 @@ class MarianNmtConnectorTest {
   @Test
   void testReinsertTagsComplex() {
 
-    String[] sourceTokens = toArray("OPEN1 x y z CLOSE1 a b c");
+    String[] sourceTokens = asArray("OPEN1 x y z CLOSE1 a b c");
 
     // init variables to be re-used between tests
     String[] targetTokensWithoutTags = null;
@@ -563,23 +563,23 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // first test
-    targetTokensWithoutTags = toArray("X1 N Z X2 N N");
+    targetTokensWithoutTags = asArray("X1 N Z X2 N N");
     rawAlignments = "0-0 0-3 2-2";
-    expectedResult = toArray("OPEN1 X1 N Z CLOSE1 OPEN1 X2 N N");
+    expectedResult = asArray("OPEN1 X1 N Z CLOSE1 OPEN1 X2 N N");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // second test
-    targetTokensWithoutTags = toArray("Z1 Z2 X N N N");
+    targetTokensWithoutTags = asArray("Z1 Z2 X N N N");
     rawAlignments = "0-2 2-0 2-1";
-    expectedResult = toArray("Z1 CLOSE1 Z2 CLOSE1 OPEN1 X N N N");
+    expectedResult = asArray("Z1 CLOSE1 Z2 CLOSE1 OPEN1 X N N N");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
     // third test
-    targetTokensWithoutTags = toArray("Z1 N X1 Z2 N X2");
+    targetTokensWithoutTags = asArray("Z1 N X1 Z2 N X2");
     rawAlignments = "0-2 0-5 2-0 2-3";
-    expectedResult = toArray("Z1 CLOSE1 N OPEN1 X1 Z2 CLOSE1 N OPEN1 X2");
+    expectedResult = asArray("Z1 CLOSE1 N OPEN1 X1 Z2 CLOSE1 N OPEN1 X2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
@@ -622,7 +622,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokensWithTags)))
+            asString(expectedResult), asString(targetTokensWithTags)))
         .containsExactly(expectedResult);
   }
 
@@ -638,73 +638,73 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // two fragments with opening tag
-    targetTokens = toArray("a b c@@ OPEN1 x y z");
-    expectedResult = toArray("a b OPEN1 c@@ x y z");
+    targetTokens = asArray("a b c@@ OPEN1 x y z");
+    expectedResult = asArray("a b OPEN1 c@@ x y z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // three fragments with opening tag
-    targetTokens = toArray("a b@@ c@@ OPEN1 x y z");
-    expectedResult = toArray("a OPEN1 b@@ c@@ x y z");
+    targetTokens = asArray("a b@@ c@@ OPEN1 x y z");
+    expectedResult = asArray("a OPEN1 b@@ c@@ x y z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // four fragments with opening tag
-    targetTokens = toArray("a@@ b@@ c@@ OPEN1 x y z");
-    expectedResult = toArray("OPEN1 a@@ b@@ c@@ x y z");
+    targetTokens = asArray("a@@ b@@ c@@ OPEN1 x y z");
+    expectedResult = asArray("OPEN1 a@@ b@@ c@@ x y z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // two fragments followed by two fragments with opening tag
-    targetTokens = toArray("a@@ b c@@ OPEN1 x y z");
-    expectedResult = toArray("a@@ b OPEN1 c@@ x y z");
+    targetTokens = asArray("a@@ b c@@ OPEN1 x y z");
+    expectedResult = asArray("a@@ b OPEN1 c@@ x y z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // two fragments with closing tag
-    targetTokens = toArray("a b c@@ CLOSE1 x y z");
-    expectedResult = toArray("a b c@@ x CLOSE1 y z");
+    targetTokens = asArray("a b c@@ CLOSE1 x y z");
+    expectedResult = asArray("a b c@@ x CLOSE1 y z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // three fragments with closing tag
-    targetTokens = toArray("a b c@@ CLOSE1 x@@ y z");
-    expectedResult = toArray("a b c@@ x@@ y CLOSE1 z");
+    targetTokens = asArray("a b c@@ CLOSE1 x@@ y z");
+    expectedResult = asArray("a b c@@ x@@ y CLOSE1 z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // four fragments with closing tag
-    targetTokens = toArray("a b c@@ CLOSE1 x@@ y@@ z");
-    expectedResult = toArray("a b c@@ x@@ y@@ z CLOSE1");
+    targetTokens = asArray("a b c@@ CLOSE1 x@@ y@@ z");
+    expectedResult = asArray("a b c@@ x@@ y@@ z CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // two fragments with closing tag followed by two fragments
-    targetTokens = toArray("a b c@@ CLOSE1 x y@@ z");
-    expectedResult = toArray("a b c@@ x CLOSE1 y@@ z");
+    targetTokens = asArray("a b c@@ CLOSE1 x y@@ z");
+    expectedResult = asArray("a b c@@ x CLOSE1 y@@ z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // opening and closing tags between fragments
-    targetTokens = toArray("a b c@@ OPEN1 CLOSE1 x y@@ z");
-    expectedResult = toArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
+    targetTokens = asArray("a b c@@ OPEN1 CLOSE1 x y@@ z");
+    expectedResult = asArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // closing and opening tags between fragments
-    targetTokens = toArray("a b c@@ CLOSE1 OPEN1 x y@@ z");
-    expectedResult = toArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
+    targetTokens = asArray("a b c@@ CLOSE1 OPEN1 x y@@ z");
+    expectedResult = asArray("a b OPEN1 c@@ x CLOSE1 y@@ z");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // two opening and two closing tag between fragments
-    targetTokens = toArray("a OPEN1 b@@ OPEN2 OPEN3 CLOSE2 CLOSE3 c CLOSE1");
-    expectedResult = toArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
+    targetTokens = asArray("a OPEN1 b@@ OPEN2 OPEN3 CLOSE2 CLOSE3 c CLOSE1");
+    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // two closing and two opening tag between fragments
-    targetTokens = toArray("a OPEN1 b@@ CLOSE2 CLOSE3 OPEN2 OPEN3 c CLOSE1");
-    expectedResult = toArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
+    targetTokens = asArray("a OPEN1 b@@ CLOSE2 CLOSE3 OPEN2 OPEN3 c CLOSE1");
+    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // fragments at beginning end of sentence
-    targetTokens = toArray("a@@ OPEN1 CLOSE1 b c");
-    expectedResult = toArray("OPEN1 a@@ b CLOSE1 c");
+    targetTokens = asArray("a@@ OPEN1 CLOSE1 b c");
+    expectedResult = asArray("OPEN1 a@@ b CLOSE1 c");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // fragments at end of sentence
-    targetTokens = toArray("a b@@ OPEN1 CLOSE1 c");
-    expectedResult = toArray("a OPEN1 b@@ c CLOSE1");
+    targetTokens = asArray("a b@@ OPEN1 CLOSE1 c");
+    expectedResult = asArray("a OPEN1 b@@ c CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
   }
 
@@ -716,7 +716,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
   }
 
@@ -732,18 +732,18 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // simple case
-    targetTokens = toArray("a b@@ c@@ d x");
-    expectedResult = toArray("a bcd x");
+    targetTokens = asArray("a b@@ c@@ d x");
+    expectedResult = asArray("a bcd x");
     testUndoBytePairEncoding(targetTokens, expectedResult);
 
     // at sentence beginning
-    targetTokens = toArray("b@@ c@@ d x");
-    expectedResult = toArray("bcd x");
+    targetTokens = asArray("b@@ c@@ d x");
+    expectedResult = asArray("bcd x");
     testUndoBytePairEncoding(targetTokens, expectedResult);
 
     // at sentence end
-    targetTokens = toArray("a b@@ c@@ d");
-    expectedResult = toArray("a bcd");
+    targetTokens = asArray("a b@@ c@@ d");
+    expectedResult = asArray("a bcd");
     testUndoBytePairEncoding(targetTokens, expectedResult);
   }
 
@@ -754,7 +754,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
   }
 
@@ -770,118 +770,118 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // single closing tag
-    targetTokens = toArray("x CLOSE1 y");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("x CLOSE1 y");
+    expectedResult = asArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // multiple closing tags
-    targetTokens = toArray("x CLOSE1 y CLOSE1 z");
-    expectedResult = toArray("x y z ");
+    targetTokens = asArray("x CLOSE1 y CLOSE1 z");
+    expectedResult = asArray("x y z ");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // multiple closing tags
-    targetTokens = toArray("x CLOSE1 y CLOSE2 z");
-    expectedResult = toArray("x y z");
+    targetTokens = asArray("x CLOSE1 y CLOSE2 z");
+    expectedResult = asArray("x y z");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // single closing tag at beginning
-    targetTokens = toArray("CLOSE1 x y");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("CLOSE1 x y");
+    expectedResult = asArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // multiple closing tags at beginning
-    targetTokens = toArray("CLOSE1 CLOSE1 x y");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("CLOSE1 CLOSE1 x y");
+    expectedResult = asArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // single closing tag at end
-    targetTokens = toArray("x y CLOSE1");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("x y CLOSE1");
+    expectedResult = asArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // multiple closing tags at end
-    targetTokens = toArray("x y CLOSE1 CLOSE1");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("x y CLOSE1 CLOSE1");
+    expectedResult = asArray("x y");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // closing tag followed by opening tag
-    targetTokens = toArray("x CLOSE1 y OPEN1 z");
-    expectedResult = toArray("OPEN1 x y z CLOSE1");
+    targetTokens = asArray("x CLOSE1 y OPEN1 z");
+    expectedResult = asArray("OPEN1 x y z CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // closing tag at beginning followed by opening tag
-    targetTokens = toArray("CLOSE1 x y OPEN1 z");
-    expectedResult = toArray("OPEN1 x y z CLOSE1");
+    targetTokens = asArray("CLOSE1 x y OPEN1 z");
+    expectedResult = asArray("OPEN1 x y z CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // closing tag followed by opening tag at end
-    targetTokens = toArray("x CLOSE1 y z OPEN1");
-    expectedResult = toArray("OPEN1 x y z CLOSE1");
+    targetTokens = asArray("x CLOSE1 y z OPEN1");
+    expectedResult = asArray("OPEN1 x y z CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // closing tag at beginning followed by opening tag at end
-    targetTokens = toArray("CLOSE1 x y z OPEN1");
-    expectedResult = toArray("OPEN1 x y z CLOSE1");
+    targetTokens = asArray("CLOSE1 x y z OPEN1");
+    expectedResult = asArray("OPEN1 x y z CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // two inverted tags with gap
-    targetTokens = toArray("x CLOSE1 y OPEN1 z a CLOSE1 b OPEN1 c");
-    expectedResult = toArray("OPEN1 x y z CLOSE1 OPEN1 a b c CLOSE1");
+    targetTokens = asArray("x CLOSE1 y OPEN1 z a CLOSE1 b OPEN1 c");
+    expectedResult = asArray("OPEN1 x y z CLOSE1 OPEN1 a b c CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // two inverted tags without gap
-    targetTokens = toArray("x CLOSE1 y OPEN1 z CLOSE1 a OPEN1 b c");
-    expectedResult = toArray("OPEN1 x y OPEN1 z CLOSE1 a b CLOSE1 c");
+    targetTokens = asArray("x CLOSE1 y OPEN1 z CLOSE1 a OPEN1 b c");
+    expectedResult = asArray("OPEN1 x y OPEN1 z CLOSE1 a b CLOSE1 c");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // two nested inverted tags with gap
-    targetTokens = toArray("x CLOSE1 y CLOSE1 z a OPEN1 b OPEN1 c");
-    expectedResult = toArray("OPEN1 x y CLOSE1 z a b CLOSE1 OPEN1 c");
+    targetTokens = asArray("x CLOSE1 y CLOSE1 z a OPEN1 b OPEN1 c");
+    expectedResult = asArray("OPEN1 x y CLOSE1 z a b CLOSE1 OPEN1 c");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // two nested inverted tags without gap
-    targetTokens = toArray("x CLOSE1 y CLOSE1 z OPEN1 a OPEN1 b c");
-    expectedResult = toArray("OPEN1 x y CLOSE1 z a CLOSE1 OPEN1 b c");
+    targetTokens = asArray("x CLOSE1 y CLOSE1 z OPEN1 a OPEN1 b c");
+    expectedResult = asArray("OPEN1 x y CLOSE1 z a CLOSE1 OPEN1 b c");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // two nested inverted tags with gap, mixed
-    targetTokens = toArray("x CLOSE1 y CLOSE2 z a OPEN2 b OPEN1 c");
-    expectedResult = toArray("OPEN1 x OPEN2 y z a b CLOSE2 c CLOSE1");
+    targetTokens = asArray("x CLOSE1 y CLOSE2 z a OPEN2 b OPEN1 c");
+    expectedResult = asArray("OPEN1 x OPEN2 y z a b CLOSE2 c CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // two nested inverted tags with gap, mixed, overlapping
-    targetTokens = toArray("x CLOSE1 y CLOSE2 z a OPEN1 b OPEN2 c");
-    expectedResult = toArray("OPEN1 x OPEN2 y z a b CLOSE1 c CLOSE2");
+    targetTokens = asArray("x CLOSE1 y CLOSE2 z a OPEN1 b OPEN2 c");
+    expectedResult = asArray("OPEN1 x OPEN2 y z a b CLOSE1 c CLOSE2");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // inverted tags followed by non-inverted tags with gap
-    targetTokens = toArray("x CLOSE1 y OPEN1 z a OPEN1 b CLOSE1 c");
-    expectedResult = toArray("OPEN1 x y z CLOSE1 a OPEN1 b CLOSE1 c");
+    targetTokens = asArray("x CLOSE1 y OPEN1 z a OPEN1 b CLOSE1 c");
+    expectedResult = asArray("OPEN1 x y z CLOSE1 a OPEN1 b CLOSE1 c");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // non-inverted tags followed by inverted tags with gap
-    targetTokens = toArray("x OPEN1 y CLOSE1 z a CLOSE1 b OPEN1 c");
-    expectedResult = toArray("x OPEN1 y CLOSE1 z OPEN1 a b c CLOSE1");
+    targetTokens = asArray("x OPEN1 y CLOSE1 z a CLOSE1 b OPEN1 c");
+    expectedResult = asArray("x OPEN1 y CLOSE1 z OPEN1 a b c CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // inverted tags followed by non-inverted tags without gap
-    targetTokens = toArray("x CLOSE1 y OPEN1 z OPEN1 a CLOSE1 b");
-    expectedResult = toArray("OPEN1 x y z CLOSE1 OPEN1 a CLOSE1 b");
+    targetTokens = asArray("x CLOSE1 y OPEN1 z OPEN1 a CLOSE1 b");
+    expectedResult = asArray("OPEN1 x y z CLOSE1 OPEN1 a CLOSE1 b");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // non-inverted tags followed by inverted tags without gap
-    targetTokens = toArray("x OPEN1 y CLOSE1 z CLOSE1 a OPEN1 b");
-    expectedResult = toArray("x OPEN1 y CLOSE1 OPEN1 z a b CLOSE1");
+    targetTokens = asArray("x OPEN1 y CLOSE1 z CLOSE1 a OPEN1 b");
+    expectedResult = asArray("x OPEN1 y CLOSE1 OPEN1 z a b CLOSE1");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // mixed with isolated tags
-    targetTokens = toArray("ISO Das CLOSE1 OPEN1 ist OPEN2 ein Test . CLOSE2 ISO");
-    expectedResult = toArray("ISO OPEN1 Das ist CLOSE1 OPEN2 ein Test . CLOSE2 ISO");
+    targetTokens = asArray("ISO Das CLOSE1 OPEN1 ist OPEN2 ein Test . CLOSE2 ISO");
+    expectedResult = asArray("ISO OPEN1 Das ist CLOSE1 OPEN2 ein Test . CLOSE2 ISO");
     testHandleInvertedTags(targetTokens, expectedResult);
 
     // mixed with isolated tags, nested
-    targetTokens = toArray("ISO Das CLOSE2 CLOSE1 OPEN1 OPEN2 ist ein Test . ISO");
-    expectedResult = toArray("ISO OPEN1 OPEN2 Das ist CLOSE2 CLOSE1 ein Test . ISO");
+    targetTokens = asArray("ISO Das CLOSE2 CLOSE1 OPEN1 OPEN2 ist ein Test . ISO");
+    expectedResult = asArray("ISO OPEN1 OPEN2 Das ist CLOSE2 CLOSE1 ein Test . ISO");
     testHandleInvertedTags(targetTokens, expectedResult);
   }
 
@@ -892,7 +892,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
   }
 
@@ -908,53 +908,53 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // single opening tag
-    targetTokens = toArray("x OPEN1 y");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("x OPEN1 y");
+    expectedResult = asArray("x y");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // multiple opening tags
-    targetTokens = toArray("x OPEN1 y OPEN1");
-    expectedResult = toArray("x y");
+    targetTokens = asArray("x OPEN1 y OPEN1");
+    expectedResult = asArray("x y");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // multiple opening tags and multiple closing tags
-    targetTokens = toArray("x OPEN1 y OPEN1 z CLOSE1 a b CLOSE1 c");
-    expectedResult = toArray("x OPEN1 y z a b CLOSE1 c");
+    targetTokens = asArray("x OPEN1 y OPEN1 z CLOSE1 a b CLOSE1 c");
+    expectedResult = asArray("x OPEN1 y z a b CLOSE1 c");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // multiple opening tags and single closing tag
-    targetTokens = toArray("x OPEN1 y OPEN1 z CLOSE1 a b c");
-    expectedResult = toArray("x OPEN1 y z CLOSE1 a b c");
+    targetTokens = asArray("x OPEN1 y OPEN1 z CLOSE1 a b c");
+    expectedResult = asArray("x OPEN1 y z CLOSE1 a b c");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // single opening tag and two closing tags
-    targetTokens = toArray("x OPEN1 y z CLOSE1 a b CLOSE1 c");
-    expectedResult = toArray("x OPEN1 y z a b CLOSE1 c");
+    targetTokens = asArray("x OPEN1 y z CLOSE1 a b CLOSE1 c");
+    expectedResult = asArray("x OPEN1 y z a b CLOSE1 c");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // single opening tag and three closing tags
-    targetTokens = toArray("x OPEN1 y z CLOSE1 a b CLOSE1 c CLOSE1 d");
-    expectedResult = toArray("x OPEN1 y z a b c CLOSE1 d");
+    targetTokens = asArray("x OPEN1 y z CLOSE1 a b CLOSE1 c CLOSE1 d");
+    expectedResult = asArray("x OPEN1 y z a b c CLOSE1 d");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // multiple opening tags and multiple closing tags followed by tag pair
-    targetTokens = toArray("x OPEN1 y OPEN1 z CLOSE1 a b CLOSE1 c OPEN1 i j CLOSE1 k");
-    expectedResult = toArray("x OPEN1 y z a b CLOSE1 c OPEN1 i j CLOSE1 k");
+    targetTokens = asArray("x OPEN1 y OPEN1 z CLOSE1 a b CLOSE1 c OPEN1 i j CLOSE1 k");
+    expectedResult = asArray("x OPEN1 y z a b CLOSE1 c OPEN1 i j CLOSE1 k");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // mixed tag pairs
-    targetTokens = toArray("x OPEN1 y OPEN1 z CLOSE1 a b CLOSE1 c OPEN2 i OPEN2 j CLOSE2 k");
-    expectedResult = toArray("x OPEN1 y z a b CLOSE1 c OPEN2 i j CLOSE2 k");
+    targetTokens = asArray("x OPEN1 y OPEN1 z CLOSE1 a b CLOSE1 c OPEN2 i OPEN2 j CLOSE2 k");
+    expectedResult = asArray("x OPEN1 y z a b CLOSE1 c OPEN2 i j CLOSE2 k");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // mixed tag pairs, nested
-    targetTokens = toArray("x OPEN1 y OPEN1 z OPEN2 a b OPEN2 c CLOSE2 i CLOSE1 j CLOSE1 k");
-    expectedResult = toArray("x OPEN1 y z OPEN2 a b c CLOSE2 i j CLOSE1 k");
+    targetTokens = asArray("x OPEN1 y OPEN1 z OPEN2 a b OPEN2 c CLOSE2 i CLOSE1 j CLOSE1 k");
+    expectedResult = asArray("x OPEN1 y z OPEN2 a b c CLOSE2 i j CLOSE1 k");
     testRemoveRedundantTags(targetTokens, expectedResult);
 
     // mixed tag pairs, overlapping
-    targetTokens = toArray("x OPEN1 y OPEN1 z OPEN2 a b OPEN2 c CLOSE1 i CLOSE1 j CLOSE2 k");
-    expectedResult = toArray("x OPEN1 y z OPEN2 a b c i CLOSE1 j CLOSE2 k");
+    targetTokens = asArray("x OPEN1 y OPEN1 z OPEN2 a b OPEN2 c CLOSE1 i CLOSE1 j CLOSE2 k");
+    expectedResult = asArray("x OPEN1 y z OPEN2 a b c i CLOSE1 j CLOSE2 k");
     testRemoveRedundantTags(targetTokens, expectedResult);
   }
 
@@ -965,7 +965,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
   }
 
@@ -989,27 +989,27 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // closing tags in same order
-    targetTokens = toArray("x OPEN1 OPEN2 OPEN3 y CLOSE1 z CLOSE2 a CLOSE3");
-    expectedResult = toArray("x OPEN3 OPEN2 OPEN1 y CLOSE1 z CLOSE2 a CLOSE3");
+    targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE1 z CLOSE2 a CLOSE3");
+    expectedResult = asArray("x OPEN3 OPEN2 OPEN1 y CLOSE1 z CLOSE2 a CLOSE3");
     testSortTags(targetTokens, 1, 4, expectedResult, method);
 
     // closing tags in inverse order
-    targetTokens = toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
-    expectedResult = toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
+    targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
+    expectedResult = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
     testSortTags(targetTokens, 1, 4, expectedResult, method);
 
     // non-tag in range
     assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
         () -> {
           method.invoke(null, 0, 4,
-              toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"), closing2OpeningTag);
+              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"), closing2OpeningTag);
         }).withCauseInstanceOf(OkapiException.class);
 
     // not enough closing tags
     assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
         () -> {
           method.invoke(null, 1, 4,
-              toArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"), closing2OpeningTag);
+              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"), closing2OpeningTag);
         }).withCauseInstanceOf(OkapiException.class);
   }
 
@@ -1033,32 +1033,32 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // closing tags in same order
-    targetTokens = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b");
-    expectedResult = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b");
+    expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
     testSortTags(targetTokens, 7, 10, expectedResult, method);
 
     // closing tags in inverse order
-    targetTokens = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
-    expectedResult = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
     testSortTags(targetTokens, 7, 10, expectedResult, method);
 
     // closing tags mixed
-    targetTokens = toArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
-    expectedResult = toArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
+    targetTokens = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
+    expectedResult = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
     testSortTags(targetTokens, 6, 8, expectedResult, method);
 
     // non-tag in range
     assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
         () -> {
           method.invoke(null, 6, 10,
-              toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
+              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
         }).withCauseInstanceOf(OkapiException.class);
 
     // not enough opening tags
     assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
         () -> {
           method.invoke(null, 6, 9,
-              toArray("x y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
+              asArray("x y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
         }).withCauseInstanceOf(OkapiException.class);
   }
 
@@ -1072,7 +1072,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
   }
 
@@ -1088,53 +1088,53 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // opening tag sequence
-    targetTokens = toArray("x OPEN1 OPEN2 y z CLOSE1 a CLOSE2");
-    expectedResult = toArray("x OPEN2 OPEN1 y z CLOSE1 a CLOSE2");
+    targetTokens = asArray("x OPEN1 OPEN2 y z CLOSE1 a CLOSE2");
+    expectedResult = asArray("x OPEN2 OPEN1 y z CLOSE1 a CLOSE2");
     testBalanceTags(targetTokens, expectedResult);
 
     // opening tag
-    targetTokens = toArray("x OPEN1 y z CLOSE1 a");
-    expectedResult = toArray("x OPEN1 y z CLOSE1 a");
+    targetTokens = asArray("x OPEN1 y z CLOSE1 a");
+    expectedResult = asArray("x OPEN1 y z CLOSE1 a");
     testBalanceTags(targetTokens, expectedResult);
 
     // opening tag sequence at beginning
-    targetTokens = toArray("OPEN1 OPEN2 x y CLOSE1 a CLOSE2");
-    expectedResult = toArray("OPEN2 OPEN1 x y CLOSE1 a CLOSE2");
+    targetTokens = asArray("OPEN1 OPEN2 x y CLOSE1 a CLOSE2");
+    expectedResult = asArray("OPEN2 OPEN1 x y CLOSE1 a CLOSE2");
     testBalanceTags(targetTokens, expectedResult);
 
     // opening tag at beginning
-    targetTokens = toArray("OPEN1 x y CLOSE1 a");
-    expectedResult = toArray("OPEN1 x y CLOSE1 a");
+    targetTokens = asArray("OPEN1 x y CLOSE1 a");
+    expectedResult = asArray("OPEN1 x y CLOSE1 a");
     testBalanceTags(targetTokens, expectedResult);
 
     // closing tag sequence
-    targetTokens = toArray("x OPEN1 y OPEN2 z a CLOSE1 CLOSE2 b");
-    expectedResult = toArray("x OPEN1 y OPEN2 z a CLOSE2 CLOSE1 b");
+    targetTokens = asArray("x OPEN1 y OPEN2 z a CLOSE1 CLOSE2 b");
+    expectedResult = asArray("x OPEN1 y OPEN2 z a CLOSE2 CLOSE1 b");
     testBalanceTags(targetTokens, expectedResult);
 
     // closing tag
-    targetTokens = toArray("x OPEN1 y z a CLOSE1 b");
-    expectedResult = toArray("x OPEN1 y z a CLOSE1 b");
+    targetTokens = asArray("x OPEN1 y z a CLOSE1 b");
+    expectedResult = asArray("x OPEN1 y z a CLOSE1 b");
     testBalanceTags(targetTokens, expectedResult);
 
     // closing tag sequence at end
-    targetTokens = toArray("x OPEN1 y OPEN2 z a CLOSE1 CLOSE2");
-    expectedResult = toArray("x OPEN1 y OPEN2 z a CLOSE2 CLOSE1");
+    targetTokens = asArray("x OPEN1 y OPEN2 z a CLOSE1 CLOSE2");
+    expectedResult = asArray("x OPEN1 y OPEN2 z a CLOSE2 CLOSE1");
     testBalanceTags(targetTokens, expectedResult);
 
     // closing tag at end
-    targetTokens = toArray("x OPEN1 y z a CLOSE1");
-    expectedResult = toArray("x OPEN1 y z a CLOSE1");
+    targetTokens = asArray("x OPEN1 y z a CLOSE1");
+    expectedResult = asArray("x OPEN1 y z a CLOSE1");
     testBalanceTags(targetTokens, expectedResult);
 
     // single overlapping range
-    targetTokens = toArray("x OPEN1 y OPEN2 z CLOSE1 a CLOSE2");
-    expectedResult = toArray("x OPEN1 y OPEN2 z CLOSE2 CLOSE1 OPEN2 a CLOSE2");
+    targetTokens = asArray("x OPEN1 y OPEN2 z CLOSE1 a CLOSE2");
+    expectedResult = asArray("x OPEN1 y OPEN2 z CLOSE2 CLOSE1 OPEN2 a CLOSE2");
     testBalanceTags(targetTokens, expectedResult);
 
     // double overlapping range
-    targetTokens = toArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 b CLOSE2 c CLOSE3");
-    expectedResult = toArray(
+    targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 b CLOSE2 c CLOSE3");
+    expectedResult = asArray(
         "x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 OPEN2 OPEN3 b "
             + "CLOSE3 CLOSE2 OPEN3 c CLOSE3");
     testBalanceTags(targetTokens, expectedResult);
@@ -1147,7 +1147,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
     String xml = TagUtils.asXml(targetTokens, closing2OpeningTag);
     assertThat(isValidXml(xml));
@@ -1177,23 +1177,23 @@ class MarianNmtConnectorTest {
     String[] expectedResult = null;
 
     // one merge
-    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 a b c");
-    expectedResult = toArray("x OPEN1 y z CLOSE1 a b c");
+    targetTokens = asArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 a b c");
+    expectedResult = asArray("x OPEN1 y z CLOSE1 a b c");
     testMergeNeighborTagPairs(targetTokens, expectedResult);
 
     // one merge with ending tag at end
-    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1");
-    expectedResult = toArray("x OPEN1 y z CLOSE1");
+    targetTokens = asArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1");
+    expectedResult = asArray("x OPEN1 y z CLOSE1");
     testMergeNeighborTagPairs(targetTokens, expectedResult);
 
     // two merges
-    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN1 a b CLOSE1 c");
-    expectedResult = toArray("x OPEN1 y z a b CLOSE1 c");
+    targetTokens = asArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN1 a b CLOSE1 c");
+    expectedResult = asArray("x OPEN1 y z a b CLOSE1 c");
     testMergeNeighborTagPairs(targetTokens, expectedResult);
 
     // mixed tags pairs
-    targetTokens = toArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN2 a CLOSE2 OPEN2 b CLOSE2 c");
-    expectedResult = toArray("x OPEN1 y z CLOSE1 OPEN2 a b CLOSE2 c");
+    targetTokens = asArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN2 a CLOSE2 OPEN2 b CLOSE2 c");
+    expectedResult = asArray("x OPEN1 y z CLOSE1 OPEN2 a b CLOSE2 c");
     testMergeNeighborTagPairs(targetTokens, expectedResult);
   }
 
@@ -1204,7 +1204,7 @@ class MarianNmtConnectorTest {
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
-            toString(expectedResult), toString(targetTokens)))
+            asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
   }
 
@@ -1309,89 +1309,6 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Utility method to split string into tokens and replace readable tags with Okapi tags.
-   *
-   * @param input
-   *          the string to split
-   * @return tokens with Okapi tags
-   */
-  private static String[] toArray(String input) {
-
-    String[] tokens = input.split(" ");
-    for (int i = 0; i < tokens.length; i++) {
-      String oneToken = tokens[i];
-      switch (oneToken) {
-        case "ISO1":
-          oneToken = ISO1;
-          break;
-        case "ISO2":
-          oneToken = ISO2;
-          break;
-        case "OPEN1":
-          oneToken = OPEN1;
-          break;
-        case "CLOSE1":
-          oneToken = CLOSE1;
-          break;
-        case "OPEN2":
-          oneToken = OPEN2;
-          break;
-        case "CLOSE2":
-          oneToken = CLOSE2;
-          break;
-        case "OPEN3":
-          oneToken = OPEN3;
-          break;
-        case "CLOSE3":
-          oneToken = CLOSE3;
-          break;
-        default:
-          // do nothing
-      }
-      tokens[i] = oneToken;
-    }
-
-    return tokens;
-  }
-
-
-  /**
-   * Utility method to merge tokens and replace Okapi tag with readable tags.
-   *
-   * @param tokens
-   *          the tokens to merge
-   * @return string with readable tags
-   */
-  private static String toString(String[] tokens) {
-
-    StringBuilder result = new StringBuilder();
-    for (String oneToken : tokens) {
-      if (oneToken.equals(ISO1)) {
-        result.append("ISO1 ");
-      } else if (oneToken.equals(ISO2)) {
-        result.append("ISO2 ");
-      } else if (oneToken.equals(OPEN1)) {
-        result.append("OPEN1 ");
-      } else if (oneToken.equals(CLOSE1)) {
-        result.append("CLOSE1 ");
-      } else if (oneToken.equals(OPEN2)) {
-        result.append("OPEN2 ");
-      } else if (oneToken.equals(CLOSE2)) {
-        result.append("CLOSE2 ");
-      } else if (oneToken.equals(OPEN3)) {
-        result.append("OPEN3 ");
-      } else if (oneToken.equals(CLOSE3)) {
-        result.append("CLOSE3 ");
-      } else {
-        result.append(oneToken + " ");
-      }
-    }
-
-    return result.toString().strip();
-  }
-
-
-  /**
    * @param args
    *          the arguments; not used here
    */
@@ -1446,25 +1363,25 @@ class MarianNmtConnectorTest {
         if (!isValidXml(xml)) {
           System.err.println(
               String.format("input:                           %s",
-                  toString(input)));
+                  asString(input)));
           System.err.println(
               String.format("moveTagsFromBetweenBpeFragments: %s",
-                  toString(moveTagsFromBetweenBpeFragments)));
+                  asString(moveTagsFromBetweenBpeFragments)));
           System.err.println(
               String.format("undoBytePairEncoding:            %s",
-                  toString(undoBytePairEncoding)));
+                  asString(undoBytePairEncoding)));
           System.err.println(
               String.format("handleInvertedTags:              %s",
-                  toString(handleInvertedTags)));
+                  asString(handleInvertedTags)));
           System.err.println(
               String.format("removeRedundantTags:             %s",
-                  toString(removeRedundantTags)));
+                  asString(removeRedundantTags)));
           System.err.println(
               String.format("balanceTags:                     %s",
-                  toString(balanceTags)));
+                  asString(balanceTags)));
           System.err.println(
               String.format("mergeNeighborTagPairs:           %s",
-                  toString(mergeNeighborTagPairs)));
+                  asString(mergeNeighborTagPairs)));
           System.err.println(String.format("xml:%n%s", xml));
         }
       }
