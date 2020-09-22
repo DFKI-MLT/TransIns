@@ -20,6 +20,7 @@ import net.sf.okapi.common.IParameters;
 import net.sf.okapi.common.exceptions.OkapiException;
 import net.sf.okapi.common.query.MatchType;
 import net.sf.okapi.common.query.QueryResult;
+import net.sf.okapi.common.resource.Code;
 import net.sf.okapi.common.resource.TextFragment;
 import net.sf.okapi.lib.translation.BaseConnector;
 import net.sf.okapi.lib.translation.QueryUtil;
@@ -128,7 +129,8 @@ public class MarianNmtConnector extends BaseConnector {
       if (!fragment.hasText(false)) {
         return 0;
       }
-      logger.debug("source sentence: \"{}\"", fragment.getCodedText());
+      logger.debug("source sentence: \"{}\"",
+          toString(fragment.getCodedText(), fragment.getCodes()));
 
       // preprocessing
       String sentence = fragment.getCodedText();
@@ -139,7 +141,8 @@ public class MarianNmtConnector extends BaseConnector {
               Mode.PREPROCESS,
               this.params.getPrePostHost(),
               this.params.getPrePostPort());
-      logger.debug("preprocessed source sentence: \"{}\"", preprocessedSourceSentence);
+      logger.debug("preprocessed source sentence: \"{}\"",
+          toString(preprocessedSourceSentence, fragment.getCodes()));
 
       // translate
       String translatorInput = removeTags(preprocessedSourceSentence);
@@ -156,13 +159,16 @@ public class MarianNmtConnector extends BaseConnector {
       if (parts.length == 2) {
         // if tags and alignments are available, re-insert tags
         translation = parts[0].strip();
-        String rawAlignments = parts[1].strip();
-        logger.debug("raw target sentence: \"{}\"", translation);
-        logger.debug("raw alignments: \"{}\"", rawAlignments);
-        Alignments algn = createAlignments(rawAlignments);
-        // compensate for leading target language token in source sentence
-        algn.shiftSourceIndexes(-1);
+
         if (hasTags) {
+
+          // get alignments for tag re-insertion
+          String rawAlignments = parts[1].strip();
+          logger.debug("raw target sentence: \"{}\"", translation);
+          logger.debug("raw alignments: \"{}\"", rawAlignments);
+          Alignments algn = createAlignments(rawAlignments);
+          // compensate for leading target language token in source sentence
+          algn.shiftSourceIndexes(-1);
 
           String[] sourceTokensWithTags = preprocessedSourceSentence.split(" ");
           String[] targetTokensWithoutTags = translation.split(" ");
@@ -1764,30 +1770,60 @@ public class MarianNmtConnector extends BaseConnector {
    *
    * @param targetTokensWithTags
    *          string array with tokens
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param codes
+   *          list of Okapi codes from the fragment associated with the given text
    * @return string with appended tokens and replaced Okapi tags
    */
-  public static String toString(
-      String[] targetTokensWithTags, Map<String, String> closing2OpeningTag) {
+  public static String toString(String[] targetTokensWithTags, List<Code> codes) {
 
-    StringBuilder result = new StringBuilder();
+    return toString(String.join(" ", targetTokensWithTags).strip(), codes);
+  }
 
-    for (String oneToken : targetTokensWithTags) {
-      if (isIsolatedTag(oneToken)) {
-        result.append(String.format("<iso%d/> ", getTagId(oneToken)));
-      } else if (isOpeningTag(oneToken)) {
-        result.append(String.format("<u%d> ", getTagId(oneToken)));
-      } else if (isClosingTag(oneToken)) {
-        // use the id of the associated opening tag to get valid XML
-        int openingTagId = getTagId(closing2OpeningTag.get(oneToken));
-        result.append(String.format("</u%d>", openingTagId));
-      } else {
-        result.append(oneToken + " ");
+
+  /**
+   * Replace Okapi tags with human readable tags in given text.
+   *
+   * @param text
+   *          text with tags
+   * @param codes
+   *          list of Okapi codes from the fragment associated with the given text
+   * @return string with replaced Okapi tags
+   */
+  public static String toString(String text, List<Code> codes) {
+
+    Code code;
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < text.length(); i++) {
+      switch (text.charAt(i)) {
+        case TextFragment.MARKER_OPENING:
+          code = codes.get(TextFragment.toIndex(text.charAt(++i)));
+          sb.append(String.format("<u id='%d'>", code.getId()));
+          break;
+        case TextFragment.MARKER_CLOSING:
+          i++;
+          sb.append("</u>");
+          break;
+        case TextFragment.MARKER_ISOLATED:
+          code = codes.get(TextFragment.toIndex(text.charAt(++i)));
+          switch (code.getTagType()) {
+            case OPENING:
+              sb.append(String.format("<br id='b%d'/>", code.getId()));
+              break;
+            case CLOSING:
+              sb.append(String.format("<br id='e%d'/>", code.getId()));
+              break;
+            case PLACEHOLDER:
+              sb.append(String.format("<br id='p%d'/>", code.getId()));
+              break;
+            default:
+              logger.warn("unsupported tag type \"{}\"", code.getTagType());
+          }
+          break;
+        default:
+          sb.append(text.charAt(i));
       }
     }
-
-    return result.toString().strip();
+    return sb.toString();
   }
 
 
