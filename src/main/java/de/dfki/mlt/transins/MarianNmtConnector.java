@@ -661,7 +661,7 @@ public class MarianNmtConnector extends BaseConnector {
         }
       }
       if (sourceTagsAtEndOfSentence.isEmpty()) {
-        sourceTokenIndex2tags.get(sourceTokensWithoutTags.length - 1);
+        sourceTokenIndex2tags.remove(sourceTokensWithoutTags.length - 1);
       }
     }
     if (sourceTagsAtBeginningOfSentence != null && sourceTagsAtBeginningOfSentence.isEmpty()) {
