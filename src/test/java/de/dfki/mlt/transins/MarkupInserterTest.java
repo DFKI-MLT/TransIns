@@ -12,8 +12,7 @@ import static de.dfki.mlt.transins.TestUtils.OPEN2;
 import static de.dfki.mlt.transins.TestUtils.OPEN3;
 import static de.dfki.mlt.transins.TestUtils.asArray;
 import static de.dfki.mlt.transins.TestUtils.asString;
-import static de.dfki.mlt.transins.TestUtils.closing2OpeningTag;
-import static de.dfki.mlt.transins.TestUtils.opening2ClosingTag;
+import static de.dfki.mlt.transins.TestUtils.tagMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
@@ -59,50 +58,26 @@ class MarkupInserterTest {
 
 
   /**
-   * Test {@link MarkupInserter#createClosing2OpeningTag(String[])}.
+   * Test {@link MarkupInserter#createTagMap(String[])}.
    */
   @Test
-  void testCreateClosing2OpeningTag() {
+  void testCreateTagMap() {
 
     // init variables to be re-used between tests
     String[] tokensWithTags = null;
-    Map<String, String> closing2OpeningTagResult = null;
+    TagMap resultTagMap = null;
 
     // first test
     tokensWithTags = asArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
-    closing2OpeningTagResult = MarkupInserter.createClosing2OpeningTag(tokensWithTags);
-    assertThat(closing2OpeningTagResult).hasSize(2);
-    assertThat(closing2OpeningTagResult).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
+    resultTagMap = MarkupInserter.createTagMap(tokensWithTags);
+    assertThat(resultTagMap.size()).isEqualTo(2);
+    assertThat(resultTagMap.entrySet()).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
 
     // second test
     tokensWithTags = asArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
-    closing2OpeningTagResult = MarkupInserter.createClosing2OpeningTag(tokensWithTags);
-    assertThat(closing2OpeningTagResult).hasSize(2);
-    assertThat(closing2OpeningTagResult).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
-  }
-
-
-  /**
-   * Test {@link MarkupInserter#createOpening2ClosingTag(String[])}.
-   */
-  @Test
-  void testCreateOpening2ClosingTag() {
-
-    // init variables to be re-used between tests
-    String[] tokensWithTags = null;
-    Map<String, String> opening2ClosingTagResult = null;
-
-    // first test
-    tokensWithTags = asArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
-    opening2ClosingTagResult = MarkupInserter.createOpening2ClosingTag(tokensWithTags);
-    assertThat(opening2ClosingTagResult).hasSize(2);
-    assertThat(opening2ClosingTagResult).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
-
-    // second test
-    tokensWithTags = asArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
-    opening2ClosingTagResult = MarkupInserter.createOpening2ClosingTag(tokensWithTags);
-    assertThat(opening2ClosingTagResult).hasSize(2);
-    assertThat(opening2ClosingTagResult).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
+    resultTagMap = MarkupInserter.createTagMap(tokensWithTags);
+    assertThat(resultTagMap.size()).isEqualTo(2);
+    assertThat(resultTagMap.entrySet()).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
   }
 
 
@@ -142,8 +117,7 @@ class MarkupInserterTest {
     pointedSourceTokens = List.of(2);
     sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(tokensWithTags).length);
+        sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2Tags).hasSize(1);
@@ -154,8 +128,7 @@ class MarkupInserterTest {
     pointedSourceTokens = List.of(0);
     sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(tokensWithTags).length);
+        sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).containsExactly(ISO1);
     assertThat(sourceTokenIndex2Tags).isEmpty();
@@ -165,8 +138,7 @@ class MarkupInserterTest {
     pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(tokensWithTags).length);
+        sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
     assertThat(sourceTokenIndex2Tags).hasSize(2);
@@ -178,8 +150,7 @@ class MarkupInserterTest {
     pointedSourceTokens = List.of(0, 1, 2);
     sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(tokensWithTags).length);
+        sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).isEmpty();
     assertThat(sourceTokenIndex2Tags).hasSize(2);
@@ -191,8 +162,7 @@ class MarkupInserterTest {
     pointedSourceTokens = List.of(1, 2);
     sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(tokensWithTags).length);
+        sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).containsExactly(OPEN2, CLOSE2, ISO2);
     assertThat(sourceTokenIndex2Tags).hasSize(2);
@@ -423,8 +393,7 @@ class MarkupInserterTest {
       algn = new SoftAlignments(rawAlignments);
     }
 
-    SplitTagsSentence sourceSentence =
-        new SplitTagsSentence(sourceTokens, opening2ClosingTag, closing2OpeningTag);
+    SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokens, tagMap);
     Map<Integer, List<String>> sourceTokenIndex2tags =
         MarkupInserter.createTokenIndex2Tags(sourceSentence.getTokensWithTags());
 
@@ -700,7 +669,7 @@ class MarkupInserterTest {
 
   private void testHandleInvertedTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarkupInserter.handleInvertedTags(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.handleInvertedTags(tagMap, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -773,7 +742,7 @@ class MarkupInserterTest {
 
   private void testRemoveRedundantTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarkupInserter.removeRedundantTags(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.removeRedundantTags(tagMap, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -795,7 +764,7 @@ class MarkupInserterTest {
     // closing tags in same order
     targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE1 z CLOSE2 a CLOSE3");
     expectedResult = asArray("x OPEN3 OPEN2 OPEN1 y CLOSE1 z CLOSE2 a CLOSE3");
-    assertThat(MarkupInserter.sortOpeningTags(1, 4, targetTokens, closing2OpeningTag))
+    assertThat(MarkupInserter.sortOpeningTags(1, 4, targetTokens, tagMap))
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
@@ -804,7 +773,7 @@ class MarkupInserterTest {
     // closing tags in inverse order
     targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
     expectedResult = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
-    assertThat(MarkupInserter.sortOpeningTags(1, 4, targetTokens, closing2OpeningTag))
+    assertThat(MarkupInserter.sortOpeningTags(1, 4, targetTokens, tagMap))
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
@@ -814,16 +783,14 @@ class MarkupInserterTest {
     assertThatExceptionOfType(OkapiException.class).isThrownBy(
         () -> {
           MarkupInserter.sortOpeningTags(0, 4,
-              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"),
-              closing2OpeningTag);
+              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"), tagMap);
         });
 
     // not enough closing tags
     assertThatExceptionOfType(OkapiException.class).isThrownBy(
         () -> {
           MarkupInserter.sortOpeningTags(1, 4,
-              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"),
-              closing2OpeningTag);
+              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"), tagMap);
         });
   }
 
@@ -841,7 +808,7 @@ class MarkupInserterTest {
     // closing tags in same order
     targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b");
     expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
-    assertThat(MarkupInserter.sortClosingTags(7, 10, targetTokens, opening2ClosingTag))
+    assertThat(MarkupInserter.sortClosingTags(7, 10, targetTokens, tagMap))
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
@@ -850,7 +817,7 @@ class MarkupInserterTest {
     // closing tags in inverse order
     targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
     expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
-    assertThat(MarkupInserter.sortClosingTags(7, 10, targetTokens, opening2ClosingTag))
+    assertThat(MarkupInserter.sortClosingTags(7, 10, targetTokens, tagMap))
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
@@ -859,7 +826,7 @@ class MarkupInserterTest {
     // closing tags mixed
     targetTokens = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
     expectedResult = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
-    assertThat(MarkupInserter.sortClosingTags(6, 8, targetTokens, opening2ClosingTag))
+    assertThat(MarkupInserter.sortClosingTags(6, 8, targetTokens, tagMap))
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
@@ -869,16 +836,14 @@ class MarkupInserterTest {
     assertThatExceptionOfType(OkapiException.class).isThrownBy(
         () -> {
           MarkupInserter.sortClosingTags(6, 10,
-              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"),
-              opening2ClosingTag);
+              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), tagMap);
         });
 
     // not enough opening tags
     assertThatExceptionOfType(OkapiException.class).isThrownBy(
         () -> {
           MarkupInserter.sortClosingTags(6, 9,
-              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"),
-              opening2ClosingTag);
+              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), tagMap);
         });
   }
 
@@ -949,13 +914,13 @@ class MarkupInserterTest {
 
   private void testBalanceTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarkupInserter.balanceTags(opening2ClosingTag, closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.balanceTags(tagMap, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
-    String xml = asXml(targetTokens, closing2OpeningTag);
+    String xml = asXml(targetTokens, tagMap);
     assertThat(isValidXml(xml));
   }
 
@@ -1006,7 +971,7 @@ class MarkupInserterTest {
 
   void testMergeNeighborTagPairs(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarkupInserter.mergeNeighborTagPairs(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.mergeNeighborTagPairs(tagMap, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -1141,14 +1106,14 @@ class MarkupInserterTest {
         String[] undoBytePairEncoding =
             MarkupInserter.undoBytePairEncoding(moveTagsFromBetweenBpeFragments);
         String[] handleInvertedTags =
-            MarkupInserter.handleInvertedTags(closing2OpeningTag, undoBytePairEncoding);
+            MarkupInserter.handleInvertedTags(tagMap, undoBytePairEncoding);
         String[] removeRedundantTags =
-            MarkupInserter.removeRedundantTags(closing2OpeningTag, handleInvertedTags);
+            MarkupInserter.removeRedundantTags(tagMap, handleInvertedTags);
         String[] balanceTags =
-            MarkupInserter.balanceTags(opening2ClosingTag, closing2OpeningTag, removeRedundantTags);
+            MarkupInserter.balanceTags(tagMap, removeRedundantTags);
         String[] mergeNeighborTagPairs =
-            MarkupInserter.mergeNeighborTagPairs(closing2OpeningTag, balanceTags);
-        String xml = asXml(mergeNeighborTagPairs, closing2OpeningTag);
+            MarkupInserter.mergeNeighborTagPairs(tagMap, balanceTags);
+        String xml = asXml(mergeNeighborTagPairs, tagMap);
         if (!isValidXml(xml)) {
           System.err.println(
               String.format("input:                           %s",

@@ -2,7 +2,6 @@ package de.dfki.mlt.transins;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -216,12 +215,12 @@ public final class TagUtils {
    *
    * @param targetTokensWithTags
    *          string array with tokens
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @return XML string with appended tokens and replaced Okapi tags
    */
   public static String asXml(
-      String[] targetTokensWithTags, Map<String, String> closing2OpeningTag) {
+      String[] targetTokensWithTags, TagMap tagMap) {
 
     String[] resultTokens = new String[targetTokensWithTags.length];
 
@@ -234,7 +233,7 @@ public final class TagUtils {
         resultTokens[index] = String.format("<u%d>", getTagId(oneToken));
       } else if (isClosingTag(oneToken)) {
         // use the id of the associated opening tag to get valid XML
-        int openingTagId = getTagId(closing2OpeningTag.get(oneToken));
+        int openingTagId = getTagId(tagMap.getOpeningTag(oneToken));
         resultTokens[index] = String.format("</u%d>", openingTagId);
       } else {
         resultTokens[index] = oneToken;

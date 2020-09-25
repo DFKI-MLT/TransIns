@@ -8,8 +8,7 @@ import static de.dfki.mlt.transins.TestUtils.OPEN1;
 import static de.dfki.mlt.transins.TestUtils.OPEN2;
 import static de.dfki.mlt.transins.TestUtils.asArray;
 import static de.dfki.mlt.transins.TestUtils.asString;
-import static de.dfki.mlt.transins.TestUtils.opening2ClosingTag;
-import static de.dfki.mlt.transins.TestUtils.closing2OpeningTag;
+import static de.dfki.mlt.transins.TestUtils.tagMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -163,8 +162,7 @@ public class SplitTagsSentenceTest {
   private SplitTagsSentence testSplitTagsSentenceConstructor(
       String[] tokensWithTags, String[] expectedResult) {
 
-    SplitTagsSentence splitTagsSentence =
-        new SplitTagsSentence(tokensWithTags, opening2ClosingTag, closing2OpeningTag);
+    SplitTagsSentence splitTagsSentence = new SplitTagsSentence(tokensWithTags, tagMap);
     assertThat(splitTagsSentence.getTokensWithTags())
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",

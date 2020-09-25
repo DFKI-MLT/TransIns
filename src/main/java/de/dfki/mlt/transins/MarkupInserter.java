@@ -65,13 +65,11 @@ public final class MarkupInserter {
     String[] targetTokensWithoutTags = translation.split(" ");
     String[] sourceTokensWithoutTags = removeTags(sourceTokensWithTags);
 
-    // get mappings
-    Map<String, String> closing2OpeningTag = createClosing2OpeningTag(sourceTokensWithTags);
-    Map<String, String> opening2ClosingTag = createOpening2ClosingTag(sourceTokensWithTags);
+    // get mapping of opening tags to closing tags and vice versa
+    TagMap tagMap = createTagMap(sourceTokensWithTags);
 
     // split tags at beginning and end of source sentence
-    SplitTagsSentence sourceSentence =
-        new SplitTagsSentence(sourceTokensWithTags, opening2ClosingTag, closing2OpeningTag);
+    SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokensWithTags, tagMap);
 
     // assign each source token its tags
     Map<Integer, List<String>> sourceTokenIndex2tags =
@@ -79,7 +77,7 @@ public final class MarkupInserter {
 
     // move tags in case of no target token pointing to the associated source token
     List<String> unusedTags =
-        moveSourceTagsToPointedTokens(sourceTokenIndex2tags, closing2OpeningTag,
+        moveSourceTagsToPointedTokens(sourceTokenIndex2tags, tagMap,
             algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
     // re-insert tags
@@ -89,11 +87,10 @@ public final class MarkupInserter {
     // clean up tags
     targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
     targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
-    targetTokensWithTags = handleInvertedTags(closing2OpeningTag, targetTokensWithTags);
-    targetTokensWithTags = removeRedundantTags(closing2OpeningTag, targetTokensWithTags);
-    targetTokensWithTags =
-        balanceTags(opening2ClosingTag, closing2OpeningTag, targetTokensWithTags);
-    targetTokensWithTags = mergeNeighborTagPairs(closing2OpeningTag, targetTokensWithTags);
+    targetTokensWithTags = handleInvertedTags(tagMap, targetTokensWithTags);
+    targetTokensWithTags = removeRedundantTags(tagMap, targetTokensWithTags);
+    targetTokensWithTags = balanceTags(tagMap, targetTokensWithTags);
+    targetTokensWithTags = mergeNeighborTagPairs(tagMap, targetTokensWithTags);
     targetTokensWithTags = addTags(targetTokensWithTags, unusedTags);
 
     // prepare translation for postprocessing;
@@ -105,16 +102,16 @@ public final class MarkupInserter {
 
 
   /**
-   * Create map of closing tags to opening tags from the given tokens with tags.
+   * Create bidirectional map of opening tags to closing tags from the given tokens with tags.
    * It is assumed that the tags are balanced.
    *
    * @param tokensWithTags
    *          the tokens with tags
-   * @return map of closing tags to opening tags
+   * @return bidirectional map of opening tags to closing tags
    */
-  static Map<String, String> createClosing2OpeningTag(String[] tokensWithTags) {
+  static TagMap createTagMap(String[] tokensWithTags) {
 
-    Map<String, String> resultMap = new HashMap<>();
+    TagMap tagMap = new TagMap();
 
     Stack<String> openingTagsStack = new Stack<>();
 
@@ -123,38 +120,11 @@ public final class MarkupInserter {
         openingTagsStack.push(oneToken);
       } else if (isClosingTag(oneToken)) {
         String openingTag = openingTagsStack.pop();
-        resultMap.put(oneToken, openingTag);
+        tagMap.put(openingTag, oneToken);
       }
     }
 
-    return resultMap;
-  }
-
-
-  /**
-   * Create map of opening tags to closing tags from the given tokens with tags.
-   * It is assumed that the tags are balanced.
-   *
-   * @param tokensWithTags
-   *          the tokens with tags
-   * @return map of opening tags to closing tags
-   */
-  static Map<String, String> createOpening2ClosingTag(String[] tokensWithTags) {
-
-    Map<String, String> resultMap = new HashMap<>();
-
-    Stack<String> openingTagsStack = new Stack<>();
-
-    for (String oneToken : tokensWithTags) {
-      if (isOpeningTag(oneToken)) {
-        openingTagsStack.push(oneToken);
-      } else if (isClosingTag(oneToken)) {
-        String openingTag = openingTagsStack.pop();
-        resultMap.put(openingTag, oneToken);
-      }
-    }
-
-    return resultMap;
+    return tagMap;
   }
 
 
@@ -210,8 +180,8 @@ public final class MarkupInserter {
    *
    * @param sourceTokenIndex2Tags
    *          map of source token indexes to associated tags
-   * @param closing2OpeningTag
-   *          map of closing tags to corresponding opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @param pointedSourceTokens
    *          all source token indexes for which there is at least one target token pointing at them
    *          in the alignments
@@ -222,10 +192,8 @@ public final class MarkupInserter {
    *         no following pointed token
    */
   static List<String> moveSourceTagsToPointedTokens(
-      Map<Integer, List<String>> sourceTokenIndex2Tags,
-      Map<String, String> closing2OpeningTag,
-      List<Integer> pointedSourceTokens,
-      int sourceTokensLength) {
+      Map<Integer, List<String>> sourceTokenIndex2Tags, TagMap tagMap,
+      List<Integer> pointedSourceTokens, int sourceTokensLength) {
 
     // for each closing tag of non-pointed source tokens, check if there is
     // a pointed source on the way to the corresponding opening tag;
@@ -241,7 +209,7 @@ public final class MarkupInserter {
       for (String oneTag : new ArrayList<>(tags)) {
         if (isClosingTag(oneTag)) {
           // find corresponding opening tag in front of it
-          String openingTag = closing2OpeningTag.get(oneTag);
+          String openingTag = tagMap.getOpeningTag(oneTag);
           int openingTagSourceTokenIndex = -1;
           List<String> previousTags = null;
           for (int i = sourceTokenIndex; i >= 0; i--) {
@@ -581,21 +549,20 @@ public final class MarkupInserter {
    * }
    * </pre>
    *
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @param targetTokensWithTags
    *          target sentence tokens with tags
    * @return target sentence tokens with handled inverted tags
    */
-  static String[] handleInvertedTags(
-      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
+  static String[] handleInvertedTags(TagMap tagMap, String[] targetTokensWithTags) {
 
     List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
 
-    for (var oneEntry : closing2OpeningTag.entrySet()) {
+    for (var oneEntry : tagMap.entrySet()) {
 
-      String openingTag = oneEntry.getValue();
-      String closingTag = oneEntry.getKey();
+      String openingTag = oneEntry.getKey();
+      String closingTag = oneEntry.getValue();
 
       // flag to indicated that the current position in the token list is
       // between an opening and a closing tag
@@ -681,21 +648,20 @@ public final class MarkupInserter {
    * }
    * </pre>
    *
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @param targetTokensWithTags
    *          target sentence tokens with tags
    * @return target sentence tokens with removed redundant tags
    */
-  static String[] removeRedundantTags(
-      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
+  static String[] removeRedundantTags(TagMap tagMap, String[] targetTokensWithTags) {
 
     List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
 
-    for (var oneEntry : closing2OpeningTag.entrySet()) {
+    for (var oneEntry : tagMap.entrySet()) {
 
-      String openingTag = oneEntry.getValue();
-      String closingTag = oneEntry.getKey();
+      String openingTag = oneEntry.getKey();
+      String closingTag = oneEntry.getValue();
 
       // flag to indicated that the current position in the token list is
       // between an opening and a closing tag
@@ -775,17 +741,13 @@ public final class MarkupInserter {
    * }
    * </pre>
    *
-   * @param opening2ClosingTag
-   *          map of closing tags to opening tags
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @param targetTokensWithTags
    *          target sentence tokens with tags, potentially unbalanced
    * @return target sentence tokens with balanced tags
    */
-  static String[] balanceTags(
-      Map<String, String> opening2ClosingTag, Map<String, String> closing2OpeningTag,
-      String[] targetTokensWithTags) {
+  static String[] balanceTags(TagMap tagMap, String[] targetTokensWithTags) {
 
     // sort consecutive sequences of opening tags
     int openingStartIndex = -1;
@@ -798,7 +760,7 @@ public final class MarkupInserter {
         if (openingStartIndex != -1 && i - openingStartIndex > 1) {
           //sort
           targetTokensWithTags =
-              sortOpeningTags(openingStartIndex, i, targetTokensWithTags, closing2OpeningTag);
+              sortOpeningTags(openingStartIndex, i, targetTokensWithTags, tagMap);
         }
         openingStartIndex = -1;
       }
@@ -815,7 +777,7 @@ public final class MarkupInserter {
         if (closingStartIndex != -1 && i - closingStartIndex > 1) {
           //sort
           targetTokensWithTags =
-              sortClosingTags(closingStartIndex, i, targetTokensWithTags, opening2ClosingTag);
+              sortClosingTags(closingStartIndex, i, targetTokensWithTags, tagMap);
         }
         closingStartIndex = -1;
       }
@@ -826,7 +788,7 @@ public final class MarkupInserter {
       targetTokensWithTags =
           sortClosingTags(
               closingStartIndex, targetTokensWithTags.length, targetTokensWithTags,
-              opening2ClosingTag);
+              tagMap);
     }
 
     // fix overlapping tag ranges
@@ -846,13 +808,13 @@ public final class MarkupInserter {
         // - pop stack until matching tag is found
         // - close all tags that have been popped BEFORE current closing tag
         // - open all tags that have been popped AFTER current closing tag
-        String matchingOpeningTag = closing2OpeningTag.get(oneToken);
+        String matchingOpeningTag = tagMap.getOpeningTag(oneToken);
         Stack<String> tempStack = new Stack<>();
         while (!openingTags.peek().equals(matchingOpeningTag)) {
           tempStack.push(openingTags.pop());
         }
         for (int j = tempStack.size() - 1; j >= 0; j--) {
-          tokenList.add(i, opening2ClosingTag.get(tempStack.get(j)));
+          tokenList.add(i, tagMap.getClosingTag(tempStack.get(j)));
         }
         for (int j = 0; j < tempStack.size(); j++) {
           tokenList.add(i + tempStack.size() + 1, tempStack.get(j));
@@ -881,13 +843,12 @@ public final class MarkupInserter {
    *          end index position of the opening tags (exclusive)
    * @param targetTokensWithTags
    *          target sentence tokens with tags
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @return target sentence tokens with sorted opening tags
    */
   static String[] sortOpeningTags(
-      int startIndex, int endIndex, String[] targetTokensWithTags,
-      Map<String, String> closing2OpeningTag) {
+      int startIndex, int endIndex, String[] targetTokensWithTags, TagMap tagMap) {
 
     // collect opening tags
     List<String> openingTags = new ArrayList<>();
@@ -905,7 +866,7 @@ public final class MarkupInserter {
     for (int i = endIndex; i < targetTokensWithTags.length; i++) {
       String oneToken = targetTokensWithTags[i];
       if (isClosingTag(oneToken)) {
-        String matchingOpeningTag = closing2OpeningTag.get(oneToken);
+        String matchingOpeningTag = tagMap.getOpeningTag(oneToken);
         if (openingTags.contains(matchingOpeningTag)) {
           sortedOpeningTags.add(0, matchingOpeningTag);
           openingTags.remove(matchingOpeningTag);
@@ -943,13 +904,12 @@ public final class MarkupInserter {
    *          end index position of the closing tags (exclusive)
    * @param targetTokensWithTags
    *          target sentence tokens with tags
-   * @param opening2ClosingTag
-   *          map of opening tags to closing tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @return target sentence tokens with sorted closing tags
    */
   static String[] sortClosingTags(
-      int startIndex, int endIndex, String[] targetTokensWithTags,
-      Map<String, String> opening2ClosingTag) {
+      int startIndex, int endIndex, String[] targetTokensWithTags, TagMap tagMap) {
 
     // collect closing tags
     List<String> closingTags = new ArrayList<>();
@@ -967,7 +927,7 @@ public final class MarkupInserter {
     for (int i = startIndex - 1; i >= 0; i--) {
       String oneToken = targetTokensWithTags[i];
       if (isOpeningTag(oneToken)) {
-        String matchingClosingTag = opening2ClosingTag.get(oneToken);
+        String matchingClosingTag = tagMap.getClosingTag(oneToken);
         if (closingTags.contains(matchingClosingTag)) {
           sortedClosingTags.add(matchingClosingTag);
           closingTags.remove(matchingClosingTag);
@@ -1011,21 +971,22 @@ public final class MarkupInserter {
    * }
    * </pre>
    *
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @param targetTokensWithTags
    *          target sentence tokens with tags
    * @return target sentence tokens with merged neighbor tags
    */
-  static String[] mergeNeighborTagPairs(
-      Map<String, String> closing2OpeningTag, String[] targetTokensWithTags) {
+  static String[] mergeNeighborTagPairs(TagMap tagMap, String[] targetTokensWithTags) {
+
+    // TODO this has to work with multiple tags, to <x><y>a</x></y><x><y>b</x></y>
 
     List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
 
-    for (var oneEntry : closing2OpeningTag.entrySet()) {
+    for (var oneEntry : tagMap.entrySet()) {
 
-      String openingTag = oneEntry.getValue();
-      String closingTag = oneEntry.getKey();
+      String openingTag = oneEntry.getKey();
+      String closingTag = oneEntry.getValue();
 
       for (int i = 1; i < tokenList.size(); i++) {
         String prevToken = tokenList.get(i - 1);

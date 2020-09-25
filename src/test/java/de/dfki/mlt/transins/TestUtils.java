@@ -4,9 +4,6 @@ import static de.dfki.mlt.transins.TagUtils.createClosingTag;
 import static de.dfki.mlt.transins.TagUtils.createIsolatedTag;
 import static de.dfki.mlt.transins.TagUtils.createOpeningTag;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Provide utility methods for testing.
  *
@@ -24,18 +21,13 @@ final class TestUtils {
   static final String OPEN3 = createOpeningTag(6);
   static final String CLOSE3 = createClosingTag(7);
 
-  // map of closing tags to opening tags
-  static final Map<String, String> opening2ClosingTag = new HashMap<>();
-  static final Map<String, String> closing2OpeningTag = new HashMap<>();
+  // bidirectional map from opening tags to closing tags
+  static final TagMap tagMap = new TagMap();
 
   static {
-    opening2ClosingTag.put(OPEN1, CLOSE1);
-    opening2ClosingTag.put(OPEN2, CLOSE2);
-    opening2ClosingTag.put(OPEN3, CLOSE3);
-
-    closing2OpeningTag.put(CLOSE1, OPEN1);
-    closing2OpeningTag.put(CLOSE2, OPEN2);
-    closing2OpeningTag.put(CLOSE3, OPEN3);
+    tagMap.put(OPEN1, CLOSE1);
+    tagMap.put(OPEN2, CLOSE2);
+    tagMap.put(OPEN3, CLOSE3);
   }
 
 

@@ -7,7 +7,6 @@ import static de.dfki.mlt.transins.TagUtils.removeTags;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import lombok.Data;
 
@@ -34,15 +33,10 @@ public class SplitTagsSentence {
    *
    * @param tokensWithTags
    *          tokens with tags
-   * @param opening2ClosingTag
-   *          map of opening tags to closing tags
-   * @param closing2OpeningTag
-   *          map of closing tags to opening tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    */
-  public SplitTagsSentence(
-      String[] tokensWithTags,
-      Map<String, String> opening2ClosingTag,
-      Map<String, String> closing2OpeningTag) {
+  public SplitTagsSentence(String[] tokensWithTags, TagMap tagMap) {
 
     this.beginningOfSentenceTags = new ArrayList<>();
     this.endOfSentenceTags = new ArrayList<>();
@@ -70,7 +64,7 @@ public class SplitTagsSentence {
     List<String> tempClosingTags = new ArrayList<>();
     for (String oneTag : new ArrayList<>(this.beginningOfSentenceTags)) {
       if (isOpeningTag(oneTag)) {
-        String closingTag = opening2ClosingTag.get(oneTag);
+        String closingTag = tagMap.getClosingTag(oneTag);
         if (this.endOfSentenceTags.contains(closingTag)) {
           tempClosingTags.add(closingTag);
         } else if (!this.beginningOfSentenceTags.contains(closingTag)) {
@@ -82,7 +76,7 @@ public class SplitTagsSentence {
     // which there is an opening tag at the beginning of sentence, i.e. the ones to keep
     for (String oneTag : new ArrayList<>(this.endOfSentenceTags)) {
       if (isClosingTag(oneTag)) {
-        String openingTag = closing2OpeningTag.get(oneTag);
+        String openingTag = tagMap.getOpeningTag(oneTag);
         if (tempClosingTags.contains(oneTag)
             || this.endOfSentenceTags.contains(openingTag)) {
           continue;
