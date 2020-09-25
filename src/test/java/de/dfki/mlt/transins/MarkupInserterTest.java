@@ -12,16 +12,15 @@ import static de.dfki.mlt.transins.TestUtils.OPEN2;
 import static de.dfki.mlt.transins.TestUtils.OPEN3;
 import static de.dfki.mlt.transins.TestUtils.asArray;
 import static de.dfki.mlt.transins.TestUtils.asString;
+import static de.dfki.mlt.transins.TestUtils.closing2OpeningTag;
+import static de.dfki.mlt.transins.TestUtils.opening2ClosingTag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -38,26 +37,18 @@ import org.xml.sax.SAXException;
 import net.sf.okapi.common.exceptions.OkapiException;
 
 /**
- * Test class for {@link MarianNmtConnector}.
+ * Test class for {@link MarkupInserter}.
  *
  * @author Jörg Steffen, DFKI
  */
-class MarianNmtConnectorTest {
-
-  // map of closing tags to opening tags
-  private static Map<String, String> closing2OpeningTag = null;
+class MarkupInserterTest {
 
   // builder to check for valid XML
-  private static DocumentBuilder builder = null;
+  private static DocumentBuilder builder;
 
 
   @BeforeAll
   public static void init() {
-
-    closing2OpeningTag = new HashMap<>();
-    closing2OpeningTag.put(CLOSE1, OPEN1);
-    closing2OpeningTag.put(CLOSE2, OPEN2);
-    closing2OpeningTag.put(CLOSE3, OPEN3);
 
     try {
       builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -68,37 +59,63 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#createTagMap(String)}.
+   * Test {@link MarkupInserter#createClosing2OpeningTag(String[])}.
    */
   @Test
-  void testCreateTagMap() {
+  void testCreateClosing2OpeningTag() {
 
     // init variables to be re-used between tests
-    String[] sourceTokensWithTags = null;
-    Map<String, String> localClosing2OpeningTag = null;
+    String[] tokensWithTags = null;
+    Map<String, String> closing2OpeningTagResult = null;
 
     // first test
-    sourceTokensWithTags = asArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
-    localClosing2OpeningTag = MarianNmtConnector.createTagMap(sourceTokensWithTags);
-    assertThat(localClosing2OpeningTag).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
+    tokensWithTags = asArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
+    closing2OpeningTagResult = MarkupInserter.createClosing2OpeningTag(tokensWithTags);
+    assertThat(closing2OpeningTagResult).hasSize(2);
+    assertThat(closing2OpeningTagResult).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
 
     // second test
-    sourceTokensWithTags = asArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
-    localClosing2OpeningTag = MarianNmtConnector.createTagMap(sourceTokensWithTags);
-    assertThat(localClosing2OpeningTag).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
+    tokensWithTags = asArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
+    closing2OpeningTagResult = MarkupInserter.createClosing2OpeningTag(tokensWithTags);
+    assertThat(closing2OpeningTagResult).hasSize(2);
+    assertThat(closing2OpeningTagResult).contains(entry(CLOSE1, OPEN1), entry(CLOSE2, OPEN2));
   }
 
 
   /**
-   * Test {@link MarianNmtConnector#createSourceTokenIndex2Tags(String[], int)}.
+   * Test {@link MarkupInserter#createOpening2ClosingTag(String[])}.
    */
   @Test
-  void testCreateSourceTokenIndex2Tags() {
+  void testCreateOpening2ClosingTag() {
 
-    String[] sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    // init variables to be re-used between tests
+    String[] tokensWithTags = null;
+    Map<String, String> opening2ClosingTagResult = null;
+
+    // first test
+    tokensWithTags = asArray("ISO OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO");
+    opening2ClosingTagResult = MarkupInserter.createOpening2ClosingTag(tokensWithTags);
+    assertThat(opening2ClosingTagResult).hasSize(2);
+    assertThat(opening2ClosingTagResult).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
+
+    // second test
+    tokensWithTags = asArray("ISO OPEN1 This OPEN2 is a CLOSE2 test . CLOSE1 ISO");
+    opening2ClosingTagResult = MarkupInserter.createOpening2ClosingTag(tokensWithTags);
+    assertThat(opening2ClosingTagResult).hasSize(2);
+    assertThat(opening2ClosingTagResult).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
+  }
+
+
+  /**
+   * Test {@link MarkupInserter#createTokenIndex2Tags(String[])}.
+   */
+  @Test
+  void testCreateTokenIndex2Tags() {
+
+    String[] tokensWithTags = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
 
     Map<Integer, List<String>> index2Tags =
-        MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokens);
+        MarkupInserter.createTokenIndex2Tags(tokensWithTags);
 
     assertThat(index2Tags).hasSize(4);
     assertThat(index2Tags.get(0)).containsExactly(ISO1, OPEN1, CLOSE1);
@@ -109,333 +126,125 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#getTagsToIgnore(Map, Map, int)}.
-   * This method is private, access for unit test achieved via reflection.
+   * Test {@link MarkupInserter#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
    */
   @Test
-  void testGetTagsToIgnore()
-      throws ReflectiveOperationException {
+  void testMoveSourceTagsToPointedTokens() {
 
     // init variables to be re-used between tests
-    String[] sourceTokens = null;
-    String[] expectedResult = null;
-
-    // ISO at beginning of sentence
-    sourceTokens = asArray("ISO1 a b c");
-    expectedResult = asArray("ISO1");
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // ISO at end of sentence
-    sourceTokens = asArray("a b c ISO1");
-    expectedResult = asArray("ISO1");
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // ISO at beginning and end of sentence
-    sourceTokens = asArray("ISO1 a b c ISO2");
-    expectedResult = asArray("ISO1 ISO2");
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // ISO at other position
-    sourceTokens = asArray("a ISO1 b ISO2 c");
-    expectedResult = new String[0];
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // tag pair over whole sentence
-    sourceTokens = asArray("OPEN1 a b c CLOSE1");
-    expectedResult = asArray("OPEN1 CLOSE1");
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // tag pair over beginning of sentence
-    sourceTokens = asArray("OPEN1 a b CLOSE1 c");
-    expectedResult = new String[0];
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // tag pair over end of sentence
-    sourceTokens = asArray("a OPEN1 b c CLOSE1");
-    expectedResult = new String[0];
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-
-    // tag pair over inner sentence
-    sourceTokens = asArray("a OPEN1 b CLOSE1 c");
-    expectedResult = new String[0];
-    testGetTagsToIgnore(sourceTokens, expectedResult);
-  }
-
-
-  @SuppressWarnings("unchecked")
-  private void testGetTagsToIgnore(String[] sourceTokens, String[] expectedResult)
-      throws ReflectiveOperationException {
-
-    // use reflection to make private method accessible
-    String methodName = "getTagsToIgnore";
-    Method method = MarianNmtConnector.class.getDeclaredMethod(
-        methodName, Map.class, Map.class, int.class);
-    method.setAccessible(true);
-
-    String[] sourceTokensWithoutTags = removeTags(sourceTokens);
-    Map<Integer, List<String>> sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    List<String> tagsToIgnore = (List<String>)method.invoke(
-        null, sourceTokenIndex2tags, closing2OpeningTag, sourceTokensWithoutTags.length);
-
-    assertThat(tagsToIgnore)
-        // provide human-readable string in case of error
-        .as(String.format("%nexpected: %s%nactual: %s",
-            asString(expectedResult),
-            asString(tagsToIgnore.toArray(new String[tagsToIgnore.size()]))))
-        .containsExactly(expectedResult);
-  }
-
-
-  /**
-   * Test {@link MarianNmtConnector#moveSourceTagsToPointedTokens(Map, Map, List, int)}.
-   */
-  @Test
-  void testMoveSourceTagsToPointedTokens()
-      throws ReflectiveOperationException {
-
-    // init variables to be re-used between tests
-    String[] sourceTokens = null;
+    String[] tokensWithTags = null;
     List<Integer> pointedSourceTokens = null;
-    Map<Integer, List<String>> sourceTokenIndex2tags = null;
+    Map<Integer, List<String>> sourceTokenIndex2Tags = null;
     List<String> unusedTags = null;
 
-    // ISO at beginning and end of sentence, both not pointed to
-    sourceTokens = asArray("ISO1 x y z ISO2");
-    pointedSourceTokens = List.of(1);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO1);
-    assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO2);
-
-    // ISO at beginning and end of sentence, both pointed to
-    sourceTokens = asArray("ISO1 x y z ISO2");
-    pointedSourceTokens = List.of(0, 3);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO1);
-    assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO2);
-
     // ISO not pointed to, but following pointed token
-    sourceTokens = asArray("x ISO1 y z");
+    tokensWithTags = asArray("x ISO1 y z");
     pointedSourceTokens = List.of(2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
+    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
+        removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(ISO1);
+    assertThat(sourceTokenIndex2Tags).hasSize(1);
+    assertThat(sourceTokenIndex2Tags.get(2)).containsExactly(ISO1);
 
     // ISO not pointed to, no following pointed token
-    sourceTokens = asArray("x ISO1 y z");
+    tokensWithTags = asArray("x ISO1 y z");
     pointedSourceTokens = List.of(0);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
+        removeTags(tokensWithTags).length);
 
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
+    assertThat(unusedTags).containsExactly(ISO1);
+    assertThat(sourceTokenIndex2Tags).isEmpty();
 
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(1);
-    assertThat(sourceTokenIndex2tags.get(3)).containsExactly(ISO1);
-
-    // one tag pair without pointing tokens, ISO at sentence end
-    sourceTokens = asArray("ISO1 OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO2");
+    // one tag pair without pointing tokens
+    tokensWithTags = asArray("OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test .");
     pointedSourceTokens = List.of(1, 2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
+    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
+        removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
-    assertThat(sourceTokenIndex2tags).hasSize(4);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO1);
-    assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-    assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO2);
+    assertThat(sourceTokenIndex2Tags).hasSize(2);
+    assertThat(sourceTokenIndex2Tags.get(1)).containsExactly(OPEN1);
+    assertThat(sourceTokenIndex2Tags.get(2)).containsExactly(CLOSE1);
 
-    // all tag pairs with pointing tokens, ISO at sentence end
-    sourceTokens = asArray("ISO1 OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test . ISO2");
+    // all tag pairs with pointing tokens
+    tokensWithTags = asArray("OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test .");
     pointedSourceTokens = List.of(0, 1, 2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
+    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
+        removeTags(tokensWithTags).length);
 
     assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(3);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO1, OPEN1, OPEN2, CLOSE2);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-    assertThat(sourceTokenIndex2tags.get(5)).containsExactly(ISO2);
+    assertThat(sourceTokenIndex2Tags).hasSize(2);
+    assertThat(sourceTokenIndex2Tags.get(0)).containsExactly(OPEN1, OPEN2, CLOSE2);
+    assertThat(sourceTokenIndex2Tags.get(2)).containsExactly(CLOSE1);
 
     // one tag pair without pointing tokens, ISO not at sentence end
-    sourceTokens = asArray("ISO1 OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b ISO2 c");
+    tokensWithTags = asArray("OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b ISO2 c");
     pointedSourceTokens = List.of(1, 2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
+        sourceTokenIndex2Tags, closing2OpeningTag, pointedSourceTokens,
+        removeTags(tokensWithTags).length);
 
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).containsExactly(OPEN2, CLOSE2);
-    assertThat(sourceTokenIndex2tags).hasSize(4);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(ISO1);
-    assertThat(sourceTokenIndex2tags.get(1)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-    assertThat(sourceTokenIndex2tags.get(6)).containsExactly(ISO2);
-
-    // tag pair over the whole sentence, opening tag not pointed to, closing tag not pointed to
-    sourceTokens = asArray("OPEN1 x y z CLOSE1");
-    pointedSourceTokens = List.of(1);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-
-    // tag pair over the whole sentence, opening tag pointed to, closing tag not pointed to
-    sourceTokens = asArray("OPEN1 x y z CLOSE1");
-    pointedSourceTokens = List.of(0);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-
-    // tag pair over the whole sentence, opening tag not pointed to, closing tag pointed to
-    sourceTokens = asArray("OPEN1 x y z CLOSE1");
-    pointedSourceTokens = List.of(2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-
-    // tag pair over the whole sentence, opening tag pointed to, closing tag pointed to
-    sourceTokens = asArray("OPEN1 x y z CLOSE1");
-    pointedSourceTokens = List.of(0, 2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(CLOSE1);
-
-    // tag pair over the whole sentence, opening tag pointed to, closing tag pointed to,
-    // ISO within
-    sourceTokens = asArray("OPEN1 x ISO1 y z CLOSE1");
-    pointedSourceTokens = List.of(0, 2);
-    sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
-
-    unusedTags = MarianNmtConnector.moveSourceTagsToPointedTokens(
-        sourceTokenIndex2tags, closing2OpeningTag, pointedSourceTokens,
-        removeTags(sourceTokens).length);
-
-    assertThat(unusedTags).isEmpty();
-    assertThat(sourceTokenIndex2tags).hasSize(2);
-    assertThat(sourceTokenIndex2tags.get(0)).containsExactly(OPEN1);
-    assertThat(sourceTokenIndex2tags.get(2)).containsExactly(ISO1, CLOSE1);
+    assertThat(unusedTags).containsExactly(OPEN2, CLOSE2, ISO2);
+    assertThat(sourceTokenIndex2Tags).hasSize(2);
+    assertThat(sourceTokenIndex2Tags.get(1)).containsExactly(OPEN1);
+    assertThat(sourceTokenIndex2Tags.get(2)).containsExactly(CLOSE1);
   }
 
 
   /**
-   * Test {@link MarianNmtConnector#getTagsForSourceTokenIndex(Map, String[], int)}.
-   * This method is private, access for unit test achieved via reflection.
+   * Test {@link MarkupInserter#getTagsForSourceTokenIndex(int, Map, String[])}.
    */
   @Test
-  @SuppressWarnings("unchecked")
-  void testGetTagsForSourceTokenIndex()
-      throws ReflectiveOperationException {
-
-    // use reflection to make private method accessible
-    String methodName = "getTagsForSourceTokenIndex";
-    Method method = MarianNmtConnector.class.getDeclaredMethod(
-        methodName, int.class, Map.class, String[].class);
-    method.setAccessible(true);
+  void testGetTagsForSourceTokenIndex() {
 
     String[] sourceTokens =
         asArray("ISO1 OPEN1 Th@@ i@@ s CLOSE1 is a OPEN2 te@@ st . CLOSE2 ISO2");
     String[] sourceTokensWithoutTags = removeTags(sourceTokens);
-    Map<Integer, List<String>> sourceTokenIndex2tags = createSourceTokenIndex2tags(sourceTokens);
+    Map<Integer, List<String>> sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(sourceTokens);
 
+    // init variables to be re-used between tests
     List<String> tags = null;
 
     // non-bpe token 'is'
-    tags = (List<String>)method.invoke(
-        null, 3,
-        new HashMap<>(sourceTokenIndex2tags),
-        sourceTokensWithoutTags);
+    tags = MarkupInserter.getTagsForSourceTokenIndex(
+        3, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).isEmpty();
 
     // last bpe fragment 's'
-    tags = (List<String>)method.invoke(
-        null, 2,
-        new HashMap<>(sourceTokenIndex2tags),
-        sourceTokensWithoutTags);
+    tags = MarkupInserter.getTagsForSourceTokenIndex(
+        2, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).containsExactly(ISO1, OPEN1, CLOSE1);
 
     // middle bpe fragment 'i@@'
-    tags = (List<String>)method.invoke(
-        null, 1,
-        new HashMap<>(sourceTokenIndex2tags),
-        sourceTokensWithoutTags);
+    tags = MarkupInserter.getTagsForSourceTokenIndex(
+        1, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).containsExactly(ISO1, OPEN1, CLOSE1);
 
     // first bpe fragment 'Th@@'
-    tags = (List<String>)method.invoke(
-        null, 0,
-        new HashMap<>(sourceTokenIndex2tags),
-        sourceTokensWithoutTags);
-    assertThat(tags).containsExactly(ISO1, OPEN1, CLOSE1);
+    tags = MarkupInserter.getTagsForSourceTokenIndex(
+        0, sourceTokenIndex2Tags, sourceTokensWithoutTags);
 
     // EOS
-    tags = (List<String>)method.invoke(
-        null, 8,
-        new HashMap<>(sourceTokenIndex2tags),
-        sourceTokensWithoutTags);
+    tags = MarkupInserter.getTagsForSourceTokenIndex(
+        8, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).containsExactly(ISO2);
   }
 
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertTags(String[], String[], String[], Alignments)}
+   * {@link MarkupInserter#reinsertTags(SplitTagsSentence, Map, String[], Alignments)}
    * with soft alignments.
    */
   @Test
@@ -448,7 +257,7 @@ class MarianNmtConnectorTest {
     String rawAlignments = null;
     String[] expectedResult = null;
 
-    // first test
+    // parallel alignment
     targetTokensWithoutTags = "Das ist ein Test .".split(" ");
     rawAlignments = ""
         + "1,0,0,0,0,0 " // Das -> This
@@ -461,7 +270,7 @@ class MarianNmtConnectorTest {
     testReinsertTagsWithSoftAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
-    // second test
+    // reversed alignment
     targetTokensWithoutTags = "Test ein ist das .".split(" ");
     rawAlignments = ""
         + "0,0,0,1,0,0 " // Test -> test
@@ -478,7 +287,7 @@ class MarianNmtConnectorTest {
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertTags(String[], String[], String[], Alignments)}
+   * {@link MarkupInserter#reinsertTags(SplitTagsSentence, Map, String[], Alignments)}
    * with hard alignments.
    */
   @Test
@@ -551,7 +360,7 @@ class MarianNmtConnectorTest {
 
   /**
    * Test
-   * {@link MarianNmtConnector#reinsertTags(String[], String[], String[], Alignments)}
+   * {@link MarkupInserter#reinsertTags(SplitTagsSentence, Map, String[], Alignments)}
    * with more complex examples.
    */
   @Test
@@ -607,20 +416,21 @@ class MarianNmtConnectorTest {
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
       String[] expectedResult, boolean hardAlignments) {
 
-    String[] sourceTokensWithoutTags = removeTags(sourceTokens);
     Alignments algn = null;
     if (hardAlignments) {
       algn = new HardAlignments(rawAlignments);
     } else {
       algn = new SoftAlignments(rawAlignments);
     }
+
+    SplitTagsSentence sourceSentence =
+        new SplitTagsSentence(sourceTokens, opening2ClosingTag, closing2OpeningTag);
     Map<Integer, List<String>> sourceTokenIndex2tags =
-        MarianNmtConnector.createSourceTokenIndex2Tags(sourceTokens);
+        MarkupInserter.createTokenIndex2Tags(sourceSentence.getTokensWithTags());
 
     String[] targetTokensWithTags =
-        MarianNmtConnector.reinsertTags(
-            sourceTokensWithoutTags, targetTokensWithoutTags, algn, sourceTokenIndex2tags,
-            closing2OpeningTag);
+        MarkupInserter.reinsertTags(
+            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -630,7 +440,7 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#moveTagsFromBetweenBpeFragments(String[])}.
+   * Test {@link MarkupInserter#moveTagsFromBetweenBpeFragments(String[])}.
    */
   @Test
   void testMoveTagsFromBetweenBpeFragments() {
@@ -714,7 +524,7 @@ class MarianNmtConnectorTest {
   private void testMoveTagsFromBetweenBpeFragments(
       String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.moveTagsFromBetweenBpeFragments(targetTokens);
+    targetTokens = MarkupInserter.moveTagsFromBetweenBpeFragments(targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -724,7 +534,7 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#undoBytePairEncoding(String[])}.
+   * Test {@link MarkupInserter#undoBytePairEncoding(String[])}.
    */
   @Test
   void testUndoBytePairEncoding() {
@@ -752,7 +562,7 @@ class MarianNmtConnectorTest {
 
   private void testUndoBytePairEncoding(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.undoBytePairEncoding(targetTokens);
+    targetTokens = MarkupInserter.undoBytePairEncoding(targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -762,7 +572,7 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#handleInvertedTags(Map, String[])}.
+   * Test {@link MarkupInserter#handleInvertedTags(Map, String[])}.
    */
   @Test
   void testHandleInvertedTags() {
@@ -890,7 +700,7 @@ class MarianNmtConnectorTest {
 
   private void testHandleInvertedTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.handleInvertedTags(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.handleInvertedTags(closing2OpeningTag, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -900,7 +710,7 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#removeRedundantTags(Map, String[])}.
+   * Test {@link MarkupInserter#removeRedundantTags(Map, String[])}.
    */
   @Test
   void testRemoveRedundantTags() {
@@ -963,7 +773,7 @@ class MarianNmtConnectorTest {
 
   private void testRemoveRedundantTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.removeRedundantTags(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.removeRedundantTags(closing2OpeningTag, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -973,18 +783,10 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#sortOpeningTags(int, int, String[], Map)}.
-   * This method is private, access for unit test achieved via reflection.
+   * Test {@link MarkupInserter#sortOpeningTags(int, int, String[], Map)}.
    */
   @Test
-  void testSortOpeningTags()
-      throws ReflectiveOperationException {
-
-    // use reflection to make private method accessible
-    String methodName = "sortOpeningTags";
-    Method method = MarianNmtConnector.class.getDeclaredMethod(
-        methodName, int.class, int.class, String[].class, Map.class);
-    method.setAccessible(true);
+  void testSortOpeningTags() {
 
     // init variables to be re-used between tests
     String[] targetTokens = null;
@@ -993,42 +795,44 @@ class MarianNmtConnectorTest {
     // closing tags in same order
     targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE1 z CLOSE2 a CLOSE3");
     expectedResult = asArray("x OPEN3 OPEN2 OPEN1 y CLOSE1 z CLOSE2 a CLOSE3");
-    testSortTags(targetTokens, 1, 4, expectedResult, method);
+    assertThat(MarkupInserter.sortOpeningTags(1, 4, targetTokens, closing2OpeningTag))
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokens)))
+        .containsExactly(expectedResult);
 
     // closing tags in inverse order
     targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
     expectedResult = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1");
-    testSortTags(targetTokens, 1, 4, expectedResult, method);
+    assertThat(MarkupInserter.sortOpeningTags(1, 4, targetTokens, closing2OpeningTag))
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokens)))
+        .containsExactly(expectedResult);
 
     // non-tag in range
-    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
+    assertThatExceptionOfType(OkapiException.class).isThrownBy(
         () -> {
-          method.invoke(null, 0, 4,
-              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"), closing2OpeningTag);
-        }).withCauseInstanceOf(OkapiException.class);
+          MarkupInserter.sortOpeningTags(0, 4,
+              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a CLOSE1"),
+              closing2OpeningTag);
+        });
 
     // not enough closing tags
-    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
+    assertThatExceptionOfType(OkapiException.class).isThrownBy(
         () -> {
-          method.invoke(null, 1, 4,
-              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"), closing2OpeningTag);
-        }).withCauseInstanceOf(OkapiException.class);
+          MarkupInserter.sortOpeningTags(1, 4,
+              asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 z CLOSE2 a"),
+              closing2OpeningTag);
+        });
   }
 
 
   /**
-   * Test {@link MarianNmtConnector#sortClosingTags(int, int, String[], Map)}.
-   * This method is private, access for unit test achieved via reflection.
+   * Test {@link MarkupInserter#sortClosingTags(int, int, String[], Map)}.
    */
   @Test
-  void testSortClosingTags()
-      throws ReflectiveOperationException {
-
-    // use reflection to make private method accessible
-    String methodName = "sortClosingTags";
-    Method method = MarianNmtConnector.class.getDeclaredMethod(
-        methodName, int.class, int.class, String[].class, Map.class);
-    method.setAccessible(true);
+  void testSortClosingTags() {
 
     // init variables to be re-used between tests
     String[] targetTokens = null;
@@ -1037,50 +841,50 @@ class MarianNmtConnectorTest {
     // closing tags in same order
     targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b");
     expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
-    testSortTags(targetTokens, 7, 10, expectedResult, method);
-
-    // closing tags in inverse order
-    targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
-    expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
-    testSortTags(targetTokens, 7, 10, expectedResult, method);
-
-    // closing tags mixed
-    targetTokens = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
-    expectedResult = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
-    testSortTags(targetTokens, 6, 8, expectedResult, method);
-
-    // non-tag in range
-    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
-        () -> {
-          method.invoke(null, 6, 10,
-              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
-        }).withCauseInstanceOf(OkapiException.class);
-
-    // not enough opening tags
-    assertThatExceptionOfType(InvocationTargetException.class).isThrownBy(
-        () -> {
-          method.invoke(null, 6, 9,
-              asArray("x y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"), closing2OpeningTag);
-        }).withCauseInstanceOf(OkapiException.class);
-  }
-
-
-  private void testSortTags(
-      String[] targetTokens, int startIndex, int endIndex, String[] expectedResult, Method method)
-      throws ReflectiveOperationException {
-
-    targetTokens =
-        (String[])method.invoke(null, startIndex, endIndex, targetTokens, closing2OpeningTag);
-    assertThat(targetTokens)
+    assertThat(MarkupInserter.sortClosingTags(7, 10, targetTokens, opening2ClosingTag))
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokens)))
         .containsExactly(expectedResult);
+
+    // closing tags in inverse order
+    targetTokens = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    expectedResult = asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE3 CLOSE2 CLOSE1 b");
+    assertThat(MarkupInserter.sortClosingTags(7, 10, targetTokens, opening2ClosingTag))
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokens)))
+        .containsExactly(expectedResult);
+
+    // closing tags mixed
+    targetTokens = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
+    expectedResult = asArray("OPEN3 x OPEN1 y OPEN2 z CLOSE1 CLOSE3 a CLOSE2 b c");
+    assertThat(MarkupInserter.sortClosingTags(6, 8, targetTokens, opening2ClosingTag))
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokens)))
+        .containsExactly(expectedResult);
+
+    // non-tag in range
+    assertThatExceptionOfType(OkapiException.class).isThrownBy(
+        () -> {
+          MarkupInserter.sortClosingTags(6, 10,
+              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"),
+              opening2ClosingTag);
+        });
+
+    // not enough opening tags
+    assertThatExceptionOfType(OkapiException.class).isThrownBy(
+        () -> {
+          MarkupInserter.sortClosingTags(6, 9,
+              asArray("x OPEN1 y OPEN2 z OPEN3 a CLOSE1 CLOSE2 CLOSE3 b"),
+              opening2ClosingTag);
+        });
   }
 
 
   /**
-   * Test {@link MarianNmtConnector#balanceTags(Map, String[])}.
+   * Test {@link MarkupInserter#balanceTags(Map, String[])}.
    */
   @Test
   void testBalanceTags() {
@@ -1145,7 +949,7 @@ class MarianNmtConnectorTest {
 
   private void testBalanceTags(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.balanceTags(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.balanceTags(opening2ClosingTag, closing2OpeningTag, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -1169,7 +973,7 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#mergeNeighborTagPairs(Map, String[])}.
+   * Test {@link MarkupInserter#mergeNeighborTagPairs(Map, String[])}.
    */
   @Test
   void testMergeNeighborTagPairs() {
@@ -1202,7 +1006,7 @@ class MarianNmtConnectorTest {
 
   void testMergeNeighborTagPairs(String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarianNmtConnector.mergeNeighborTagPairs(closing2OpeningTag, targetTokens);
+    targetTokens = MarkupInserter.mergeNeighborTagPairs(closing2OpeningTag, targetTokens);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -1212,8 +1016,8 @@ class MarianNmtConnectorTest {
 
 
   /**
-   * Test {@link MarianNmtConnector#maskTags(String[])} and
-   * {@link MarianNmtConnector#unmaskTags(String)}.
+   * Test {@link MarkupInserter#maskTags(String[])} and
+   * {@link MarkupInserter#unmaskTags(String)}.
    */
   @Test
   void testMaskAndUnmaskTags() {
@@ -1225,43 +1029,43 @@ class MarianNmtConnectorTest {
     // one tag
     unmasked = "a b c " + OPEN1 + " x y z";
     masked = "a b c x" + OPEN1 + "c x y z";
-    assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
+    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
 
     // tag at beginning
     unmasked = OPEN1 + " x y z";
     masked = "x" + OPEN1 + " x y z";
-    assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
+    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
 
     // tag at end
     unmasked = "a b c " + OPEN1;
     masked = "a b c " + OPEN1 + "c";
-    assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
+    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
 
     // two tags
     unmasked = "a b c " + ISO1 + " " + OPEN1 + " x y z";
     masked = "a b c x" + ISO1 + "c x" + OPEN1 + "c x y z";
-    assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
+    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
 
     // two tags at beginning
     unmasked = ISO1 + " " + OPEN1 + " x y z";
     masked = "x" + ISO1 + " x" + OPEN1 + " x y z";
-    assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
+    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
 
     // two tags at end
     unmasked = "a b c " + ISO1 + " " + OPEN1;
     masked = "a b c " + ISO1 + "c " + OPEN1 + "c";
-    assertThat(MarianNmtConnector.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
+    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
   }
 
 
   /**
-   * Test {@link MarianNmtConnector#detokenizeTags(String)}.
+   * Test {@link MarkupInserter#detokenizeTags(String)}.
    */
   @Test
   void testDetokenizeTags() {
@@ -1284,29 +1088,12 @@ class MarianNmtConnectorTest {
 
   private void testDetokenizeTags(String input, String expectedResult) {
 
-    input = MarianNmtConnector.detokenizeTags(input);
+    input = MarkupInserter.detokenizeTags(input);
     assertThat(input)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             expectedResult, input))
         .isEqualTo(expectedResult);
-  }
-
-
-  private static Map<Integer, List<String>> createSourceTokenIndex2tags(
-      String[] sourceTokensWithTags)
-      throws ReflectiveOperationException {
-
-    // use reflection to make private method accessible
-    String methodName = "createSourceTokenIndex2Tags";
-    Method method = MarianNmtConnector.class.getDeclaredMethod(methodName, String[].class);
-    method.setAccessible(true);
-
-    @SuppressWarnings("unchecked")
-    Map<Integer, List<String>> sourceTokenIndex2tags =
-        (Map<Integer, List<String>>)method.invoke(null, new Object[] { sourceTokensWithTags });
-
-    return sourceTokenIndex2tags;
   }
 
 
@@ -1350,17 +1137,17 @@ class MarianNmtConnectorTest {
         }
         String[] input = tokens.toArray(new String[tokens.size()]);
         String[] moveTagsFromBetweenBpeFragments =
-            MarianNmtConnector.moveTagsFromBetweenBpeFragments(input);
+            MarkupInserter.moveTagsFromBetweenBpeFragments(input);
         String[] undoBytePairEncoding =
-            MarianNmtConnector.undoBytePairEncoding(moveTagsFromBetweenBpeFragments);
+            MarkupInserter.undoBytePairEncoding(moveTagsFromBetweenBpeFragments);
         String[] handleInvertedTags =
-            MarianNmtConnector.handleInvertedTags(closing2OpeningTag, undoBytePairEncoding);
+            MarkupInserter.handleInvertedTags(closing2OpeningTag, undoBytePairEncoding);
         String[] removeRedundantTags =
-            MarianNmtConnector.removeRedundantTags(closing2OpeningTag, handleInvertedTags);
+            MarkupInserter.removeRedundantTags(closing2OpeningTag, handleInvertedTags);
         String[] balanceTags =
-            MarianNmtConnector.balanceTags(closing2OpeningTag, removeRedundantTags);
+            MarkupInserter.balanceTags(opening2ClosingTag, closing2OpeningTag, removeRedundantTags);
         String[] mergeNeighborTagPairs =
-            MarianNmtConnector.mergeNeighborTagPairs(closing2OpeningTag, balanceTags);
+            MarkupInserter.mergeNeighborTagPairs(closing2OpeningTag, balanceTags);
         String xml = asXml(mergeNeighborTagPairs, closing2OpeningTag);
         if (!isValidXml(xml)) {
           System.err.println(

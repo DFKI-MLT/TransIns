@@ -4,12 +4,15 @@ import static de.dfki.mlt.transins.TagUtils.createClosingTag;
 import static de.dfki.mlt.transins.TagUtils.createIsolatedTag;
 import static de.dfki.mlt.transins.TagUtils.createOpeningTag;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Provide utility methods for testing.
  *
  * @author Jörg Steffen, DFKI
  */
-public final class TestUtils {
+final class TestUtils {
 
   // declare tags in the format used by Okapi
   static final String ISO1 = createIsolatedTag(0);
@@ -20,6 +23,20 @@ public final class TestUtils {
   static final String CLOSE2 = createClosingTag(5);
   static final String OPEN3 = createOpeningTag(6);
   static final String CLOSE3 = createClosingTag(7);
+
+  // map of closing tags to opening tags
+  static final Map<String, String> opening2ClosingTag = new HashMap<>();
+  static final Map<String, String> closing2OpeningTag = new HashMap<>();
+
+  static {
+    opening2ClosingTag.put(OPEN1, CLOSE1);
+    opening2ClosingTag.put(OPEN2, CLOSE2);
+    opening2ClosingTag.put(OPEN3, CLOSE3);
+
+    closing2OpeningTag.put(CLOSE1, OPEN1);
+    closing2OpeningTag.put(CLOSE2, OPEN2);
+    closing2OpeningTag.put(CLOSE3, OPEN3);
+  }
 
 
   private TestUtils() {
