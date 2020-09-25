@@ -10,7 +10,7 @@ import static de.dfki.mlt.transins.TagUtils.removeTags;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +140,7 @@ public final class MarkupInserter {
   // TODO make this use the SpitTagsSentence
   static Map<Integer, List<String>> createTokenIndex2Tags(String[] tokensWithTags) {
 
-    Map<Integer, List<String>> index2tags = new HashMap<>();
+    Map<Integer, List<String>> index2tags = new LinkedHashMap<>();
 
     int offset = 0;
 
