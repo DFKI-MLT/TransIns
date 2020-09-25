@@ -966,6 +966,17 @@ class MarkupInserterTest {
     targetTokens = asArray("x OPEN1 y CLOSE1 OPEN1 z CLOSE1 OPEN2 a CLOSE2 OPEN2 b CLOSE2 c");
     expectedResult = asArray("x OPEN1 y z CLOSE1 OPEN2 a b CLOSE2 c");
     testMergeNeighborTagPairs(targetTokens, expectedResult);
+
+    // two nested tag pairs
+    targetTokens = asArray("x OPEN1 OPEN2 y CLOSE2 CLOSE1 OPEN1 OPEN2 z CLOSE2 CLOSE1 c");
+    expectedResult = asArray("x OPEN1 OPEN2 y z CLOSE2 CLOSE1 c");
+    testMergeNeighborTagPairs(targetTokens, expectedResult);
+
+    // three nested tag pairs
+    targetTokens = asArray("x OPEN1 OPEN2 OPEN3 y CLOSE3 CLOSE2 CLOSE1 "
+        + "OPEN1 OPEN2 OPEN3 z CLOSE3 CLOSE2 CLOSE1 c");
+    expectedResult = asArray("x OPEN1 OPEN2 OPEN3 y z CLOSE3 CLOSE2 CLOSE1 c");
+    testMergeNeighborTagPairs(targetTokens, expectedResult);
   }
 
 

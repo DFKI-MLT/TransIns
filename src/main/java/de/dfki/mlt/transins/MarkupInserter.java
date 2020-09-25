@@ -961,13 +961,13 @@ public final class MarkupInserter {
    *
    * <pre>
    * {@code
-   * x <it> y </it> <it> z a b </it>
+   * x <b> <it> y </it> </b> <b> <it> z a b </it> </b>
    * }
    * </pre>
    * is changed into
    * <pre>
    * {@code
-   * x <it> y z a b </it>
+   * x <b> <it> y z a b </it> </b>
    * }
    * </pre>
    *
@@ -979,26 +979,28 @@ public final class MarkupInserter {
    */
   static String[] mergeNeighborTagPairs(TagMap tagMap, String[] targetTokensWithTags) {
 
-    // TODO this has to work with multiple tags, to <x><y>a</x></y><x><y>b</x></y>
-
     List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
 
-    for (var oneEntry : tagMap.entrySet()) {
+    boolean tagsRemoved;
+    do {
+      tagsRemoved = false;
+      for (var oneEntry : tagMap.entrySet()) {
+        String openingTag = oneEntry.getKey();
+        String closingTag = oneEntry.getValue();
 
-      String openingTag = oneEntry.getKey();
-      String closingTag = oneEntry.getValue();
+        for (int i = 1; i < tokenList.size(); i++) {
+          String prevToken = tokenList.get(i - 1);
+          String oneToken = tokenList.get(i);
 
-      for (int i = 1; i < tokenList.size(); i++) {
-        String prevToken = tokenList.get(i - 1);
-        String oneToken = tokenList.get(i);
-
-        if (oneToken.equals(openingTag) && prevToken.equals(closingTag)) {
-          tokenList.remove(i);
-          tokenList.remove(i - 1);
-          i = i - 2;
+          if (oneToken.equals(openingTag) && prevToken.equals(closingTag)) {
+            tokenList.remove(i);
+            tokenList.remove(i - 1);
+            i = i - 2;
+            tagsRemoved = true;
+          }
         }
       }
-    }
+    } while (tagsRemoved);
 
     String[] resultAsArray = new String[tokenList.size()];
     return tokenList.toArray(resultAsArray);
