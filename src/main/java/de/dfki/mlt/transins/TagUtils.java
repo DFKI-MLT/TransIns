@@ -274,31 +274,44 @@ public final class TagUtils {
   public static String asString(String text, List<Code> codes) {
 
     Code code;
+    int index;
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < text.length(); i++) {
       switch (text.charAt(i)) {
         case TextFragment.MARKER_OPENING:
-          code = codes.get(TextFragment.toIndex(text.charAt(++i)));
-          sb.append(String.format("<u id='%d'>", code.getId()));
+          index = TextFragment.toIndex(text.charAt(++i));
+          if (index >= 0 && index < codes.size()) {
+            code = codes.get(index);
+            sb.append(String.format("<u id='%d'>", code.getId()));
+          } else {
+            // just use the index as simple id
+            sb.append(String.format("<u sid='%d'>", index));
+          }
           break;
         case TextFragment.MARKER_CLOSING:
           i++;
           sb.append("</u>");
           break;
         case TextFragment.MARKER_ISOLATED:
-          code = codes.get(TextFragment.toIndex(text.charAt(++i)));
-          switch (code.getTagType()) {
-            case OPENING:
-              sb.append(String.format("<br id='b%d'/>", code.getId()));
-              break;
-            case CLOSING:
-              sb.append(String.format("<br id='e%d'/>", code.getId()));
-              break;
-            case PLACEHOLDER:
-              sb.append(String.format("<br id='p%d'/>", code.getId()));
-              break;
-            default:
-              logger.warn("unsupported tag type \"{}\"", code.getTagType());
+          index = TextFragment.toIndex(text.charAt(++i));
+          if (index >= 0 && index < codes.size()) {
+            code = codes.get(index);
+            switch (code.getTagType()) {
+              case OPENING:
+                sb.append(String.format("<br id='b%d'/>", code.getId()));
+                break;
+              case CLOSING:
+                sb.append(String.format("<br id='e%d'/>", code.getId()));
+                break;
+              case PLACEHOLDER:
+                sb.append(String.format("<br id='p%d'/>", code.getId()));
+                break;
+              default:
+                logger.warn("unsupported tag type \"{}\"", code.getTagType());
+            }
+          } else {
+            // just use the index as simple id
+            sb.append(String.format("<br sid='%d'/>", index));
           }
           break;
         default:
