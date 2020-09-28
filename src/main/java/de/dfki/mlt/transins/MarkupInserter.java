@@ -129,8 +129,8 @@ public final class MarkupInserter {
 
   /**
    * Create a map from token indexes to tags. Take into account the 'direction' of a tag,
-   * i.e. isolated and opening tags are assigned to the <b>next</b> token,
-   * while a closing tag is assigned to the <b>previous</b> token.
+   * i.e. isolated and opening tags are assigned to the <b>next</b> non-tag token,
+   * while a closing tag is assigned to the <b>previous</b> non-tag token.
    *
    * @param sourceSentence
    *          source sentence with split beginning and end tags
