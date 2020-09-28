@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.entry;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -78,6 +80,92 @@ class MarkupInserterTest {
     resultTagMap = MarkupInserter.createTagMap(tokensWithTags);
     assertThat(resultTagMap.size()).isEqualTo(2);
     assertThat(resultTagMap.entrySet()).contains(entry(OPEN1, CLOSE1), entry(OPEN2, CLOSE2));
+  }
+
+
+  /**
+   * Test {@link MarkupInserter#replaceEmptyTagPairsWithIsos(String[], TagMap, Map)} and
+   * {@link MarkupInserter#replaceIsosWithEmptyTagPairs(String[], Map)}.
+   */
+  @Test
+  void testReplaceEmptyTagPairsWithIsos() {
+
+    // init variables to be re-used between tests
+    String[] tokensWithTags = null;
+    String[] expectedResult = null;
+    Map<String, List<String>> isoReplacements = null;
+
+    // one empty tag pair
+    tokensWithTags = asArray("x OPEN3 CLOSE3 y");
+    expectedResult = asArray("x ISO1 y");
+    isoReplacements = new HashMap<>();
+    testReplaceEmptyTagPairsWithIsos(tokensWithTags, expectedResult, isoReplacements);
+    assertThat(isoReplacements).hasSize(1);
+    assertThat(isoReplacements).contains(entry(ISO1, Arrays.asList(asArray("OPEN3 CLOSE3"))));
+
+    // two empty tag pairs
+    tokensWithTags = asArray("x OPEN3 CLOSE3 OPEN2 CLOSE2 y");
+    expectedResult = asArray("x ISO1 ISO2 y");
+    isoReplacements = new HashMap<>();
+    testReplaceEmptyTagPairsWithIsos(tokensWithTags, expectedResult, isoReplacements);
+    assertThat(isoReplacements).hasSize(2);
+    assertThat(isoReplacements).contains(entry(ISO1, Arrays.asList(asArray("OPEN3 CLOSE3"))));
+    assertThat(isoReplacements).contains(entry(ISO2, Arrays.asList(asArray("OPEN2 CLOSE2"))));
+
+    // two nested empty tag pairs
+    tokensWithTags = asArray("x OPEN3 OPEN2 CLOSE2 CLOSE3 y");
+    expectedResult = asArray("x ISO1 y");
+    isoReplacements = new HashMap<>();
+    testReplaceEmptyTagPairsWithIsos(tokensWithTags, expectedResult, isoReplacements);
+    assertThat(isoReplacements).hasSize(1);
+    assertThat(isoReplacements).contains(
+        entry(ISO1, Arrays.asList(asArray("OPEN3 OPEN2 CLOSE2 CLOSE3"))));
+
+    // one empty tag pair with isolated tag
+    tokensWithTags = asArray("x OPEN3 ISO1 CLOSE3 y");
+    expectedResult = asArray("x ISO2 y");
+    isoReplacements = new HashMap<>();
+    testReplaceEmptyTagPairsWithIsos(tokensWithTags, expectedResult, isoReplacements);
+    assertThat(isoReplacements).hasSize(1);
+    assertThat(isoReplacements).contains(entry(ISO2, Arrays.asList(asArray("OPEN3 ISO1 CLOSE3"))));
+
+    // two nested empty tag pairs with isolated tag
+    tokensWithTags = asArray("x OPEN3 OPEN2 ISO1 CLOSE2 CLOSE3 y");
+    expectedResult = asArray("x ISO2 y");
+    isoReplacements = new HashMap<>();
+    testReplaceEmptyTagPairsWithIsos(tokensWithTags, expectedResult, isoReplacements);
+    assertThat(isoReplacements).hasSize(1);
+    assertThat(isoReplacements).contains(
+        entry(ISO2, Arrays.asList(asArray("OPEN3 OPEN2 ISO1 CLOSE2 CLOSE3"))));
+
+    // one empty tag pair nested in non-empty pair
+    tokensWithTags = asArray("x OPEN2 y OPEN3 CLOSE3 a CLOSE2 b");
+    expectedResult = asArray("x OPEN2 y ISO1 a CLOSE2 b");
+    isoReplacements = new HashMap<>();
+    testReplaceEmptyTagPairsWithIsos(tokensWithTags, expectedResult, isoReplacements);
+    assertThat(isoReplacements).hasSize(1);
+    assertThat(isoReplacements).contains(entry(ISO1, Arrays.asList(asArray("OPEN3 CLOSE3"))));
+  }
+
+
+  private void testReplaceEmptyTagPairsWithIsos(
+      String[] tokensWithTags, String[] expectedResult, Map<String, List<String>> isoReplacements) {
+
+    String[] resultTokens = MarkupInserter.replaceEmptyTagPairsWithIsos(
+        tokensWithTags, tagMap, isoReplacements);
+    assertThat(resultTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(resultTokens)))
+        .containsExactly(expectedResult);
+
+    String[] originalTokens = MarkupInserter.replaceIsosWithEmptyTagPairs(
+        resultTokens, isoReplacements);
+    assertThat(originalTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(originalTokens), asString(tokensWithTags)))
+        .containsExactly(tokensWithTags);
   }
 
 
@@ -1126,6 +1214,11 @@ class MarkupInserterTest {
     // multiple whitespaces
     input = String.format("x y z %s   a   %s  b   %s  c", ISO1, OPEN1, CLOSE1);
     expectedResult = String.format("x y z %sa   %sb%s  c", ISO1, OPEN1, CLOSE1);
+    testDetokenizeTags(input, expectedResult);
+
+    // empty tag pair
+    input = String.format("x y z %s a %s %s b", ISO1, OPEN1, CLOSE1);
+    expectedResult = String.format("x y z %sa %s%s b", ISO1, OPEN1, CLOSE1);
     testDetokenizeTags(input, expectedResult);
   }
 

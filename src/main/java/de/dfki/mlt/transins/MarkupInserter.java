@@ -10,8 +10,9 @@ import static de.dfki.mlt.transins.TagUtils.removeTags;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +69,11 @@ public final class MarkupInserter {
     // get mapping of opening tags to closing tags and vice versa
     TagMap tagMap = createTagMap(sourceTokensWithTags);
 
+    // replace empty tag pairs
+    Map<String, List<String>> isoReplacements = new HashMap<>();
+    sourceTokensWithTags =
+        MarkupInserter.replaceEmptyTagPairsWithIsos(sourceTokensWithTags, tagMap, isoReplacements);
+
     // split tags at beginning and end of source sentence
     SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokensWithTags, tagMap);
 
@@ -91,6 +97,10 @@ public final class MarkupInserter {
     targetTokensWithTags = balanceTags(tagMap, targetTokensWithTags);
     targetTokensWithTags = mergeNeighborTagPairs(tagMap, targetTokensWithTags);
     targetTokensWithTags = addTags(targetTokensWithTags, unusedTags);
+
+    // put back empty tag pairs
+    targetTokensWithTags =
+        MarkupInserter.replaceIsosWithEmptyTagPairs(targetTokensWithTags, isoReplacements);
 
     // prepare translation for postprocessing;
     // mask tags so that detokenizer in postprocessing works correctly
@@ -124,6 +134,104 @@ public final class MarkupInserter {
     }
 
     return tagMap;
+  }
+
+
+  /**
+   * Replace empty tag pairs with newly created isolated tags.
+   *
+   * @param tokensWithTags
+   *          the tokens with tags
+   * @param isoReplacements
+   *          map where to add mapping of newly created isolated tags
+   *          to the original empty tag pairs
+   * @return the tokens with replaced empty tag pairs
+   */
+  static String[] replaceEmptyTagPairsWithIsos(
+      String[] tokensWithTags, TagMap tagMap, Map<String, List<String>> isoReplacements) {
+
+    // get maximum id of tags, so that we can safely created new tags using higher ids
+    int maxId = Integer.MIN_VALUE;
+    for (String oneToken : tokensWithTags) {
+      if (isTag(oneToken)) {
+        int id = TagUtils.getTagId(oneToken);
+        if (id > maxId) {
+          maxId = id;
+        }
+      }
+    }
+
+    // replace empty tag pairs
+    List<String> resultTokens = new ArrayList<>();
+    int currentId = maxId + 1;
+    for (int i = 0; i < tokensWithTags.length; i++) {
+      String oneToken = tokensWithTags[i];
+      if (!isOpeningTag(oneToken)) {
+        resultTokens.add(oneToken);
+      } else {
+        String matchClosingTag = tagMap.getClosingTag(oneToken);
+        // collect everything between the opening and the closing tag
+        List<String> covered = new ArrayList<>();
+        covered.add(oneToken);
+        for (int j = i + 1; j < tokensWithTags.length; j++) {
+          String nextToken = tokensWithTags[j];
+          if (!isTag(nextToken)) {
+            covered.clear();
+            break;
+          } else {
+            covered.add(nextToken);
+            if (nextToken.equals(matchClosingTag)) {
+              i = j;
+              break;
+            }
+          }
+        }
+        if (covered.isEmpty()) {
+          resultTokens.add(oneToken);
+        } else {
+          String newIso = TagUtils.createIsolatedTag(currentId);
+          currentId++;
+          resultTokens.add(newIso);
+          isoReplacements.put(newIso, new ArrayList<>(covered));
+          covered.clear();
+        }
+      }
+    }
+
+    // convert array list to array and return it
+    return resultTokens.toArray(new String[resultTokens.size()]);
+  }
+
+
+  /**
+   * Replace isolated tags with empty tag pairs, undoing the replacement of
+   * {@link #replaceIsosWithEmptyTagPairs(String[], Map)}.
+   *
+   * @param tokensWithTags
+   *          the tokens with tags
+   * @param isoReplacements
+   *          map where to add mapping of newly created isolated tags
+   *          to the original empty tag pairs
+   * @return the tokens with replaced isolated tags
+   */
+  static String[] replaceIsosWithEmptyTagPairs(
+      String[] tokensWithTags, Map<String, List<String>> isoReplacements) {
+
+    List<String> resultTokens = new ArrayList<>();
+
+    for (String oneToken : tokensWithTags) {
+      if (isIsolatedTag(oneToken)) {
+        List<String> replacements = isoReplacements.get(oneToken);
+        if (replacements != null) {
+          resultTokens.addAll(replacements);
+          continue;
+        }
+      }
+      resultTokens.add(oneToken);
+    }
+
+    // convert array list to array and return it
+    return resultTokens.toArray(new String[resultTokens.size()]);
   }
 
 

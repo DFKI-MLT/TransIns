@@ -12,14 +12,14 @@ import static de.dfki.mlt.transins.TagUtils.createOpeningTag;
 final class TestUtils {
 
   // declare tags in the format used by Okapi
-  static final String ISO1 = createIsolatedTag(0);
-  static final String ISO2 = createIsolatedTag(1);
-  static final String OPEN1 = createOpeningTag(2);
-  static final String CLOSE1 = createClosingTag(3);
-  static final String OPEN2 = createOpeningTag(4);
-  static final String CLOSE2 = createClosingTag(5);
-  static final String OPEN3 = createOpeningTag(6);
-  static final String CLOSE3 = createClosingTag(7);
+  static final String OPEN1 = createOpeningTag(0);
+  static final String CLOSE1 = createClosingTag(1);
+  static final String OPEN2 = createOpeningTag(2);
+  static final String CLOSE2 = createClosingTag(3);
+  static final String OPEN3 = createOpeningTag(4);
+  static final String CLOSE3 = createClosingTag(5);
+  static final String ISO1 = createIsolatedTag(6);
+  static final String ISO2 = createIsolatedTag(7);
 
   // bidirectional map from opening tags to closing tags
   static final TagMap tagMap = new TagMap();
