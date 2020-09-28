@@ -82,21 +82,22 @@ class MarkupInserterTest {
 
 
   /**
-   * Test {@link MarkupInserter#createTokenIndex2Tags(String[])}.
+   * Test {@link MarkupInserter#createTokenIndex2Tags(SplitTagsSentence)}.
    */
   @Test
   void testCreateTokenIndex2Tags() {
 
-    String[] tokensWithTags = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    String[] tokensWithTags = 
+        asArray("start ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2 end");
 
     Map<Integer, List<String>> index2Tags =
-        MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
 
     assertThat(index2Tags).hasSize(4);
-    assertThat(index2Tags.get(0)).containsExactly(ISO1, OPEN1, CLOSE1);
-    assertThat(index2Tags.get(3)).containsExactly(OPEN2);
-    assertThat(index2Tags.get(4)).containsExactly(CLOSE2);
-    assertThat(index2Tags.get(5)).containsExactly(ISO2);
+    assertThat(index2Tags.get(1)).containsExactly(ISO1, OPEN1, CLOSE1);
+    assertThat(index2Tags.get(4)).containsExactly(OPEN2);
+    assertThat(index2Tags.get(5)).containsExactly(CLOSE2);
+    assertThat(index2Tags.get(6)).containsExactly(ISO2);
   }
 
 
@@ -115,7 +116,8 @@ class MarkupInserterTest {
     // ISO not pointed to, but following pointed token
     tokensWithTags = asArray("x ISO1 y z");
     pointedSourceTokens = List.of(2);
-    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
         sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
@@ -126,7 +128,8 @@ class MarkupInserterTest {
     // ISO not pointed to, no following pointed token
     tokensWithTags = asArray("x ISO1 y z");
     pointedSourceTokens = List.of(0);
-    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
         sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
@@ -136,7 +139,8 @@ class MarkupInserterTest {
     // one tag pair without pointing tokens
     tokensWithTags = asArray("OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test .");
     pointedSourceTokens = List.of(1, 2);
-    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
         sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
@@ -148,7 +152,8 @@ class MarkupInserterTest {
     // all tag pairs with pointing tokens
     tokensWithTags = asArray("OPEN1 OPEN2 This CLOSE2 is a CLOSE1 test .");
     pointedSourceTokens = List.of(0, 1, 2);
-    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
         sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
@@ -160,7 +165,8 @@ class MarkupInserterTest {
     // one tag pair without pointing tokens, ISO not at sentence end
     tokensWithTags = asArray("OPEN1 OPEN2 x CLOSE2 y z a CLOSE1 b ISO2 c");
     pointedSourceTokens = List.of(1, 2);
-    sourceTokenIndex2Tags = MarkupInserter.createTokenIndex2Tags(tokensWithTags);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
     unusedTags = MarkupInserter.moveSourceTagsToPointedTokens(
         sourceTokenIndex2Tags, tagMap, pointedSourceTokens, removeTags(tokensWithTags).length);
 
@@ -178,36 +184,36 @@ class MarkupInserterTest {
   void testGetTagsForSourceTokenIndex() {
 
     String[] sourceTokens =
-        asArray("ISO1 OPEN1 Th@@ i@@ s CLOSE1 is a OPEN2 te@@ st . CLOSE2 ISO2");
+        asArray("start ISO1 OPEN1 Th@@ i@@ s CLOSE1 is a OPEN2 te@@ st . CLOSE2 ISO2 end");
     String[] sourceTokensWithoutTags = removeTags(sourceTokens);
     Map<Integer, List<String>> sourceTokenIndex2Tags =
-        MarkupInserter.createTokenIndex2Tags(sourceTokens);
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(sourceTokens, tagMap));
 
     // init variables to be re-used between tests
     List<String> tags = null;
 
     // non-bpe token 'is'
     tags = MarkupInserter.getTagsForSourceTokenIndex(
-        3, sourceTokenIndex2Tags, sourceTokensWithoutTags);
+        4, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).isEmpty();
 
     // last bpe fragment 's'
     tags = MarkupInserter.getTagsForSourceTokenIndex(
-        2, sourceTokenIndex2Tags, sourceTokensWithoutTags);
+        3, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).containsExactly(ISO1, OPEN1, CLOSE1);
 
     // middle bpe fragment 'i@@'
     tags = MarkupInserter.getTagsForSourceTokenIndex(
-        1, sourceTokenIndex2Tags, sourceTokensWithoutTags);
+        2, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).containsExactly(ISO1, OPEN1, CLOSE1);
 
     // first bpe fragment 'Th@@'
     tags = MarkupInserter.getTagsForSourceTokenIndex(
-        0, sourceTokenIndex2Tags, sourceTokensWithoutTags);
+        1, sourceTokenIndex2Tags, sourceTokensWithoutTags);
 
     // EOS
     tags = MarkupInserter.getTagsForSourceTokenIndex(
-        8, sourceTokenIndex2Tags, sourceTokensWithoutTags);
+        9, sourceTokenIndex2Tags, sourceTokensWithoutTags);
     assertThat(tags).containsExactly(ISO2);
   }
 
@@ -395,7 +401,7 @@ class MarkupInserterTest {
 
     SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokens, tagMap);
     Map<Integer, List<String>> sourceTokenIndex2tags =
-        MarkupInserter.createTokenIndex2Tags(sourceSentence.getTokensWithTags());
+        MarkupInserter.createTokenIndex2Tags(sourceSentence);
 
     String[] targetTokensWithTags =
         MarkupInserter.reinsertTags(

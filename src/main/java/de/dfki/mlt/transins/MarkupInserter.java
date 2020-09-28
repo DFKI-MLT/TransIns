@@ -72,8 +72,7 @@ public final class MarkupInserter {
     SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokensWithTags, tagMap);
 
     // assign each source token its tags
-    Map<Integer, List<String>> sourceTokenIndex2tags =
-        createTokenIndex2Tags(sourceSentence.getTokensWithTags());
+    Map<Integer, List<String>> sourceTokenIndex2tags = createTokenIndex2Tags(sourceSentence);
 
     // move tags in case of no target token pointing to the associated source token
     List<String> unusedTags =
@@ -133,17 +132,16 @@ public final class MarkupInserter {
    * i.e. isolated and opening tags are assigned to the <b>next</b> token,
    * while a closing tag is assigned to the <b>previous</b> token.
    *
-   * @param tokensWithTags
-   *          the tokens with tags
+   * @param sourceSentence
+   *          source sentence with split beginning and end tags
    * @return map from token index to associated tags
    */
-  // TODO make this use the SpitTagsSentence
-  static Map<Integer, List<String>> createTokenIndex2Tags(String[] tokensWithTags) {
+  static Map<Integer, List<String>> createTokenIndex2Tags(SplitTagsSentence sourceSentence) {
 
     Map<Integer, List<String>> index2tags = new LinkedHashMap<>();
 
     int offset = 0;
-
+    String[] tokensWithTags = sourceSentence.getTokensWithTags();
     for (int i = 0; i < tokensWithTags.length; i++) {
       String currentToken = tokensWithTags[i];
       if (isTag(currentToken)) {
