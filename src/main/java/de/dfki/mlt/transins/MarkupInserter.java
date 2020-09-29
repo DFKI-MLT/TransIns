@@ -1382,4 +1382,63 @@ public final class MarkupInserter {
 
     return index2tags;
   }
+
+
+  /**
+   * Make sure that all isolated tags are assigned to tokens that are actually 'pointed' to
+   * by at least one target token by moving isolated tags forward until pointed token.
+   * Remove isolated tag if there is no following pointed token.
+   * The provided map {@code sourceTokenIndex2tags} is adapted accordingly.
+   *
+   * @param sourceTokenIndex2Tags
+   *          map of source token indexes to associated tags
+   * @param pointedSourceTokens
+   *          all source token indexes for which there is at least one target token pointing at them
+   *          in the alignments
+   * @param sourceTokensLength
+   *          the number of source tokens
+   * @return list of tags that cannot be assigned to a pointed token;
+   *         contains isolated tags with no following pointed token
+   */
+  static List<String> moveIsoTagsToPointedTokens(
+      Map<Integer, List<String>> sourceTokenIndex2Tags,
+      List<Integer> pointedSourceTokens,
+      int sourceTokensLength) {
+
+    List<String> unusedTags = new ArrayList<>();
+    for (var oneEntry : new HashSet<>(sourceTokenIndex2Tags.entrySet())) {
+      int sourceTokenIndex = oneEntry.getKey();
+      if (pointedSourceTokens.contains(sourceTokenIndex)) {
+        continue;
+      }
+
+      List<String> tags = oneEntry.getValue();
+      for (String oneTag : new ArrayList<>(tags)) {
+        if (isIsolatedTag(oneTag)) {
+          boolean pointedSourceTokenFound = false;
+          for (int i = sourceTokenIndex + 1; i < sourceTokensLength; i++) {
+            if (pointedSourceTokens.contains(i)) {
+              List<String> pointedSourceTokenTags = sourceTokenIndex2Tags.get(i);
+              if (pointedSourceTokenTags == null) {
+                pointedSourceTokenTags = new ArrayList<>();
+                sourceTokenIndex2Tags.put(i, pointedSourceTokenTags);
+              }
+              pointedSourceTokenTags.add(0, oneTag);
+              pointedSourceTokenFound = true;
+              break;
+            }
+          }
+          tags.remove(oneTag);
+          if (tags.isEmpty()) {
+            sourceTokenIndex2Tags.remove(sourceTokenIndex);
+          }
+          if (!pointedSourceTokenFound) {
+            unusedTags.add(oneTag);
+          }
+        }
+      }
+    }
+
+    return unusedTags;
+  }
 }

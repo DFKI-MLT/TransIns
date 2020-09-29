@@ -1307,6 +1307,68 @@ class MarkupInserterTest {
 
 
   /**
+   * Test {@link MarkupInserter#moveIsoTagsToPointedTokens(Map, List, int)}.
+   */
+  @Test
+  void testMoveIsoTagsToPointedTokens() {
+
+    // init variables to be re-used between tests
+    String[] tokensWithTags = null;
+    List<Integer> pointedSourceTokens = null;
+    Map<Integer, List<String>> sourceTokenIndex2Tags = null;
+    List<String> unusedTags = null;
+
+    // two ISO tags, both not pointed to
+    tokensWithTags = asArray("x ISO1 y ISO2 z");
+    pointedSourceTokens = List.of(1);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
+    unusedTags = MarkupInserter.moveIsoTagsToPointedTokens(
+        sourceTokenIndex2Tags, pointedSourceTokens, removeTags(tokensWithTags).length);
+
+    assertThat(unusedTags).containsExactly(ISO2);
+    assertThat(sourceTokenIndex2Tags).hasSize(1);
+    assertThat(sourceTokenIndex2Tags.get(1)).containsExactly(ISO1);
+
+    // two ISO tags, both pointed to
+    tokensWithTags = asArray("x ISO1 y z a ISO2 b");
+    pointedSourceTokens = List.of(1, 4);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
+    unusedTags = MarkupInserter.moveIsoTagsToPointedTokens(
+        sourceTokenIndex2Tags, pointedSourceTokens, removeTags(tokensWithTags).length);
+
+    assertThat(unusedTags).isEmpty();
+    assertThat(sourceTokenIndex2Tags).hasSize(2);
+    assertThat(sourceTokenIndex2Tags.get(1)).containsExactly(ISO1);
+    assertThat(sourceTokenIndex2Tags.get(4)).containsExactly(ISO2);
+
+    // ISO not pointed to, but following pointed token
+    tokensWithTags = asArray("x ISO1 y z");
+    pointedSourceTokens = List.of(2);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
+    unusedTags = MarkupInserter.moveIsoTagsToPointedTokens(
+        sourceTokenIndex2Tags, pointedSourceTokens, removeTags(tokensWithTags).length);
+
+    assertThat(unusedTags).isEmpty();
+    assertThat(sourceTokenIndex2Tags).hasSize(1);
+    assertThat(sourceTokenIndex2Tags.get(2)).containsExactly(ISO1);
+
+    // ISO not pointed to, no following pointed token
+    tokensWithTags = asArray("x ISO1 y z");
+    pointedSourceTokens = List.of(0);
+    sourceTokenIndex2Tags =
+        MarkupInserter.createTokenIndex2Tags(new SplitTagsSentence(tokensWithTags, tagMap));
+    unusedTags = MarkupInserter.moveIsoTagsToPointedTokens(
+        sourceTokenIndex2Tags, pointedSourceTokens, removeTags(tokensWithTags).length);
+
+    assertThat(unusedTags).containsExactly(ISO1);
+    assertThat(sourceTokenIndex2Tags).isEmpty();
+  }
+
+
+  /**
    * @param args
    *          the arguments; not used here
    */
