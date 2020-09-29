@@ -1235,6 +1235,78 @@ class MarkupInserterTest {
 
 
   /**
+   * Test {@link MarkupInserter#createTokenIndex2TagsComplete(String[], Map)}.
+   */
+  @Test
+  void testCreateTokenIndex2TagsComplete() {
+
+    // init variables to be re-used between tests
+    String[] tokensWithTags = null;
+    Map<Integer, List<String>> index2Tags = null;
+
+    // single tag pair
+    tokensWithTags = asArray("start OPEN1 x y CLOSE1 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(2);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, CLOSE1);
+
+    // two tag pairs
+    tokensWithTags = asArray("start OPEN1 x y CLOSE1 OPEN2 a b CLOSE2 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(4);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(3)).containsExactly(OPEN2, CLOSE2);
+    assertThat(index2Tags.get(4)).containsExactly(OPEN2, CLOSE2);
+
+    // two tag pairs, nested
+    tokensWithTags = asArray("start OPEN1 OPEN2 x y CLOSE2 CLOSE1 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(2);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, OPEN2, CLOSE2, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, OPEN2, CLOSE2, CLOSE1);
+
+    // single tag pair with ISO at beginning
+    tokensWithTags = asArray("start OPEN1 ISO1 x y CLOSE1 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(2);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, ISO1, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, CLOSE1);
+
+    // single tag pair with ISO at middle
+    tokensWithTags = asArray("start OPEN1 x ISO1 y CLOSE1 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(2);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, ISO1, CLOSE1);
+
+    // single tag pair with ISO at end
+    tokensWithTags = asArray("start OPEN1 x y ISO1 CLOSE1 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(3);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(3)).containsExactly(ISO1);
+
+    // single tag pair with two ISOs
+    tokensWithTags = asArray("start OPEN1 x ISO1 y ISO2 CLOSE1 end");
+    index2Tags = MarkupInserter.createTokenIndex2TagsComplete(
+        new SplitTagsSentence(tokensWithTags, tagMap), tagMap);
+    assertThat(index2Tags).hasSize(3);
+    assertThat(index2Tags.get(1)).containsExactly(OPEN1, CLOSE1);
+    assertThat(index2Tags.get(2)).containsExactly(OPEN1, ISO1, CLOSE1);
+    assertThat(index2Tags.get(3)).containsExactly(ISO2);
+  }
+
+
+  /**
    * @param args
    *          the arguments; not used here
    */

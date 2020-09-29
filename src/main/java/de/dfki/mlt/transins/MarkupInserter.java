@@ -1306,4 +1306,80 @@ public final class MarkupInserter {
 
     return result.toString();
   }
+
+
+  /**
+   * Create a map from token indexes to tags. Take into account the 'direction' of a tag,
+   * i.e. isolated and opening tags are assigned to the <b>next</b> token,
+   * while a closing tag is assigned to the <b>previous</b> token.<br/>
+   * This method assigns to each token index <b>all</b> tags that apply to that token.<br/>
+   * Example:
+   *
+   * <pre>
+   * {@code
+   * x <it> y <b> z </b> a </it> b
+   * }
+   * </pre>
+   * is interpreted as
+   * <pre>
+   * {@code
+   * x <it> y </it> <it> <b> z </b> </it> <it> a </it> b
+   * }
+   * </pre>
+   *
+   * @param sourceSentence
+   *          source sentence with split beginning and end tags
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
+   * @return map from token index to associated tags
+   */
+  static Map<Integer, List<String>> createTokenIndex2TagsComplete(
+      SplitTagsSentence sourceSentence, TagMap tagMap) {
+
+    String[] tokensWithTags = sourceSentence.getTokensWithTags();
+
+    Map<Integer, List<String>> index2tags = new LinkedHashMap<>();
+    Stack<String> currentTagStack = new Stack<>();
+    int offset = 0;
+
+    for (int i = 0; i < tokensWithTags.length; i++) {
+      String currentToken = tokensWithTags[i];
+      int currentIndex = i - offset;
+      if (isTag(currentToken)) {
+        // shift offset
+        offset = offset + 1;
+        if (isOpeningTag(currentToken) || isIsolatedTag(currentToken)) {
+          currentTagStack.push(currentToken);
+        } else if (isClosingTag(currentToken)) {
+          String matchingOpeningTag = tagMap.getOpeningTag(currentToken);
+          currentTagStack.remove(matchingOpeningTag);
+        }
+      } else {
+        // current token is not a tag
+        if (!currentTagStack.isEmpty()) {
+          // get currently assigned tags for token
+          List<String> currentTags = index2tags.get(currentIndex);
+          if (currentTags == null) {
+            currentTags = new ArrayList<>();
+            index2tags.put(currentIndex, currentTags);
+          }
+          // assign all currently open tags to the token
+          currentTags.addAll(currentTagStack);
+          // assign closing tags for the currently open tags
+          List<String> reversedOpeningTags = new ArrayList<>(currentTagStack);
+          Collections.reverse(reversedOpeningTags);
+          for (String oneTag : reversedOpeningTags) {
+            if (isIsolatedTag(oneTag)) {
+              // isolated tags are added exactly once at the next following non-tag token
+              currentTagStack.remove(oneTag);
+            } else {
+              currentTags.add(tagMap.getClosingTag(oneTag));
+            }
+          }
+        }
+      }
+    }
+
+    return index2tags;
+  }
 }
