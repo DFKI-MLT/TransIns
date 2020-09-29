@@ -509,6 +509,8 @@ public final class MarkupInserter {
     targetTokensWithoutTags[targetTokensWithoutTags.length - 1] = EOS;
 
     List<String> targetTokensWithTags = new ArrayList<>();
+
+    // add tags from source sentence beginning
     targetTokensWithTags.addAll(sourceSentence.getBeginningOfSentenceTags());
 
     // move isolated and copy non-isolated tags from source to target
@@ -547,7 +549,7 @@ public final class MarkupInserter {
       targetTokensWithTags.addAll(tagsToInsertAfter);
     }
 
-    // add end-of-sentence tags
+    // add tags from source sentence end
     targetTokensWithTags.addAll(sourceSentence.getEndOfSentenceTags());
 
     // convert array list to array and return it

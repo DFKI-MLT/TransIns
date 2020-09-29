@@ -481,6 +481,30 @@ class MarkupInserterTest {
     expectedResult = asArray("ISO1 ISO2 OPEN1 a OPEN1 b c CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // one target token to multiple source tokens with same tags
+    sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "1-0 2-0 2-2";
+    expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 b c CLOSE1");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // single tag pair with ISO at end
+    sourceTokens = asArray("x OPEN1 y z ISO1 CLOSE1");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("a OPEN1 b c CLOSE1 ISO1");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // single tag pair with ISO at beginning
+    sourceTokens = asArray("ISO1 OPEN1 x y CLOSE1 z");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("ISO1 OPEN1 a b CLOSE1 c");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
 
 
