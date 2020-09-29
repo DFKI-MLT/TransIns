@@ -77,13 +77,12 @@ public final class MarkupInserter {
     // split tags at beginning and end of source sentence
     SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokensWithTags, tagMap);
 
-    // assign each source token its tags
+    // assign each source token to its tags
     Map<Integer, List<String>> sourceTokenIndex2tags = createTokenIndex2Tags(sourceSentence);
 
     // move tags in case of no target token pointing to the associated source token
-    List<String> unusedTags =
-        moveSourceTagsToPointedTokens(sourceTokenIndex2tags, tagMap,
-            algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
+    moveSourceTagsToPointedTokens(sourceTokenIndex2tags, tagMap,
+        algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
 
     // re-insert tags
     String[] targetTokensWithTags = reinsertTags(
@@ -96,6 +95,9 @@ public final class MarkupInserter {
     targetTokensWithTags = removeRedundantTags(tagMap, targetTokensWithTags);
     targetTokensWithTags = balanceTags(tagMap, targetTokensWithTags);
     targetTokensWithTags = mergeNeighborTagPairs(tagMap, targetTokensWithTags);
+
+    // add unused tags
+    List<String> unusedTags = collectUnusedTags(sourceTokensWithTags, targetTokensWithTags);
     targetTokensWithTags = addTags(targetTokensWithTags, unusedTags);
 
     // put back empty tag pairs
@@ -1112,6 +1114,35 @@ public final class MarkupInserter {
 
     String[] resultAsArray = new String[tokenList.size()];
     return tokenList.toArray(resultAsArray);
+  }
+
+
+  /**
+   * Collect all tags that appear in the source sentence, but not in the target sentence.
+   * We assume that the tags in the source sentence are balanced.
+   *
+   * @param sourceTokensWithTags
+   *          source tokens with tags
+   * @param targetTokensWithTags
+   *          target tokens with tags
+   * @return unused tags
+   */
+  static List<String> collectUnusedTags(
+      String[] sourceTokensWithTags, String[] targetTokensWithTags) {
+
+    List<String> unusedTags = new ArrayList<>();
+    Set<String> targetTags = new HashSet<>();
+    for (String oneToken : targetTokensWithTags) {
+      if (isTag(oneToken)) {
+        targetTags.add(oneToken);
+      }
+    }
+    for (String oneToken : sourceTokensWithTags) {
+      if (isTag(oneToken) && !targetTags.contains(oneToken)) {
+        unusedTags.add(oneToken);
+      }
+    }
+    return unusedTags;
   }
 
 

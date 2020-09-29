@@ -1172,6 +1172,43 @@ class MarkupInserterTest {
 
 
   /**
+   * Test {@link MarkupInserter#collectUnusedTags(String[], String[])}.
+   */
+  @Test
+  void testCollectUnusedTags() {
+
+    // init variables to be re-used between tests
+    String[] sourceTokensWithTags = null;
+    String[] targetTokensWithTags = null;
+    List<String> unusedTags = null;
+
+    // all tags used
+    sourceTokensWithTags = asArray("ISO1 a OPEN1 b CLOSE1 c ISO2");
+    targetTokensWithTags = asArray("ISO1 x OPEN1 y CLOSE1 z ISO2");
+    unusedTags = MarkupInserter.collectUnusedTags(sourceTokensWithTags, targetTokensWithTags);
+    assertThat(unusedTags).isEmpty();
+
+    // all tags used, some multiple times
+    sourceTokensWithTags = asArray("ISO1 a OPEN1 b CLOSE1 c ISO2");
+    targetTokensWithTags = asArray("ISO1 x OPEN1 y CLOSE1 OPEN1 z CLOSE1 ISO2");
+    unusedTags = MarkupInserter.collectUnusedTags(sourceTokensWithTags, targetTokensWithTags);
+    assertThat(unusedTags).isEmpty();
+
+    // not all tags used
+    sourceTokensWithTags = asArray("ISO1 a OPEN1 b CLOSE1 c ISO2");
+    targetTokensWithTags = asArray("ISO1 x OPEN1 y z ISO2");
+    unusedTags = MarkupInserter.collectUnusedTags(sourceTokensWithTags, targetTokensWithTags);
+    assertThat(unusedTags).containsExactly(CLOSE1);
+
+    // no tags used
+    sourceTokensWithTags = asArray("ISO1 a OPEN1 b CLOSE1 c ISO2");
+    targetTokensWithTags = asArray("x y z");
+    unusedTags = MarkupInserter.collectUnusedTags(sourceTokensWithTags, targetTokensWithTags);
+    assertThat(unusedTags).containsExactly(ISO1, OPEN1, CLOSE1, ISO2);
+  }
+
+
+  /**
    * Test {@link MarkupInserter#maskTags(String[])} and
    * {@link MarkupInserter#unmaskTags(String)}.
    */
