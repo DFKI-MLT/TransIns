@@ -1443,4 +1443,99 @@ public final class MarkupInserter {
 
     return unusedTags;
   }
+
+
+  /**
+   * Re-insert tags from source sentence to target sentence using alignments using the
+   * source tags mapping containing <b>all</b> tags that apply to a token.
+   *
+   * @param sourceSentence
+   *          source tokens together with beginning and end of sentence tokens
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags, as created with
+   *          {@link #createTokenIndex2TagsComplete(String[], Map)}
+   * @param targetTokensWithoutTags
+   *          target tokens without tags
+   * @param algn
+   *          alignments of source and target tokens
+   * @return target tokens with re-inserted tags
+   */
+  static String[] reinsertTagsComplete(
+      SplitTagsSentence sourceSentence,
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      String[] targetTokensWithoutTags,
+      Alignments algn) {
+
+    // add explicit end-of-sentence marker to target sentence
+    targetTokensWithoutTags =
+        Arrays.copyOfRange(targetTokensWithoutTags, 0, targetTokensWithoutTags.length + 1);
+    targetTokensWithoutTags[targetTokensWithoutTags.length - 1] = EOS;
+
+    List<String> targetTokensWithTags = new ArrayList<>();
+
+    // add tags from source sentence beginning
+    targetTokensWithTags.addAll(sourceSentence.getBeginningOfSentenceTags());
+
+    // in order to avoid isolated tags appearing more than once in the target sentence,
+    // keep track of them
+    Set<String> usedIsolatedTags = new HashSet<>();
+    for (int targetTokenIndex = 0; targetTokenIndex < targetTokensWithoutTags.length;
+        targetTokenIndex++) {
+
+      String targetToken = targetTokensWithoutTags[targetTokenIndex];
+
+      List<String> tagsToInsertBefore = new ArrayList<>();
+      List<String> tagsToInsertAfter = new ArrayList<>();
+
+      List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
+
+      for (int oneSourceTokenIndex : sourceTokenIndexes) {
+        List<String> sourceTags = sourceTokenIndex2tags.get(oneSourceTokenIndex);
+        if (sourceTags == null) {
+          continue;
+        }
+        for (String oneSourceTag : sourceTags) {
+          if (isBackwardTag(oneSourceTag)) {
+            if (!tagsToInsertAfter.contains(oneSourceTag)) {
+              tagsToInsertAfter.add(oneSourceTag);
+            }
+          } else {
+            if (isIsolatedTag(oneSourceTag)) {
+              if (usedIsolatedTags.contains(oneSourceTag)) {
+                continue;
+              }
+              usedIsolatedTags.add(oneSourceTag);
+            }
+            if (!tagsToInsertBefore.contains(oneSourceTag)) {
+              tagsToInsertBefore.add(oneSourceTag);
+            }
+          }
+        }
+      }
+      if (targetToken.equals(EOS)) {
+        // tag pairs don't apply to EOS, so only pickup isolated tags;
+        // also, EOS token is skipped
+        for (String oneTag : tagsToInsertBefore) {
+          if (isIsolatedTag(oneTag)) {
+            targetTokensWithTags.add(oneTag);
+          }
+        }
+        for (String oneTag : tagsToInsertAfter) {
+          if (isIsolatedTag(oneTag)) {
+            targetTokensWithTags.add(oneTag);
+          }
+        }
+      } else {
+        targetTokensWithTags.addAll(tagsToInsertBefore);
+        targetTokensWithTags.add(targetToken);
+        targetTokensWithTags.addAll(tagsToInsertAfter);
+      }
+    }
+
+    // add tags from source sentence end
+    targetTokensWithTags.addAll(sourceSentence.getEndOfSentenceTags());
+
+    // convert array list to array and return it
+    return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
+  }
 }

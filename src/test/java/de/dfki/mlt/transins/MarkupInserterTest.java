@@ -1393,6 +1393,228 @@ class MarkupInserterTest {
 
 
   /**
+   * Test
+   * {@link MarkupInserter#reinsertTagsComplete(SplitTagsSentence, Map, String[], Alignments, boolean)}
+   * with soft alignments.
+   */
+  @Test
+  void testReinsertTagsCompleteWithSoftAlignments() {
+
+    String[] sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+
+    // init variables to be re-used between tests
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    String[] expectedResult = null;
+
+    // parallel alignment
+    targetTokensWithoutTags = "Das ist ein Test .".split(" ");
+    rawAlignments = ""
+        + "1,0,0,0,0,0 " // Das -> This
+        + "0,1,0,0,0,0 " // ist -> is
+        + "0,0,1,0,0,0 " // ein -> a
+        + "0,0,0,1,0,0 " // Test -> test
+        + "0,0,0,0,1,0 " // . -> .
+        + "0,0,0,0,0,1"; // EOS -> EOS
+    expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test CLOSE2 OPEN2 . CLOSE2 ISO2");
+    testReinsertTagsCompleteWithSoftAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    targetTokensWithoutTags = "Test ein ist das .".split(" ");
+    rawAlignments = ""
+        + "0,0,0,1,0,0 " // Test -> test
+        + "0,0,1,0,0,0 " // ein -> a
+        + "0,1,0,0,0,0 " // ist -> is
+        + "1,0,0,0,0,0 " // das -> This
+        + "0,0,0,0,1,0 " // . -> .
+        + "0,0,0,0,0,1"; // EOS -> EOS
+    expectedResult = asArray("ISO1 OPEN2 Test CLOSE2 ein ist OPEN1 das CLOSE1 OPEN2 . CLOSE2 ISO2");
+    testReinsertTagsCompleteWithSoftAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+  }
+
+
+  /**
+   * Test
+   * {@link MarkupInserter#reinsertTagsComplete(SplitTagsSentence, Map, String[], Alignments, boolean)}
+   * with hard alignments.
+   */
+  @Test
+  void testReinsertTagsCompleteWithHardAlignments() {
+
+    // init variables to be re-used between tests
+    String[] sourceTokens = null;
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    String[] expectedResult = null;
+
+    // parallel alignment
+    sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    targetTokensWithoutTags = asArray("Das ist ein Test .");
+    rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
+    expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test CLOSE2 OPEN2 . CLOSE2 ISO2");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
+    targetTokensWithoutTags = asArray("Test ein ist das .");
+    //                                 This is  a   Test .
+    rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
+    expectedResult = asArray("ISO1 OPEN2 Test CLOSE2 ein ist OPEN1 das CLOSE1 OPEN2 . CLOSE2 ISO2");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // end-of-sentence points to source token with ISO tag
+    sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt ISO2 springen CLOSE1 end");
+    targetTokensWithoutTags = asArray("aller au contenu");
+    rawAlignments = "0-0 1-2 2-3";
+    expectedResult = asArray("ISO1 OPEN1 aller CLOSE1 au OPEN1 contenu CLOSE1 ISO2");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tags enclosing the whole sentence
+    sourceTokens = asArray("ISO1 OPEN1 a b c d CLOSE1 ISO2");
+    targetTokensWithoutTags = asArray("b a d c");
+    rawAlignments = "0-1 1-0 2-3 4-2";
+    expectedResult = asArray("ISO1 OPEN1 b a d c CLOSE1 ISO2");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tag pair over the whole sentence
+    sourceTokens = asArray("OPEN1 a b c d CLOSE1");
+    targetTokensWithoutTags = asArray("b a d c");
+    rawAlignments = "0-1 1-0 2-3 4-2";
+    expectedResult = asArray("OPEN1 b a d c CLOSE1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // multiple tag pairs over the whole sentence
+    sourceTokens = asArray("OPEN1 OPEN2 OPEN3 a b c d CLOSE3 CLOSE2 CLOSE1");
+    targetTokensWithoutTags = asArray("b a d c");
+    rawAlignments = "0-1 1-0 2-3 4-2";
+    expectedResult = asArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tokens with isolated tags are pointed to multiple times
+    sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "1-0 1-1 2-2";
+    expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 OPEN1 b CLOSE1 OPEN1 c CLOSE1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // one target token to multiple source tokens with same tags
+    sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "1-0 2-0 2-2";
+    expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 b OPEN1 c CLOSE1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // single tag pair with ISO at end
+    sourceTokens = asArray("x OPEN1 y z ISO1 CLOSE1");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("a OPEN1 b CLOSE1 OPEN1 c CLOSE1 ISO1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // single tag pair with ISO at beginning
+    sourceTokens = asArray("ISO1 OPEN1 x y CLOSE1 z");
+    targetTokensWithoutTags = asArray("a b c");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("ISO1 OPEN1 a CLOSE1 OPEN1 b CLOSE1 c");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+  }
+
+
+  /**
+   * Test
+   * {@link MarkupInserter#reinsertTagsComplete(SplitTagsSentence, Map, String[], Alignments, boolean)}
+   * with more complex examples.
+   */
+  @Test
+  void testReinsertTagsCompleteComplex() {
+
+    String[] sourceTokens = asArray("OPEN1 x y z CLOSE1 a b c");
+
+    // init variables to be re-used between tests
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    String[] expectedResult = null;
+
+    // first test
+    targetTokensWithoutTags = asArray("X1 N Z X2 N N");
+    rawAlignments = "0-0 0-3 2-2";
+    expectedResult = asArray("OPEN1 X1 CLOSE1 N OPEN1 Z CLOSE1 OPEN1 X2 CLOSE1 N N");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // second test
+    targetTokensWithoutTags = asArray("Z1 Z2 X N N N");
+    rawAlignments = "0-2 2-0 2-1";
+    expectedResult = asArray("OPEN1 Z1 CLOSE1 OPEN1 Z2 CLOSE1 OPEN1 X CLOSE1 N N N");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // third test
+    targetTokensWithoutTags = asArray("Z1 N X1 Z2 N X2");
+    rawAlignments = "0-2 0-5 2-0 2-3";
+    expectedResult = asArray("OPEN1 Z1 CLOSE1 N OPEN1 X1 CLOSE1 OPEN1 Z2 CLOSE1 N OPEN1 X2 CLOSE1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+  }
+
+
+  private void testReinsertTagsCompleteWithSoftAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult) {
+
+    testReinsertTagsComplete(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+  }
+
+
+  private void testReinsertTagsCompleteWithHardAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult) {
+
+    testReinsertTagsComplete(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
+  }
+
+
+  private void testReinsertTagsComplete(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult, boolean hardAlignments) {
+
+    Alignments algn = null;
+    if (hardAlignments) {
+      algn = new HardAlignments(rawAlignments);
+    } else {
+      algn = new SoftAlignments(rawAlignments);
+    }
+
+    SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokens, tagMap);
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        MarkupInserter.createTokenIndex2TagsComplete(sourceSentence, tagMap);
+
+    String[] targetTokensWithTags =
+        MarkupInserter.reinsertTagsComplete(
+            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+    assertThat(targetTokensWithTags)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokensWithTags)))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
    * @param args
    *          the arguments; not used here
    */
