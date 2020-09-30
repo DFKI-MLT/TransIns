@@ -157,7 +157,8 @@ public class MarianNmtConnector extends BaseConnector {
           Alignments algn = createAlignments(rawAlignments);
           // compensate for leading target language token in source sentence
           algn.shiftSourceIndexes(-1);
-          translation = MarkupInserter.insertMarkup(preprocessedSourceSentence, translation, algn);
+          translation = MarkupInserter.insertMarkupComplete(
+              preprocessedSourceSentence, translation, algn);
         } else {
           // no tags, just undo byte pair encoding
           translation = translation.replaceAll("@@ ", "");

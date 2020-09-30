@@ -116,6 +116,75 @@ public final class MarkupInserter {
 
 
   /**
+   * Insert markup from given source sentence into its given translation using the given alignments.
+   * This method uses a complete token-index-2-tags mapping that assigns each token ALL tags that
+   * apply to it.
+   *
+   * @param preprocessedSourceSentence
+   *          the preprocessed source sentence with whitespace separated tokens
+   * @param translation
+   *          the translation of the source sentence with whitespace separated tokens
+   * @param algn
+   *          the alignments
+   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   */
+  public static String insertMarkupComplete(
+      String preprocessedSourceSentence, String translation, Alignments algn) {
+
+    logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
+        preprocessedSourceSentence, translation, algn)));
+
+    String[] sourceTokensWithTags = preprocessedSourceSentence.split(" ");
+    String[] targetTokensWithoutTags = translation.split(" ");
+    String[] sourceTokensWithoutTags = removeTags(sourceTokensWithTags);
+
+    // get mapping of opening tags to closing tags and vice versa
+    TagMap tagMap = createTagMap(sourceTokensWithTags);
+
+    // replace empty tag pairs
+    Map<String, List<String>> isoReplacements = new HashMap<>();
+    sourceTokensWithTags =
+        MarkupInserter.replaceEmptyTagPairsWithIsos(sourceTokensWithTags, tagMap, isoReplacements);
+
+    // split tags at beginning and end of source sentence
+    SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokensWithTags, tagMap);
+
+    // assign each source token to its tags
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        createTokenIndex2TagsComplete(sourceSentence, tagMap);
+
+    // move isolated tags in case of no target token pointing to the associated source token
+    moveIsoTagsToPointedTokens(
+        sourceTokenIndex2tags, algn.getPointedSourceTokens(), sourceTokensWithoutTags.length);
+
+    // re-insert tags
+    String[] targetTokensWithTags = reinsertTagsComplete(
+        sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+    logger.debug("target sentence with inserted tags: \"{}\"", asString(targetTokensWithTags));
+
+    // clean up tags
+    targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags, tagMap);
+    targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
+    targetTokensWithTags = mergeNeighborTagPairs(tagMap, targetTokensWithTags);
+
+    // add unused tags
+    List<String> unusedTags = collectUnusedTags(sourceTokensWithTags, targetTokensWithTags);
+    targetTokensWithTags = addTags(targetTokensWithTags, unusedTags);
+
+    // put back empty tag pairs
+    targetTokensWithTags =
+        MarkupInserter.replaceIsosWithEmptyTagPairs(targetTokensWithTags, isoReplacements);
+    logger.debug("target sentence with cleaned tags: \"{}\"", asString(targetTokensWithTags));
+
+    // prepare translation for postprocessing;
+    // mask tags so that detokenizer in postprocessing works correctly
+    translation = maskTags(targetTokensWithTags);
+
+    return translation;
+  }
+
+
+  /**
    * Create bidirectional map of opening tags to closing tags from the given tokens with tags.
    * It is assumed that the tags are balanced.
    *
