@@ -76,24 +76,31 @@ def preprocess():
 
     # tokenize
     tokenizer = moses_tokenizer[lang]
+    # a single Okapi tag is split into two tokens
     sentence_tokenized_as_tokens = tokenizer.tokenize(sentence_normalized)
 
     # truecasing
     truecaser = moses_truecaser[lang]
-    # remove Okapi markup at beginning of sentence before truecasing and re-add it afterwards
+    # remove Okapi tags at beginning of sentence before truecasing and re-add them afterwards
     removed_tokens = []
-    if len(sentence_tokenized_as_tokens) > 1:
-        first_token = sentence_tokenized_as_tokens[0]
-        if re.search(r"\uE101", first_token) or re.search(r"\uE102", first_token) or re.search(r"\uE103", first_token):
-            removed_tokens.extend(sentence_tokenized_as_tokens[0:2])
-            del sentence_tokenized_as_tokens[0:2]
+    while True:
+        if len(sentence_tokenized_as_tokens) > 1:
+            first_token = sentence_tokenized_as_tokens[0]
+            if re.search(r"\uE101", first_token) \
+                    or re.search(r"\uE102", first_token) \
+                    or re.search(r"\uE103", first_token):
+                removed_tokens.extend(sentence_tokenized_as_tokens[0:2])
+                del sentence_tokenized_as_tokens[0:2]
+                continue
+        break
     sentence_truecased_as_tokens = truecaser.truecase(' '.join(sentence_tokenized_as_tokens))
     sentence_truecased_as_tokens = removed_tokens + sentence_truecased_as_tokens
 
     # run byte pair encoding
     encoder = bpe_encoder[lang]
     sentence_bpe_as_tokens = encoder.process_line(' '.join(sentence_truecased_as_tokens)).split()
-    # merge Okapi markup in a single token
+
+    # merge each Okapi tag in a single token
     sentence_bpe = ''
     for token in sentence_bpe_as_tokens:
         if re.search(r"\uE101", token) or re.search(r"\uE102", token) or re.search(r"\uE103", token):
@@ -128,15 +135,20 @@ def postprocess():
     sentence = request.args.get('sentence', type=str)
 
     # detruecasing; this is language independent
-    # remove Okapi markup at beginning of sentence before detruecasing and re-add it afterwards;
-    # markup is ONE token, in contrast to preprocessing
+    # remove Okapi tags at beginning of sentence before detruecasing and re-add them afterwards;
+    # single Okapi tag is ONE token, in contrast to preprocessing
     sentence_tokenized_as_tokens = sentence.split()
     removed_tokens = []
-    if len(sentence_tokenized_as_tokens) > 1:
-        first_token = sentence_tokenized_as_tokens[0]
-        if re.search(r"\uE101", first_token) or re.search(r"\uE102", first_token) or re.search(r"\uE103", first_token):
-            removed_tokens.extend(sentence_tokenized_as_tokens[0:1])
-            del sentence_tokenized_as_tokens[0:1]
+    while True:
+        if len(sentence_tokenized_as_tokens) > 1:
+            first_token = sentence_tokenized_as_tokens[0]
+            if re.search(r"\uE101", first_token) \
+                    or re.search(r"\uE102", first_token) \
+                    or re.search(r"\uE103", first_token):
+                removed_tokens.extend(sentence_tokenized_as_tokens[0:1])
+                del sentence_tokenized_as_tokens[0:1]
+                continue
+        break
     sentence_detruecased_as_tokens = moses_detruecaser.detruecase(' '.join(sentence_tokenized_as_tokens))
     sentence_detruecased_as_tokens = removed_tokens + sentence_detruecased_as_tokens
 
