@@ -6,6 +6,7 @@ import static de.dfki.mlt.transins.TagUtils.isIsolatedTag;
 import static de.dfki.mlt.transins.TagUtils.isOpeningTag;
 import static de.dfki.mlt.transins.TagUtils.isTag;
 import static de.dfki.mlt.transins.TagUtils.removeTags;
+import static de.dfki.mlt.transins.TagUtils.asString;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,6 +88,7 @@ public final class MarkupInserter {
     // re-insert tags
     String[] targetTokensWithTags = reinsertTags(
         sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+    logger.debug("target sentence with inserted tags: \"{}\"", asString(targetTokensWithTags));
 
     // clean up tags
     targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags, tagMap);
@@ -103,6 +105,7 @@ public final class MarkupInserter {
     // put back empty tag pairs
     targetTokensWithTags =
         MarkupInserter.replaceIsosWithEmptyTagPairs(targetTokensWithTags, isoReplacements);
+    logger.debug("target sentence with cleaned tags: \"{}\"", asString(targetTokensWithTags));
 
     // prepare translation for postprocessing;
     // mask tags so that detokenizer in postprocessing works correctly

@@ -1,6 +1,7 @@
 package de.dfki.mlt.transins;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -252,6 +253,19 @@ public final class TagUtils {
    *
    * @param targetTokensWithTags
    *          string array with tokens
+   * @return string with appended tokens and replaced Okapi tags
+   */
+  public static String asString(String[] targetTokensWithTags) {
+
+    return asString(targetTokensWithTags, Collections.emptyList());
+  }
+
+
+  /**
+   * Replace Okapi tags with human readable tags in given String array and create string.
+   *
+   * @param targetTokensWithTags
+   *          string array with tokens
    * @param codes
    *          list of Okapi codes from the fragment associated with the given text
    * @return string with appended tokens and replaced Okapi tags
@@ -259,6 +273,19 @@ public final class TagUtils {
   public static String asString(String[] targetTokensWithTags, List<Code> codes) {
 
     return asString(String.join(" ", targetTokensWithTags).strip(), codes);
+  }
+
+
+  /**
+   * Replace Okapi tags with human readable tags in given text.
+   *
+   * @param text
+   *          text with tags
+   * @return string with replaced Okapi tags
+   */
+  public static String asString(String text) {
+
+    return asString(text, Collections.emptyList());
   }
 
 
