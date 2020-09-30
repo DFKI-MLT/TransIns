@@ -360,6 +360,7 @@ class MarkupInserterTest {
     // first bpe fragment 'Th@@'
     tags = MarkupInserter.getTagsForSourceTokenIndex(
         1, sourceTokenIndex2Tags, sourceTokensWithoutTags);
+    assertThat(tags).containsExactly(ISO1, OPEN1, CLOSE1);
 
     // EOS
     tags = MarkupInserter.getTagsForSourceTokenIndex(
