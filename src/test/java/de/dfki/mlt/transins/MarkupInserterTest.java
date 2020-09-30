@@ -651,15 +651,15 @@ class MarkupInserterTest {
 
     // two opening and two closing tag between fragments
     targetTokens = asArray("a OPEN1 b@@ OPEN2 OPEN3 CLOSE2 CLOSE3 c CLOSE1");
-    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
+    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE3 CLOSE2 CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
     // two closing and two opening tag between fragments
     targetTokens = asArray("a OPEN1 b@@ CLOSE2 CLOSE3 OPEN2 OPEN3 c CLOSE1");
-    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE2 CLOSE3 CLOSE1");
+    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c CLOSE3 CLOSE2 CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
 
-    // fragments at beginning end of sentence
+    // fragments at beginning of sentence
     targetTokens = asArray("a@@ OPEN1 CLOSE1 b c");
     expectedResult = asArray("OPEN1 a@@ b CLOSE1 c");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
@@ -668,13 +668,18 @@ class MarkupInserterTest {
     targetTokens = asArray("a b@@ OPEN1 CLOSE1 c");
     expectedResult = asArray("a OPEN1 b@@ c CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // closing before opening tags between fragments
+    targetTokens = asArray("a OPEN1 b@@ CLOSE1 OPEN2 c CLOSE2");
+    expectedResult = asArray("a OPEN1 OPEN2 b@@ c CLOSE2 CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
   }
 
 
   private void testMoveTagsFromBetweenBpeFragments(
       String[] targetTokens, String[] expectedResult) {
 
-    targetTokens = MarkupInserter.moveTagsFromBetweenBpeFragments(targetTokens);
+    targetTokens = MarkupInserter.moveTagsFromBetweenBpeFragments(targetTokens, tagMap);
     assertThat(targetTokens)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -1692,7 +1697,7 @@ class MarkupInserterTest {
         }
         String[] input = tokens.toArray(new String[tokens.size()]);
         String[] moveTagsFromBetweenBpeFragments =
-            MarkupInserter.moveTagsFromBetweenBpeFragments(input);
+            MarkupInserter.moveTagsFromBetweenBpeFragments(input, tagMap);
         String[] undoBytePairEncoding =
             MarkupInserter.undoBytePairEncoding(moveTagsFromBetweenBpeFragments);
         String[] handleInvertedTags =

@@ -89,7 +89,7 @@ public final class MarkupInserter {
         sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
 
     // clean up tags
-    targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags);
+    targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags, tagMap);
     targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
     targetTokensWithTags = handleInvertedTags(tagMap, targetTokensWithTags);
     targetTokensWithTags = removeRedundantTags(tagMap, targetTokensWithTags);
@@ -560,54 +560,98 @@ public final class MarkupInserter {
 
 
   /**
-   * When doing byte pair encoding, tags can end up between bpe fragments. Move opening and
-   * isolated tags in front of the original token and closing tags after it.
+   * When doing byte pair encoding, tags can end up between bpe fragments. Collect all tags for
+   * each bpe fragment sequence and position them around the sequence in a valid way.
    *
    * @param tokens
    *          the tokens
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
    * @return the tokens without any tags between bpe fragments
    */
-  static String[] moveTagsFromBetweenBpeFragments(String[] tokens) {
+  static String[] moveTagsFromBetweenBpeFragments(String[] tokens, TagMap tagMap) {
 
-    ArrayList<String> tokenList = new ArrayList<>(Arrays.asList(tokens));
+    ArrayList<String> tokenList = new ArrayList<>();
 
-    int fragmentsStartIndex = -1;
-    List<String> currentForwardTags = new ArrayList<>();
-    List<String> currentBackwardTags = new ArrayList<>();
-    for (int i = 0; i < tokenList.size(); i++) {
-      String oneToken = tokenList.get(i);
-      if (isBpeFragement(oneToken)) {
-        if (fragmentsStartIndex == -1) {
-          fragmentsStartIndex = i;
-        }
+    int fragSeqStart = -1;
+    int fragSeqEnd = -1;
+    for (int i = 0; i < tokens.length; i++) {
+      String oneToken = tokens[i];
+      if (!isBpeFragement(oneToken)) {
+        tokenList.add(oneToken);
       } else {
-        if (isTag(oneToken)) {
-          if (fragmentsStartIndex != -1) {
-            if (isBackwardTag(oneToken)) {
-              currentBackwardTags.add(oneToken);
-            } else {
-              currentForwardTags.add(oneToken);
-            }
-            tokenList.remove(i);
-            i--;
-          }
-        } else {
-          // non-tag
-          if (fragmentsStartIndex != -1) {
-            // we found the last fragment
-            if (i < tokenList.size()) {
-              tokenList.addAll(i + 1, currentBackwardTags);
-            } else {
-              tokenList.addAll(currentBackwardTags);
-            }
-            i = i + currentBackwardTags.size();
-            tokenList.addAll(fragmentsStartIndex, currentForwardTags);
-            i = i + currentForwardTags.size();
-            fragmentsStartIndex = -1;
-            currentBackwardTags.clear();
-            currentForwardTags.clear();
+        fragSeqStart = i;
+        // add all opening and isolated tags in front to range
+        for (int j = i - 1; j >= 0; j--) {
+          String prevToken = tokens[j];
+          if (isIsolatedTag(prevToken) || isOpeningTag(prevToken)) {
+            fragSeqStart = j;
+            // this tag has already been added to tokenList, so remove it
+            tokenList.remove(tokenList.size() - 1);
+          } else {
+            break;
           }
         }
+        // find last bpe fragment and add all closing tags after it to range
+        for (int j = i + 1; j < tokens.length; j++) {
+          String nextToken = tokens[j];
+          if (isTag(nextToken)) {
+            continue;
+          }
+          if (!isBpeFragement(nextToken)) {
+            // last bpe fragment found
+            fragSeqEnd = j;
+            for (int k = j + 1; k < tokens.length; k++) {
+              nextToken = tokens[k];
+              if (isClosingTag(nextToken)) {
+                fragSeqEnd = k;
+              } else {
+                break;
+              }
+            }
+            break;
+          }
+        }
+
+        // collect tags and bpe fragments from range
+        List<String> frags = new ArrayList<>();
+        List<String> tagsToInsertBefore = new ArrayList<>();
+        List<String> tagsToInsertAfter = new ArrayList<>();
+        for (int j = fragSeqStart; j < fragSeqEnd + 1; j++) {
+          oneToken = tokens[j];
+          if (isOpeningTag(oneToken) || isIsolatedTag(oneToken)) {
+            if (!tagsToInsertBefore.contains(oneToken)) {
+              tagsToInsertBefore.add(oneToken);
+            }
+          } else if (isClosingTag(oneToken)) {
+            if (!tagsToInsertAfter.contains(oneToken)) {
+              tagsToInsertAfter.add(oneToken);
+            }
+          } else {
+            frags.add(oneToken);
+          }
+        }
+
+        // add tokens to list in a valid order
+        tokenList.addAll(tagsToInsertBefore);
+        tokenList.addAll(frags);
+
+
+        List<String> reversedTagsToInsertBefore = new ArrayList<>(tagsToInsertBefore);
+        Collections.reverse(reversedTagsToInsertBefore);
+        for (String oneTag : reversedTagsToInsertBefore) {
+          if (isIsolatedTag(oneTag)) {
+            continue;
+          }
+          String matchClosingTag = tagMap.getClosingTag(oneTag);
+          if (tagsToInsertAfter.contains(matchClosingTag)) {
+            tokenList.add(matchClosingTag);
+            tagsToInsertAfter.remove(matchClosingTag);
+          }
+        }
+        // add remaining closing tags
+        tokenList.addAll(tagsToInsertAfter);
+        i = fragSeqEnd;
       }
     }
 
