@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import de.dfki.mlt.transins.MarkupInserter.NeighborTags;
 import net.sf.okapi.common.exceptions.OkapiException;
 
 /**
@@ -1648,12 +1650,153 @@ class MarkupInserterTest {
 
     String[] targetTokensWithTags =
         MarkupInserter.reinsertTagsComplete(
-            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, false);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
             asString(expectedResult), asString(targetTokensWithTags)))
         .containsExactly(expectedResult);
+  }
+
+
+  /**
+   * Test
+   * {@link MarkupInserter#interpolateNeighborTags(int, Alignments, int, String[], Map, java.util.Set)}.
+   */
+  @Test
+  void testInterpolateNeighborTags() {
+
+    // init variables to be re-used between tests
+    String[] sourceTokens = null;
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    int maxGapSize = 0;
+    NeighborTags neighborTags = null;
+
+    // gap 1, max gap size 0
+    sourceTokens = asArray("OPEN1 x y z a b CLOSE1 c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 2-2 3-3 4-4 5-5";
+    maxGapSize = 0;
+    neighborTags = testInterpolateNeighborTags(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1
+    sourceTokens = asArray("OPEN1 x y z a b CLOSE1 c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 2-2 3-3 4-4 5-5";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 2, max gap size 1
+    sourceTokens = asArray("OPEN1 x y z a b CLOSE1 c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 3-3 4-4 5-5";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+    neighborTags = testInterpolateNeighborTags(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 2, max gap size 2
+    sourceTokens = asArray("OPEN1 x y z a b CLOSE1 c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 3-3 4-4 5-5";
+    maxGapSize = 2;
+    neighborTags = testInterpolateNeighborTags(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+    neighborTags = testInterpolateNeighborTags(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 1, max gap size 1, gap at start
+    sourceTokens = asArray("OPEN1 x y z a b CLOSE1 c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "1-1 2-2 3-3 4-4 5-5";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 2, max gap size 1, gap at start
+    sourceTokens = asArray("OPEN1 x y z a b CLOSE1 c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "2-2 3-3 4-4 5-5";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1, gap at end
+    sourceTokens = asArray("x OPEN1 x y z a b c CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 1-1 2-2 3-3 4-4";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        5, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 2, max gap size 1, gap at end
+    sourceTokens = asArray("x OPEN1 x y z a b c CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 1-1 2-2 3-3";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        5, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1, identical neighbor tags
+    sourceTokens = asArray("OPEN2 OPEN1 x CLOSE1 CLOSE2 y OPEN2 OPEN1 z CLOSE1 CLOSE2 a b c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 2-2 3-3 4-4 5-5";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN2, OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1, CLOSE2);
+
+
+    // gap 1, max gap size 1, different neighbor tags with intersection
+    sourceTokens = asArray("OPEN2 OPEN1 x CLOSE1 CLOSE2 y OPEN1 z CLOSE1 a b c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 2-2 3-3 4-4 5-5";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTags(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+  }
+
+
+  private NeighborTags testInterpolateNeighborTags(
+      int targetTokenIndex, String[] targetTokensWithoutTags, String[] sourceTokens,
+      String rawAlignments, int maxGapSize) {
+
+    Alignments algn = new HardAlignments(rawAlignments);
+
+    SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokens, tagMap);
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        MarkupInserter.createTokenIndex2TagsComplete(sourceSentence, tagMap);
+
+    return MarkupInserter.interpolateNeighborTags(
+        targetTokenIndex, algn, maxGapSize, targetTokensWithoutTags, sourceTokenIndex2tags,
+        Collections.emptySet());
   }
 
 

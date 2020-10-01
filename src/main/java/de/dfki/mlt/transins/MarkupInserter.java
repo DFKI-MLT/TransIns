@@ -160,7 +160,7 @@ public final class MarkupInserter {
 
     // re-insert tags
     String[] targetTokensWithTags = reinsertTagsComplete(
-        sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+        sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, true);
     logger.debug("target sentence with inserted tags: \"{}\"", asString(targetTokensWithTags));
 
     // clean up tags
@@ -1606,13 +1606,16 @@ public final class MarkupInserter {
    *          target tokens without tags
    * @param algn
    *          alignments of source and target tokens
+   * @param interpolateTags
+   *          flag to activate interpolation of tags for tokens that don't have
+   *          an alignment with a token of the source sentence
    * @return target tokens with re-inserted tags
    */
   static String[] reinsertTagsComplete(
       SplitTagsSentence sourceSentence,
       Map<Integer, List<String>> sourceTokenIndex2tags,
       String[] targetTokensWithoutTags,
-      Alignments algn) {
+      Alignments algn, boolean interpolateTags) {
 
     // add explicit end-of-sentence marker to target sentence
     targetTokensWithoutTags =
@@ -1633,8 +1636,17 @@ public final class MarkupInserter {
       String targetToken = targetTokensWithoutTags[targetTokenIndex];
 
       List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
-      NeighborTags neighborTags =
+      NeighborTags neighborTags = null;
+      if (sourceTokenIndexes.isEmpty()
+          && targetTokenIndex < targetTokensWithoutTags.length - 1
+          && interpolateTags) {
+        neighborTags = interpolateNeighborTags(
+            targetTokenIndex, algn, 1, targetTokensWithoutTags,
+            sourceTokenIndex2tags, usedIsolatedTags);
+      } else {
+        neighborTags =
           getNeighborTags(sourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+      }
       if (targetToken.equals(EOS)) {
         // tag pairs don't apply to EOS, so only pickup isolated tags;
         // also, EOS token is skipped
@@ -1660,6 +1672,92 @@ public final class MarkupInserter {
 
     // convert array list to array and return it
     return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
+  }
+
+
+  /**
+   * Interpolate tags for given target token that has no alignments with source tokens from the
+   * alignments of its previous and following tokens. Distance between neighbor tokens with
+   * alignments may not be larger than the given maximum gap size.
+   *
+   * @param targetTokenIndex
+   *          index of the target token for which to interpolate the tags
+   * @param algn
+   *          alignments of source and target tokens
+   * @param maxGapSize
+   *          the maximum gap size
+   * @param targetTokensWithoutTags
+   *          target tokens without tags
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags, as created with
+   *          {@link #createTokenIndex2TagsComplete(String[], Map)}
+   * @param usedIsolatedTags
+   *          set of isolated tags already used; these are ignored
+   * @return the interpolated tags, potentially empty or incomplete
+   */
+  static NeighborTags interpolateNeighborTags(
+      int targetTokenIndex, Alignments algn, int maxGapSize,
+      String[] targetTokensWithoutTags,
+      Map<Integer, List<String>> sourceTokenIndex2tags, Set<String> usedIsolatedTags) {
+
+    int prevIndexWithAlgn = -1;
+    int folIndexWithAlgn = -1;
+    List<Integer> previousSourceTokenIndexes = null;
+    List<Integer> followingSourceTokenIndexes = null;
+    // search previous token with alignments
+    if (targetTokenIndex > 0) {
+      for (int i = targetTokenIndex - 1; i >= 0; i--) {
+        previousSourceTokenIndexes = algn.getSourceTokenIndexes(i);
+        if (!previousSourceTokenIndexes.isEmpty()) {
+          prevIndexWithAlgn = i;
+          break;
+        }
+      }
+    }
+    // search following token with alignments
+    if (targetTokenIndex < targetTokensWithoutTags.length - 2) {
+      for (int i = targetTokenIndex + 1; i < targetTokensWithoutTags.length; i++) {
+        followingSourceTokenIndexes = algn.getSourceTokenIndexes(i);
+        if (!followingSourceTokenIndexes.isEmpty()) {
+          folIndexWithAlgn = i;
+          break;
+        }
+      }
+    }
+
+    if (previousSourceTokenIndexes == null
+        && followingSourceTokenIndexes == null) {
+      // no previous and following tokens with alignments
+      return new NeighborTags();
+    }
+
+    if (previousSourceTokenIndexes == null
+        && folIndexWithAlgn <= maxGapSize) {
+      // only following token with alignments
+      return getNeighborTags(followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+
+    }
+
+    // only previous tokens with alignments
+    if (followingSourceTokenIndexes == null
+        && targetTokensWithoutTags.length - prevIndexWithAlgn - 1 <= maxGapSize) {
+      // only previous token with alignments
+      return getNeighborTags(previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+    }
+
+    // previous and following tokens with alignments
+    if (previousSourceTokenIndexes != null
+        && followingSourceTokenIndexes != null
+        && (folIndexWithAlgn - prevIndexWithAlgn - 1) <= maxGapSize) {
+      NeighborTags prevTokenTags =
+          getNeighborTags(previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+      NeighborTags folTokenTags =
+          getNeighborTags(followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+      prevTokenTags.buildIntersection(folTokenTags);
+      return prevTokenTags;
+    }
+
+    return new NeighborTags();
   }
 
 
@@ -1749,6 +1847,27 @@ public final class MarkupInserter {
 
       if (!this.afterTags.contains(tag)) {
         this.afterTags.add(tag);
+      }
+    }
+
+
+    /**
+     * Remove from these neighbor tags all tags that are not contained in the given neighbor tags.
+     *
+     * @param neighborTags
+     *          the neighbor tags to intersect with
+     */
+    void buildIntersection(NeighborTags neighborTags) {
+
+      for (String oneTag : new ArrayList<>(this.beforeTags)) {
+        if (!neighborTags.getBeforeTags().contains(oneTag)) {
+          this.beforeTags.remove(oneTag);
+        }
+      }
+      for (String oneTag : new ArrayList<>(this.afterTags)) {
+        if (!neighborTags.getAfterTags().contains(oneTag)) {
+          this.afterTags.remove(oneTag);
+        }
       }
     }
   }
