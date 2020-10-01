@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import lombok.Data;
 import net.sf.okapi.common.exceptions.OkapiException;
 
 /**
@@ -1631,51 +1632,26 @@ public final class MarkupInserter {
 
       String targetToken = targetTokensWithoutTags[targetTokenIndex];
 
-      List<String> tagsToInsertBefore = new ArrayList<>();
-      List<String> tagsToInsertAfter = new ArrayList<>();
-
       List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
-
-      for (int oneSourceTokenIndex : sourceTokenIndexes) {
-        List<String> sourceTags = sourceTokenIndex2tags.get(oneSourceTokenIndex);
-        if (sourceTags == null) {
-          continue;
-        }
-        for (String oneSourceTag : sourceTags) {
-          if (isBackwardTag(oneSourceTag)) {
-            if (!tagsToInsertAfter.contains(oneSourceTag)) {
-              tagsToInsertAfter.add(oneSourceTag);
-            }
-          } else {
-            if (isIsolatedTag(oneSourceTag)) {
-              if (usedIsolatedTags.contains(oneSourceTag)) {
-                continue;
-              }
-              usedIsolatedTags.add(oneSourceTag);
-            }
-            if (!tagsToInsertBefore.contains(oneSourceTag)) {
-              tagsToInsertBefore.add(oneSourceTag);
-            }
-          }
-        }
-      }
+      NeighborTags neighborTags =
+          getNeighborTags(sourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
       if (targetToken.equals(EOS)) {
         // tag pairs don't apply to EOS, so only pickup isolated tags;
         // also, EOS token is skipped
-        for (String oneTag : tagsToInsertBefore) {
+        for (String oneTag : neighborTags.getBeforeTags()) {
           if (isIsolatedTag(oneTag)) {
             targetTokensWithTags.add(oneTag);
           }
         }
-        for (String oneTag : tagsToInsertAfter) {
+        for (String oneTag : neighborTags.getAfterTags()) {
           if (isIsolatedTag(oneTag)) {
             targetTokensWithTags.add(oneTag);
           }
         }
       } else {
-        targetTokensWithTags.addAll(tagsToInsertBefore);
+        targetTokensWithTags.addAll(neighborTags.getBeforeTags());
         targetTokensWithTags.add(targetToken);
-        targetTokensWithTags.addAll(tagsToInsertAfter);
+        targetTokensWithTags.addAll(neighborTags.getAfterTags());
       }
     }
 
@@ -1684,5 +1660,96 @@ public final class MarkupInserter {
 
     // convert array list to array and return it
     return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
+  }
+
+
+  /**
+   * Get neighbor tags for the given source token indexes.
+   *
+   * @param sourceTokenIndexes
+   *          the source token indexes
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags, as created with
+   *          {@link #createTokenIndex2TagsComplete(String[], Map)}
+   * @param usedIsolatedTags
+   *          set of isolated tags already used; these are ignored
+   * @return the neighbor tags
+   */
+  static NeighborTags getNeighborTags(
+      List<Integer> sourceTokenIndexes,
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      Set<String> usedIsolatedTags) {
+
+    NeighborTags neighborTags = new NeighborTags();
+    for (int oneSourceTokenIndex : sourceTokenIndexes) {
+      List<String> sourceTags = sourceTokenIndex2tags.get(oneSourceTokenIndex);
+      if (sourceTags == null) {
+        continue;
+      }
+      for (String oneSourceTag : sourceTags) {
+        if (isBackwardTag(oneSourceTag)) {
+          neighborTags.addToAfterTags(oneSourceTag);
+        } else {
+          if (isIsolatedTag(oneSourceTag)) {
+            if (usedIsolatedTags.contains(oneSourceTag)) {
+              continue;
+            }
+            usedIsolatedTags.add(oneSourceTag);
+          }
+          neighborTags.addToBeforeTags(oneSourceTag);
+        }
+      }
+    }
+
+    return neighborTags;
+  }
+
+
+  /**
+   * Data wrapper for the tags surrounding a token.
+   */
+  @Data
+  static class NeighborTags {
+
+    private List<String> beforeTags;
+    private List<String> afterTags;
+
+
+    /**
+     * Create a neighbor tags wrapper.
+     */
+    NeighborTags() {
+
+      this.beforeTags = new ArrayList<>();
+      this.afterTags = new ArrayList<>();
+    }
+
+
+    /**
+     * Add given tag to before-tags if not already contained.
+     *
+     * @param tag
+     *          the tag to add
+     */
+    void addToBeforeTags(String tag) {
+
+      if (!this.beforeTags.contains(tag)) {
+        this.beforeTags.add(tag);
+      }
+    }
+
+
+    /**
+     * Add given tag to after-tags if not already contained.
+     *
+     * @param tag
+     *          the tag to add
+     */
+    void addToAfterTags(String tag) {
+
+      if (!this.afterTags.contains(tag)) {
+        this.afterTags.add(tag);
+      }
+    }
   }
 }
