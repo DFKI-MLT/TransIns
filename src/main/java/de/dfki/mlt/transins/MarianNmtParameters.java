@@ -27,7 +27,7 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
 
 
   /**
-   * Creates new Marian NMT parameters from the given data
+   * Create new Marian NMT parameters from the given data
    *
    * @param initialData
    *          the data

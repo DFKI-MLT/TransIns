@@ -17,7 +17,7 @@ public class TagMap {
 
 
   /**
-   * Creates a new tag map.
+   * Create a new tag map.
    */
   public TagMap() {
 

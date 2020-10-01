@@ -58,7 +58,7 @@ public class Translator {
 
 
   /**
-   * Creates a new translator instance.
+   * Create a new translator instance.
    */
   public Translator() {
 

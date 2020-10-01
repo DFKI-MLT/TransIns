@@ -41,7 +41,7 @@ public class PrePostProcessingClient {
 
 
   /**
-   * Creates a new pre-/postprocessing client.
+   * Create a new pre-/postprocessing client.
    */
   public PrePostProcessingClient() {
 
