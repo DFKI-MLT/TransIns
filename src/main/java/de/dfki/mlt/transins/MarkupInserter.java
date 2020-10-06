@@ -686,6 +686,11 @@ public final class MarkupInserter {
           }
         }
 
+        // handle incomplete bpe fragments sequences, i.e. no final token without @@ mark
+        if (fragSeqEnd == -1) {
+          fragSeqEnd = tokens.length - 1;
+        }
+
         // collect tags and bpe fragments from range
         List<String> frags = new ArrayList<>();
         List<String> tagsToInsertBefore = new ArrayList<>();
@@ -708,7 +713,6 @@ public final class MarkupInserter {
         // add tokens to list in a valid order
         tokenList.addAll(tagsToInsertBefore);
         tokenList.addAll(frags);
-
 
         List<String> reversedTagsToInsertBefore = new ArrayList<>(tagsToInsertBefore);
         Collections.reverse(reversedTagsToInsertBefore);
@@ -749,10 +753,25 @@ public final class MarkupInserter {
       if (oneToken.endsWith("@@")) {
         currentToken.append(oneToken.substring(0, oneToken.length() - 2));
       } else {
-        currentToken.append(oneToken);
-        tokenList.add(currentToken.toString());
-        currentToken = new StringBuilder();
+        if (currentToken.length() == 0) {
+          tokenList.add(oneToken);
+        } else {
+          // we are inside a bpe fragment sequence; only non-tags are allowed
+          if (!isTag(oneToken)) {
+            currentToken.append(oneToken);
+            tokenList.add(currentToken.toString());
+            currentToken = new StringBuilder();
+          } else {
+            // incomplete bpe fragment sequence followed by tag; add tag separately
+            tokenList.add(currentToken.toString());
+            currentToken = new StringBuilder();
+            tokenList.add(oneToken);
+          }
+        }
       }
+    }
+    if (currentToken.length() > 0) {
+      tokenList.add(currentToken.toString());
     }
 
     String[] resultAsArray = new String[tokenList.size()];

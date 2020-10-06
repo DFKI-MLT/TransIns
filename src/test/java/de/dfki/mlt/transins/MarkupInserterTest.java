@@ -675,6 +675,16 @@ class MarkupInserterTest {
     targetTokens = asArray("a OPEN1 b@@ CLOSE1 OPEN2 c CLOSE2");
     expectedResult = asArray("a OPEN1 OPEN2 b@@ c CLOSE2 CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // incomplete bpe fragments
+    targetTokens = asArray("a OPEN1 b@@ CLOSE1 c@@");
+    expectedResult = asArray("a OPEN1 b@@ c@@ CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // incomplete bpe fragments
+    targetTokens = asArray("a OPEN1 OPEN2 b@@ CLOSE2 CLOSE1 OPEN3 c@@ CLOSE3");
+    expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c@@ CLOSE3 CLOSE2 CLOSE1");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
   }
 
 
@@ -713,6 +723,16 @@ class MarkupInserterTest {
     // at sentence end
     targetTokens = asArray("a b@@ c@@ d");
     expectedResult = asArray("a bcd");
+    testUndoBytePairEncoding(targetTokens, expectedResult);
+
+    // incomplete bpe fragments
+    targetTokens = asArray("a b@@ c@@");
+    expectedResult = asArray("a bc");
+    testUndoBytePairEncoding(targetTokens, expectedResult);
+
+    // incomplete bpe fragments
+    targetTokens = asArray("OPEN1 a b@@ c@@ CLOSE1");
+    expectedResult = asArray("OPEN1 a bc CLOSE1");
     testUndoBytePairEncoding(targetTokens, expectedResult);
   }
 
