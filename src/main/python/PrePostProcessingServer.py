@@ -7,6 +7,7 @@ Script for running REST server with endpoints for pre- and postprocessing senten
 import argparse
 import codecs
 import configparser
+import json
 import logging
 import re
 
@@ -48,10 +49,10 @@ def alive():
     return "server is alive"
 
 
-@app.route('/preprocess')
+@app.route('/preprocess', methods=['GET', 'POST'])
 def preprocess():
     """
-    Top level entry point to run preprocessing for the provided sentence.
+    Top level entry point to run sentence preprocessing.
     :return: preprocessing result
     """
 
@@ -65,11 +66,36 @@ def preprocess():
         logger.error(error_message)
         abort(400, description=error_message)
 
-    if 'sentence' not in request.args:
-        error_message = "missing sentence"
-        logger.error(error_message)
-        abort(400, description=error_message)
-    sentence = request.args.get('sentence', type=str)
+    if request.method == 'GET':
+        if 'sentence' not in request.args:
+            error_message = "missing sentence"
+            logger.error(error_message)
+            abort(400, description=error_message)
+        sentence = request.args.get('sentence', type=str)
+        preprocessed_sentence = preprocess_sentence(sentence, lang)
+        return Response(preprocessed_sentence, status=200, mimetype='text/plain')
+
+    elif request.method == 'POST':
+        if request.mimetype != 'application/json':
+            # use mimetype since we don't need the other information provided by content_type
+            error_message = f"Invalid content-type '{request.mimetype}'. Must be application/json."
+            logger.error(error_message)
+            abort(400, description=error_message)
+        sentences = request.get_json()
+        preprocessed_sentences = []
+        for sentence in sentences:
+            preprocessed_sentences.append(preprocess_sentence(sentence, lang))
+        preprocessed_sentences_as_json = json.dumps(preprocessed_sentences)
+        return Response(preprocessed_sentences_as_json, status=200, mimetype='application/json')
+
+
+def preprocess_sentence(sentence, lang):
+    """
+    Preprocess the provided sentence in the provided language.
+    :param sentence: the sentence to preprocess
+    :param lang: the sentence's language
+    :return: preprocessing result
+    """
 
     # normalize punctuation, this is language independent
     sentence_normalized = moses_punct_normalizer.normalize(sentence)
@@ -107,14 +133,13 @@ def preprocess():
             sentence_bpe += token
         else:
             sentence_bpe += token + ' '
+    return sentence_bpe.strip()
 
-    return Response(sentence_bpe.strip(), status=200, mimetype='text/plain')
 
-
-@app.route('/postprocess')
+@app.route('/postprocess', methods=['GET', 'POST'])
 def postprocess():
     """
-    Top level entry point to run postprocessing for the provided sentence.
+    Top level entry point to run sentence postprocessing.
     :return: postprocessing result
     """
 
@@ -128,11 +153,36 @@ def postprocess():
         logger.error(error_message)
         abort(400, description=error_message)
 
-    if 'sentence' not in request.args:
-        error_message = "missing sentence"
-        logger.error(error_message)
-        abort(400, description=error_message)
-    sentence = request.args.get('sentence', type=str)
+    if request.method == 'GET':
+        if 'sentence' not in request.args:
+            error_message = "missing sentence"
+            logger.error(error_message)
+            abort(400, description=error_message)
+        sentence = request.args.get('sentence', type=str)
+        postprocessed_sentence = postprocess_sentence(sentence, lang)
+        return Response(postprocessed_sentence, status=200, mimetype='text/plain')
+
+    elif request.method == 'POST':
+        if request.mimetype != 'application/json':
+            # use mimetype since we don't need the other information provided by content_type
+            error_message = f"Invalid content-type '{request.mimetype}'. Must be application/json."
+            logger.error(error_message)
+            abort(400, description=error_message)
+        sentences = request.get_json()
+        postprocessed_sentences = []
+        for sentence in sentences:
+            postprocessed_sentences.append(postprocess_sentence(sentence, lang))
+        postprocessed_sentences_as_json = json.dumps(postprocessed_sentences)
+        return Response(postprocessed_sentences_as_json, status=200, mimetype='application/json')
+
+
+def postprocess_sentence(sentence, lang):
+    """
+    Postprocess the provided sentence in the provided language.
+    :param sentence: the sentence to postprocess
+    :param lang: the sentence's language
+    :return: preprocessing result
+    """
 
     # detruecasing; this is language independent
     # remove Okapi tags at beginning of sentence before detruecasing and re-add them afterwards;
@@ -154,9 +204,7 @@ def postprocess():
 
     # detokenize
     detokenizer = moses_detokenizer[lang]
-    sentence_detokenized = detokenizer.detokenize(sentence_detruecased_as_tokens)
-
-    return Response(sentence_detokenized, status=200, mimetype='text/plain')
+    return detokenizer.detokenize(sentence_detruecased_as_tokens)
 
 
 def init(config):

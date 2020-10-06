@@ -68,6 +68,12 @@
       <version>2.10.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20200518</version>
+    </dependency>
+
     <!-- Okapi dependencies -->
     <dependency>
       <groupId>net.sf.okapi</groupId>
@@ -119,7 +125,7 @@
       <artifactId>okapi-filter-html</artifactId>
       <version>${okapi.version}</version>
     </dependency>
- 
+
     <dependency>
       <groupId>net.sf.okapi.filters</groupId>
       <artifactId>okapi-filter-properties</artifactId>
