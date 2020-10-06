@@ -171,7 +171,8 @@ def init(config):
     # punctuation normalizer and detruecaser are language independent
     global moses_punct_normalizer
     global moses_detruecaser
-    moses_punct_normalizer = MosesPunctNormalizer()
+    moses_punct_normalizer = MosesPunctNormalizer(
+        pre_replace_unicode_punct=config['all']['replace_unicode_punctuation'])
     moses_detruecaser = MosesDetruecaser()
 
     # all other tools need language specific initialization
@@ -182,6 +183,8 @@ def init(config):
     global bpe_encoder
     for lang in config.sections():
         lang = lang.lower()
+        if lang == 'all':
+            continue
         supported_langs.append(lang)
         logger.info(f"initializing for '{lang}'...")
         moses_tokenizer[lang] = MosesTokenizer(lang=lang)
