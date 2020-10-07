@@ -3,9 +3,13 @@ package de.dfki.mlt.transins;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -92,7 +96,7 @@ public class MarianNmtClient implements WebSocket.Listener {
    * @throws ExecutionException
    *           if response future completed exceptionally
    */
-  public String send(String query)
+  public String translate(String query)
       throws InterruptedException, ExecutionException {
 
     // use cached translation if available
@@ -109,6 +113,51 @@ public class MarianNmtClient implements WebSocket.Listener {
     String translation = this.responseFuture.get();
     this.translationCache.put(query, translation);
     return translation;
+  }
+
+
+
+  /**
+   * Send the given query texts for translation to the Marian NMT server.
+   *
+   * @param queries
+   *          the query texts
+   * @return map of query texts to their translation
+   * @throws InterruptedException
+   *           if current thread was interrupted while waiting for response future
+   * @throws ExecutionException
+   *           if response future completed exceptionally
+   */
+  public Map<String, String> bulkTranslate(List<String> queries)
+      throws InterruptedException, ExecutionException {
+
+    // remove duplicates, but keep order
+    Set<String> controlSet = new HashSet<>();
+    List<String> uniqueQueries = new ArrayList<>();
+    for (String oneQuery : queries) {
+      if (controlSet.add(oneQuery)) {
+        uniqueQueries.add(oneQuery);
+      }
+    }
+
+    StringBuilder queryString = new StringBuilder();
+    for (String oneQuery : uniqueQueries) {
+      queryString.append(oneQuery).append("\n");
+    }
+
+    // create new completable future that will hold the translation result
+    this.responseFuture = new CompletableFuture<String>();
+    this.serverResponse = new StringBuilder();
+    this.ws.sendText(queryString.toString().strip(), true);
+    // this call blocks until the translation is available
+    String[] translations = this.responseFuture.get().split("\n");
+
+    Map<String, String> translationsMap = new LinkedHashMap<>();
+    for (int i = 0; i < uniqueQueries.size(); i++) {
+      translationsMap.put(uniqueQueries.get(i), translations[i]);
+    }
+
+    return translationsMap;
   }
 
 

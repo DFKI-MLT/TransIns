@@ -101,7 +101,7 @@ public class MarianNmtConnector extends BaseConnector {
    * Query the Marian NMT web socket via the client.
    *
    * @param fragment
-   *          the fragment to query.
+   *          the fragment to query
    * @return the number of translations (1 or 0).
    */
   @Override
@@ -138,7 +138,7 @@ public class MarianNmtConnector extends BaseConnector {
       // add leading token with target language
       translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
       logger.debug("send to translator: \"{}\"", translatorInput);
-      String translatorResponse = this.translatorClient.send(translatorInput);
+      String translatorResponse = this.translatorClient.translate(translatorInput);
 
       // split into translation and alignments
       String[] parts = translatorResponse.split(" \\|\\|\\| ");
