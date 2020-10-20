@@ -63,7 +63,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MARIAN, applySegmentation);
+        Translator.TransId.MARIAN_BATCH, applySegmentation);
   }
 
 
@@ -81,7 +81,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MARIAN, applySegmentation);
+        Translator.TransId.MARIAN_BATCH, applySegmentation);
   }
 
 

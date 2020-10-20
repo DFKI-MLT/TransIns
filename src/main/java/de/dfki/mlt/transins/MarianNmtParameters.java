@@ -15,6 +15,7 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   private static final String TRANSLATION_URL = "translation_url";
   private static final String PREPOST_HOST = "prepost_host";
   private static final String PREPOST_PORT = "prepost_port";
+  private static final String DOC_ID = "doc_id";
 
 
   /**
@@ -106,6 +107,25 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   }
 
 
+  /**
+   * @return the document id of the document to translate
+   */
+  public String getDocumentId() {
+
+    return getString(DOC_ID);
+  }
+
+
+  /**
+   * @param docId
+   *          the document id of the document to translate
+   */
+  public void setDocumentId(String docId) {
+
+    setString(DOC_ID, docId);
+  }
+
+
   @Override
   public ParametersDescription getParametersDescription() {
 
@@ -116,6 +136,8 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
         "Host where pre-/postprocessing server runs");
     desc.add(PREPOST_PORT, "Pre-/Postprocessing Port:",
         "Port of the pre-/postprocessing server");
+    desc.add(DOC_ID, "document id:",
+        "document id of the document to translate; use the hash code of the raw document");
 
     return desc;
   }

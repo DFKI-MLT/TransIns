@@ -2,6 +2,7 @@ package de.dfki.mlt.transins;
 
 import static de.dfki.mlt.transins.TagUtils.removeTags;
 
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
@@ -30,6 +31,7 @@ public class MarianNmtConnector extends BaseConnector {
   private PrePostProcessingClient prepostClient;
   private MarianNmtClient translatorClient;
   private QueryUtil util;
+  private Map<String, String> batchResult;
 
 
   /**
@@ -107,8 +109,6 @@ public class MarianNmtConnector extends BaseConnector {
   @Override
   public int query(TextFragment fragment) {
 
-    logger.debug("translating from {} to {}", super.getSourceLanguage(), super.getTargetLanguage());
-
     super.result = null;
     super.current = -1;
 
@@ -116,6 +116,22 @@ public class MarianNmtConnector extends BaseConnector {
     if (!fragment.hasText(false)) {
       return 0;
     }
+
+    // try to get batch result from batch runner
+    if (this.batchResult == null) {
+      this.batchResult = BatchRunner.INSTANCE.getBatchResult(this.params.getDocumentId());
+    }
+    if (this.batchResult != null) {
+      String postprocessedSentence = this.batchResult.get(fragment.toString());
+      if (postprocessedSentence != null) {
+        return createQueryResult(fragment, postprocessedSentence);
+      }
+    }
+
+    // fragment not found in batch result or batch result not available,
+    // so process the fragment
+
+    logger.debug("translating from {} to {}", super.getSourceLanguage(), super.getTargetLanguage());
 
     logger.debug("source sentence: \"{}\"",
         TagUtils.asString(fragment.getCodedText(), fragment.getCodes()));

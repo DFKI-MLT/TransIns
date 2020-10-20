@@ -47,6 +47,9 @@ public class Translator {
     /** Marian NMT server */
     MARIAN,
 
+    /** Marian NMT server with batch runner */
+    MARIAN_BATCH,
+
     /** dummy that just uppercases all content */
     UPPERCASE_DUMMY
   }
@@ -153,6 +156,12 @@ public class Translator {
 
       rawDoc.setFilterConfigId(configId);
 
+      if (translatorId == TransId.MARIAN_BATCH) {
+        runMarianNmtBatch(rawDoc, sourceLang, targetLang, applySegmentation);
+      }
+
+      String docId = rawDoc.hashCode() + "";
+
       // create the driver
       PipelineDriver driver = new PipelineDriver();
       driver.setFilterConfigurationMapper(this.fcMapper);
@@ -177,13 +186,15 @@ public class Translator {
           driver.addStep(createApertiumLeveragingStep("src/main/resources/apertiumConfig.cfg"));
           break;
         case MARIAN:
-          driver.addStep(createMarianLeveragingStep("src/main/resources/marianConfig.cfg"));
+        case MARIAN_BATCH:
+          driver.addStep(createMarianLeveragingStep(
+              "src/main/resources/marianConfig.cfg", docId));
           break;
         case UPPERCASE_DUMMY:
           driver.addStep(new UppercaseStep());
           break;
         default:
-          logger.error("unkown translator id \"{}\"", translatorId);
+          logger.error("unknown translator id \"{}\"", translatorId);
           return;
       }
 
@@ -194,7 +205,68 @@ public class Translator {
 
       // process
       driver.processBatch();
+
+      if (translatorId == TransId.MARIAN_BATCH) {
+        // remove processed text fragments for this document from batch runner
+        BatchRunner.INSTANCE.clear(docId);
+      }
     }
+  }
+
+
+  /**
+   * Collect text fragments and batch process them.
+   *
+   * @param rawDoc
+   *          the raw document
+   * @param sourceLang
+   *          the source language
+   * @param targetLang
+   *          the target language
+   * @param applySegmentation
+   *          add segmentation when {@code true}
+   */
+  private void runMarianNmtBatch(
+      RawDocument rawDoc, String sourceLang, String targetLang, boolean applySegmentation) {
+
+    String docId = rawDoc.hashCode() + "";
+
+    // create the driver
+    PipelineDriver driver = new PipelineDriver();
+    driver.setFilterConfigurationMapper(this.fcMapper);
+    driver.setRootDirectories(
+        System.getProperty("user.dir"),
+        Util.getDirectoryName(rawDoc.getInputURI().getPath()));
+
+    // raw document to filter events step
+    driver.addStep(new RawDocumentToFilterEventsStep());
+
+    // add segmentation step (optional)
+    if (applySegmentation) {
+      driver.addStep(createSeqmentationStep());
+    }
+
+    // collect all text fragments for batch processor
+    driver.addStep(new TextFragmentsCollector(docId));
+
+    // add document to Okapi pipeline for processing
+    driver.addBatchItem(rawDoc);
+
+    // process
+    driver.processBatch();
+
+    // batch process text fragments collected in the pipeline above;
+    // use parameters of MarianNmtConnector
+    URI paramUri = new File("src/main/resources/marianConfig.cfg").toURI();
+    MarianNmtParameters translatorParams = new MarianNmtParameters();
+    translatorParams.load(Util.URItoURL(paramUri), false);
+    BatchRunner.INSTANCE.processBatch(
+        docId,
+        translatorParams.getTranslationUrl(),
+        translatorParams.getPrePostHost(),
+        translatorParams.getPrePostPort(),
+        sourceLang, targetLang);
+    logger.debug(BatchRunner.INSTANCE.getStats(docId));
   }
 
 
@@ -283,9 +355,11 @@ public class Translator {
    *
    * @param translatorConfig
    *          the translator configuration
+   * @param docId
+   *          the document id of the document to translate; use hash code of raw document
    * @return the leveraging step
    */
-  private LeveragingStep createMarianLeveragingStep(String translatorConfig) {
+  private LeveragingStep createMarianLeveragingStep(String translatorConfig, String docId) {
 
     LeveragingStep levStep = new LeveragingStep();
 
@@ -300,6 +374,7 @@ public class Translator {
       URI paramUri = new File(translatorConfig).toURI();
       resourceParams.load(Util.URItoURL(paramUri), false);
     }
+    resourceParams.setDocumentId(docId);
     levParams.setResourceParameters(resourceParams.toString());
     levParams.setFillTarget(true);
 
