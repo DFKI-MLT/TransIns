@@ -109,113 +109,134 @@ public class MarianNmtConnector extends BaseConnector {
 
     logger.debug("translating from {} to {}", super.getSourceLanguage(), super.getTargetLanguage());
 
-    open();
-
     super.result = null;
     super.current = -1;
+
+    // check if there is actually text to translate
+    if (!fragment.hasText(false)) {
+      return 0;
+    }
+
+    logger.debug("source sentence: \"{}\"",
+        TagUtils.asString(fragment.getCodedText(), fragment.getCodes()));
+
+    // preprocessing
+    String sentence = fragment.getCodedText();
+    String preprocessedSourceSentence =
+        this.prepostClient.process(
+            super.getSourceLanguage().toString(),
+            sentence,
+            Mode.PREPROCESS,
+            this.params.getPrePostHost(),
+            this.params.getPrePostPort());
+    logger.debug("preprocessed source sentence: \"{}\"",
+        TagUtils.asString(preprocessedSourceSentence, fragment.getCodes()));
+
+    // translate
+    String translatorInput = removeTags(preprocessedSourceSentence);
+    // add leading token with target language
+    translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
+    logger.debug("send to translator: \"{}\"", translatorInput);
+    String rawTranslation;
     try {
-      // check if there is actually text to translate
-      if (!fragment.hasText(false)) {
-        return 0;
-      }
-      logger.debug("source sentence: \"{}\"",
-          TagUtils.asString(fragment.getCodedText(), fragment.getCodes()));
-
-      // preprocessing
-      String sentence = fragment.getCodedText();
-      String preprocessedSourceSentence =
-          this.prepostClient.process(
-              super.getSourceLanguage().toString(),
-              sentence,
-              Mode.PREPROCESS,
-              this.params.getPrePostHost(),
-              this.params.getPrePostPort());
-      logger.debug("preprocessed source sentence: \"{}\"",
-          TagUtils.asString(preprocessedSourceSentence, fragment.getCodes()));
-
-      // translate
-      String translatorInput = removeTags(preprocessedSourceSentence);
-      // add leading token with target language
-      translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
-      logger.debug("send to translator: \"{}\"", translatorInput);
-      String translatorResponse = this.translatorClient.translate(translatorInput);
-
-      // split into translation and alignments
-      String[] parts = translatorResponse.split(" \\|\\|\\| ");
-      String translation = null;
-
-      boolean hasTags = fragment.hasCode();
-      if (parts.length == 2) {
-        // if tags and alignments are available, re-insert tags
-        translation = parts[0].strip();
-
-        if (hasTags) {
-          // get alignments for tag re-insertion
-          String rawAlignments = parts[1].strip();
-          logger.debug("raw target sentence: \"{}\"", translation);
-          logger.debug("raw alignments: \"{}\"", rawAlignments);
-          Alignments algn = createAlignments(rawAlignments);
-          // compensate for leading target language token in source sentence
-          algn.shiftSourceIndexes(-1);
-          translation = MarkupInserter.insertMarkupComplete(
-              preprocessedSourceSentence, translation, algn);
-        } else {
-          // no tags, just undo byte pair encoding
-          translation = translation.replaceAll("@@ ", "");
-        }
-      } else {
-        translation = translatorResponse;
-        logger.debug("raw target sentence: \"{}\"", translation);
-        // undo byte pair encoding
-        translation = translation.replaceAll("@@ ", "");
-      }
-
-      // postprocessing
-      String postprocessedSentence =
-          this.prepostClient.process(
-              super.getTargetLanguage().toString(),
-              translation,
-              Mode.POSTPROCESS,
-              this.params.getPrePostHost(),
-              this.params.getPrePostPort());
-
-      if (hasTags) {
-        // unmask tags
-        postprocessedSentence = MarkupInserter.unmaskTags(postprocessedSentence);
-        // remove space in front of and after tags
-        postprocessedSentence = MarkupInserter.detokenizeTags(postprocessedSentence);
-        // add a space at the end, otherwise the next sentence immediately starts after this one
-        // TODO deactivate segmentation step in translator and do the handling of sentences here
-        postprocessedSentence = postprocessedSentence + " ";
-
-        // print target sentence with human readable tags
-        TextFragment postFragment = new TextFragment();
-        postFragment.setCodedText(postprocessedSentence, fragment.getClonedCodes(), true);
-        logger.debug("postprocessed target sentence with tags: \"{}\"",
-            this.util.toCodedHTML(postFragment));
-      } else {
-        logger.debug("postprocessed target sentence: \"{}\"", postprocessedSentence);
-      }
-
-      super.result = new QueryResult();
-      super.result.weight = getWeight();
-      super.result.source = fragment;
-
-      if (fragment.hasCode()) {
-        super.result.target = new TextFragment();
-        super.result.target.setCodedText(postprocessedSentence, fragment.getClonedCodes(), true);
-      } else {
-        super.result.target = new TextFragment(postprocessedSentence);
-      }
-
-      super.result.setFuzzyScore(95);
-      super.result.origin = getName();
-      super.result.matchType = MatchType.MT;
-      super.current = 0;
+      open();
+      rawTranslation = this.translatorClient.translate(translatorInput);
     } catch (InterruptedException | ExecutionException e) {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
     }
+    String translation =
+        processRawTranslation(rawTranslation, fragment, preprocessedSourceSentence);
+
+    // postprocessing
+    String postprocessedSentence =
+        this.prepostClient.process(
+            super.getTargetLanguage().toString(),
+            translation,
+            Mode.POSTPROCESS,
+            this.params.getPrePostHost(),
+            this.params.getPrePostPort());
+    if (fragment.hasCode()) {
+      postprocessedSentence = cleanPostProcessedSentence(postprocessedSentence);
+      // print target sentence with human readable tags
+      TextFragment postFragment = new TextFragment();
+      postFragment.setCodedText(postprocessedSentence, fragment.getClonedCodes(), true);
+      logger.debug("postprocessed target sentence with tags: \"{}\"",
+          this.util.toCodedHTML(postFragment));
+    } else {
+      logger.debug("postprocessed target sentence: \"{}\"", postprocessedSentence);
+    }
+
+    // create query result
+    return createQueryResult(fragment, postprocessedSentence);
+  }
+
+
+  private int createQueryResult(TextFragment fragment, String postprocessedSentence) {
+
+    super.result = new QueryResult();
+    super.result.weight = getWeight();
+    super.result.source = fragment;
+
+    if (fragment.hasCode()) {
+      super.result.target = new TextFragment();
+      super.result.target.setCodedText(postprocessedSentence, fragment.getClonedCodes(), true);
+    } else {
+      super.result.target = new TextFragment(postprocessedSentence);
+    }
+
+    super.result.setFuzzyScore(95);
+    super.result.origin = getName();
+    super.result.matchType = MatchType.MT;
+    super.current = 0;
+
     return ((super.current == 0) ? 1 : 0);
+  }
+
+
+  /**
+   * Process the given raw translation: Re-insert tags (if required) and resolve byte pair encoding.
+   *
+   * @param rawTranslation
+   *          the raw translation as provided by the translator, potentially containing
+   *          alignments
+   * @param fragment
+   *          the fragment from which the source sentence to translate was provided
+   * @param preprocessedSourceSentence
+   *          the preprocessed source sentence
+   * @return the translation with re-inserted tags (if required) and resolved byte pair encoding
+   */
+  static String processRawTranslation(
+      String rawTranslation, TextFragment fragment, String preprocessedSourceSentence) {
+
+    // split into translation and alignments
+    String[] parts = rawTranslation.split(" \\|\\|\\| ");
+    String translation = null;
+
+    if (parts.length == 2) {
+      // if tags and alignments are available, re-insert tags
+      translation = parts[0].strip();
+
+      if (fragment.hasCode()) {
+        // get alignments for tag re-insertion
+        String rawAlignments = parts[1].strip();
+        logger.debug("raw target sentence: \"{}\"", translation);
+        logger.debug("raw alignments: \"{}\"", rawAlignments);
+        Alignments algn = createAlignments(rawAlignments);
+        // compensate for leading target language token in source sentence
+        algn.shiftSourceIndexes(-1);
+        translation = MarkupInserter.insertMarkupComplete(
+            preprocessedSourceSentence, translation, algn);
+      } else {
+        // no tags, just undo byte pair encoding
+        translation = translation.replaceAll("@@ ", "");
+      }
+    } else {
+      translation = rawTranslation;
+      logger.debug("raw target sentence: \"{}\"", translation);
+      // undo byte pair encoding
+      translation = translation.replaceAll("@@ ", "");
+    }
+    return translation;
   }
 
 
@@ -233,5 +254,26 @@ public class MarianNmtConnector extends BaseConnector {
     } else {
       return new SoftAlignments(rawAlignments);
     }
+  }
+
+
+  /**
+   * Clean up the given postprocessed sentence by unmasking and detokenizing tags.
+   *
+   * @param postprocessedSentence
+   *          the postprocessed sentence
+   * @return the cleaned up postprocessed sentence
+   */
+  public static String cleanPostProcessedSentence(String postprocessedSentence) {
+
+    // unmask tags
+    postprocessedSentence = MarkupInserter.unmaskTags(postprocessedSentence);
+    // remove space in front of and after tags
+    postprocessedSentence = MarkupInserter.detokenizeTags(postprocessedSentence);
+    // add a space at the end, otherwise the next sentence immediately starts after this one
+    // TODO deactivate segmentation step in translator and do the handling of sentences here
+    postprocessedSentence = postprocessedSentence + " ";
+
+    return postprocessedSentence;
   }
 }
