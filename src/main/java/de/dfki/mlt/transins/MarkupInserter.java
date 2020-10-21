@@ -49,6 +49,55 @@ public final class MarkupInserter {
 
   /**
    * Insert markup from given source sentence into its given translation using the given alignments.
+   * This is a naive implementation based on the strategy implemented in mtrain.
+   *
+   * @see <a
+   *      href="https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315">reinsertion.py</a>
+   * @see <a
+   *      href="http://www.cl.uzh.ch/dam/jcr:e7fb9132-4761-4af4-8f95-7e610a12a705/MA_mathiasmueller_05012017_0008.pdf">Treatment
+   *      of Markup in StatisticalMachine Translation</a>
+   *
+   * @param preprocessedSourceSentence
+   *          the preprocessed source sentence with whitespace separated tokens
+   * @param translation
+   *          the translation of the source sentence with whitespace separated tokens
+   * @param algn
+   *          the alignments
+   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   */
+  public static String insertMarkupMtrain(
+      String preprocessedSourceSentence, String translation, Alignments algn) {
+
+    String[] sourceTokensWithTags = preprocessedSourceSentence.split(" ");
+    String[] targetTokensWithoutTags = translation.split(" ");
+
+    // get mapping of opening tags to closing tags and vice versa
+    TagMap tagMap = createTagMap(sourceTokensWithTags);
+
+    // assign each source token to its tags
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        createTokenIndex2TagsMtrain(sourceTokensWithTags);
+
+    // re-insert tags
+    String[] targetTokensWithTags = reinsertTagsMtrain(
+        sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+    logger.debug("target sentence with inserted tags: \"{}\"", asString(targetTokensWithTags));
+
+    // clean up tags
+    targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags, tagMap);
+    targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
+    targetTokensWithTags = handleInvertedTagsMtrain(tagMap, targetTokensWithTags);
+
+    // prepare translation for postprocessing;
+    // mask tags so that detokenizer in postprocessing works correctly
+    translation = maskTags(targetTokensWithTags);
+
+    return translation;
+  }
+
+
+  /**
+   * Insert markup from given source sentence into its given translation using the given alignments.
    *
    * @param preprocessedSourceSentence
    *          the preprocessed source sentence with whitespace separated tokens
@@ -209,6 +258,172 @@ public final class MarkupInserter {
     }
 
     return tagMap;
+  }
+
+
+  /**
+   * mtrain version of creating a mapping from indexes to tags. Tags are always assigned to
+   * the following token.
+   *
+   * @param tokensWithTags
+   *          the tokens
+   * @return map from token index to associated tags
+   */
+  static Map<Integer, List<String>> createTokenIndex2TagsMtrain(String[] tokensWithTags) {
+
+    Map<Integer, List<String>> index2tags = new HashMap<>();
+
+    int offset = 0;
+
+    for (int i = 0; i < tokensWithTags.length; i++) {
+      if (isTag(tokensWithTags[i])) {
+        int currentIndex = i - offset;
+        List<String> currentTags = index2tags.get(currentIndex);
+        if (currentTags == null) {
+          currentTags = new ArrayList<>();
+          index2tags.put(currentIndex, currentTags);
+        }
+        currentTags.add(tokensWithTags[i]);
+        offset = offset + 1;
+      }
+    }
+
+    return index2tags;
+  }
+
+
+  /**
+   * Re-insert tags to target sentence using alignments. This is the naive approach used by mtrain.
+   *
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags, as created with
+   *          {@link #createTokenIndex2TagsMtrain(String[])}
+   * @param targetTokensWithoutTags
+   *          target tokens without tags
+   * @param algn
+   *          alignments of source and target tokens
+   * @return target tokens with re-inserted tags
+   */
+  static String[] reinsertTagsMtrain(
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      String[] targetTokensWithoutTags,
+      Alignments algn) {
+
+    List<String> targetTokensWithTags = new ArrayList<>();
+
+    for (int targetTokenIndex = 0; targetTokenIndex < targetTokensWithoutTags.length;
+        targetTokenIndex++) {
+
+      String targetToken = targetTokensWithoutTags[targetTokenIndex];
+
+      List<String> tagsToInsert = new ArrayList<>();
+
+      List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
+      for (int oneSourceTokenIndex : sourceTokenIndexes) {
+        List<String> sourceTags = sourceTokenIndex2tags.get(oneSourceTokenIndex);
+        if (sourceTags != null) {
+          tagsToInsert.addAll(sourceTags);
+          sourceTokenIndex2tags.remove(oneSourceTokenIndex);
+        }
+      }
+      targetTokensWithTags.addAll(tagsToInsert);
+      targetTokensWithTags.add(targetToken);
+    }
+
+    // add tags from last position
+    int lastTargetTokenIndex = targetTokensWithoutTags.length;
+    List<String> lastSourceTags = sourceTokenIndex2tags.get(lastTargetTokenIndex);
+    if (lastSourceTags != null) {
+      targetTokensWithTags.addAll(lastSourceTags);
+      sourceTokenIndex2tags.remove(lastTargetTokenIndex);
+    }
+
+    // add any remaining tags
+    if (!sourceTokenIndex2tags.isEmpty()) {
+      List<Integer> keys = new ArrayList<>(sourceTokenIndex2tags.keySet());
+      Collections.sort(keys);
+      for (Integer oneKey : keys) {
+        targetTokensWithTags.addAll(sourceTokenIndex2tags.get(oneKey));
+      }
+    }
+
+    // convert array list to array and return it
+    return targetTokensWithTags.toArray(new String[targetTokensWithTags.size()]);
+  }
+
+
+  /**
+   * Check if the tags in the given target sentence are inverted. If yes, just swap them.
+   * This is a simplified version of {@link #handleInvertedTags(TagMap, String[])} for the mtrain
+   * algorithm. Example:
+   *
+   * <pre>
+   * {@code
+   * x <\it> y <it> z
+   * }
+   * </pre>
+   *
+   * is changed into
+   *
+   * <pre>
+   * {@code
+   * x <it> y </it> z
+   * }
+   * </pre>
+   *
+   * @param tagMap
+   *          bidirectional map of opening tags to closing tags
+   * @param targetTokensWithTags
+   *          target sentence tokens with tags
+   * @return target sentence tokens with handled inverted tags
+   */
+  static String[] handleInvertedTagsMtrain(TagMap tagMap, String[] targetTokensWithTags) {
+
+    List<String> tokenList = new ArrayList<>(Arrays.asList(targetTokensWithTags));
+
+    for (var oneEntry : tagMap.entrySet()) {
+
+      String openingTag = oneEntry.getKey();
+      String closingTag = oneEntry.getValue();
+
+      // flag to indicated that the current position in the token list is
+      // between an opening and a closing tag
+      boolean betweenTags = false;
+      for (int i = 0; i < tokenList.size(); i++) {
+        String oneToken = tokenList.get(i);
+
+        if (!oneToken.equals(openingTag) && !oneToken.equals(closingTag)) {
+          continue;
+        }
+
+        if (betweenTags) {
+          if (isOpeningTag(oneToken)) {
+            betweenTags = true;
+          } else if (isClosingTag(oneToken)) {
+            betweenTags = false;
+          }
+        } else {
+          if (isOpeningTag(oneToken)) {
+            // nothing to do
+            betweenTags = true;
+          } else if (isClosingTag(oneToken)) {
+            // try to find an following opening tag and swap it with this closing tag
+            for (int j = i + 1; j < tokenList.size(); j++) {
+              String oneFollowingToken = tokenList.get(j);
+              if (isOpeningTag(oneFollowingToken)
+                  && oneFollowingToken.equals(openingTag)) {
+                // we found the corresponding opening tag, now swap them
+                Collections.swap(tokenList, i, j);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    String[] resultAsArray = new String[tokenList.size()];
+    return tokenList.toArray(resultAsArray);
   }
 
 
@@ -565,7 +780,7 @@ public final class MarkupInserter {
    *          source tokens together with beginning and end of sentence tokens
    * @param sourceTokenIndex2tags
    *          map of source token indexes to associated tags, as created with
-   *          {@link #createTokenIndex2Tags(String[])}
+   *          {@link #createTokenIndex2Tags(SplitTagsSentence)}
    * @param targetTokensWithoutTags
    *          target tokens without tags
    * @param algn
@@ -1664,7 +1879,7 @@ public final class MarkupInserter {
             sourceTokenIndex2tags, usedIsolatedTags);
       } else {
         neighborTags =
-          getNeighborTags(sourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+            getNeighborTags(sourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
       }
       if (targetToken.equals(EOS)) {
         // tag pairs don't apply to EOS, so only pickup isolated tags;

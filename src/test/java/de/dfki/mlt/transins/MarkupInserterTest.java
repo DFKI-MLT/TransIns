@@ -86,6 +86,173 @@ class MarkupInserterTest {
 
 
   /**
+   * Test {@link MarkupInserter#createTokenIndex2TagsMtrain(String[])}.
+   */
+  @Test
+  void testCreateTokenIndex2TagsMtrain() {
+
+    String[] tokensWithTags = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2");
+    Map<Integer, List<String>> index2Tags =
+        MarkupInserter.createTokenIndex2TagsMtrain(tokensWithTags);
+    assertThat(index2Tags).hasSize(4);
+    assertThat(index2Tags.get(0)).containsExactly(ISO1, OPEN1);
+    assertThat(index2Tags.get(1)).containsExactly(CLOSE1);
+    assertThat(index2Tags.get(3)).containsExactly(OPEN2);
+    assertThat(index2Tags.get(5)).containsExactly(CLOSE2);
+  }
+
+
+  /**
+   * Test {@link MarkupInserter#reinsertTagsMtrain(Map, String[], Alignments)} with hard alignments.
+   */
+  @Test
+  void testReinsertTagsMtrainWithHardAlignments() {
+
+    // init variables to be re-used between tests
+    String[] sourceTokens = null;
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    String[] expectedResult = null;
+
+    // parallel alignment
+    sourceTokens = asArray("Hello OPEN1 World CLOSE1 !");
+    targetTokensWithoutTags = asArray("Hallo Welt !");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("Hallo OPEN1 Welt CLOSE1 !");
+    testReinsertTagsMtrainWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    sourceTokens = asArray("voiture OPEN1 verte CLOSE1 !");
+    targetTokensWithoutTags = asArray("green car !");
+    rawAlignments = "0-1 1-0 2-2";
+    expectedResult = asArray("OPEN1 green car CLOSE1 !");
+    testReinsertTagsMtrainWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment causing inverted tags
+    sourceTokens = asArray("OPEN1 voiture CLOSE1 verte !");
+    targetTokensWithoutTags = asArray("green car !");
+    rawAlignments = "0-1 1-0 2-2";
+    expectedResult = asArray("CLOSE1 green OPEN1 car !");
+    testReinsertTagsMtrainWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tag at end of sentence
+    sourceTokens = asArray("Hello OPEN1 World CLOSE1 ! ISO1");
+    targetTokensWithoutTags = asArray("Hallo Welt !");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("Hallo OPEN1 Welt CLOSE1 ! ISO1");
+    testReinsertTagsMtrainWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // tags with no alignment
+    sourceTokens = asArray("Hello OPEN1 World CLOSE1 and OPEN2 good CLOSE2 morning ! ISO1");
+    targetTokensWithoutTags = asArray("Hallo Welt und guten Morgen !");
+    rawAlignments = "0-0 1-1 2-2";
+    expectedResult = asArray("Hallo OPEN1 Welt CLOSE1 und guten Morgen ! ISO1 OPEN2 CLOSE2");
+    testReinsertTagsMtrainWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+  }
+
+
+  private void testReinsertTagsMtrainWithHardAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult) {
+
+    testReinsertTagsMtrain(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
+  }
+
+
+  private void testReinsertTagsMtrain(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult, boolean hardAlignments) {
+
+    Alignments algn = null;
+    if (hardAlignments) {
+      algn = new HardAlignments(rawAlignments);
+    } else {
+      algn = new SoftAlignments(rawAlignments);
+    }
+
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        MarkupInserter.createTokenIndex2TagsMtrain(sourceTokens);
+
+    String[] targetTokensWithTags =
+        MarkupInserter.reinsertTagsMtrain(sourceTokenIndex2tags, targetTokensWithoutTags, algn);
+    assertThat(targetTokensWithTags)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokensWithTags)))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
+   * Test {@link MarkupInserter#handleInvertedTagsMtrain(Map, String[])}.
+   */
+  @Test
+  void testHandleInvertedTagsMtrain() {
+
+    // init variables to be re-used between tests
+    String[] targetTokens = null;
+    String[] expectedResult = null;
+
+    // closing tag followed by opening tag
+    targetTokens = asArray("x CLOSE1 y OPEN1 z");
+    expectedResult = asArray("x OPEN1 y CLOSE1 z");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // closing tag at beginning followed by opening tag
+    targetTokens = asArray("CLOSE1 x y OPEN1 z");
+    expectedResult = asArray("OPEN1 x y CLOSE1 z");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // closing tag followed by opening tag at end
+    targetTokens = asArray("x CLOSE1 y z OPEN1");
+    expectedResult = asArray("x OPEN1 y z CLOSE1");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // closing tag at beginning followed by opening tag at end
+    targetTokens = asArray("CLOSE1 x y z OPEN1");
+    expectedResult = asArray("OPEN1 x y z CLOSE1");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // two nested inverted tags with gap, mixed
+    targetTokens = asArray("x CLOSE1 y CLOSE2 z a OPEN2 b OPEN1 c");
+    expectedResult = asArray("x OPEN1 y OPEN2 z a CLOSE2 b CLOSE1 c");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // two nested inverted tags with gap, mixed, overlapping
+    targetTokens = asArray("x CLOSE1 y CLOSE2 z a OPEN1 b OPEN2 c");
+    expectedResult = asArray("x OPEN1 y OPEN2 z a CLOSE1 b CLOSE2 c");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // mixed with isolated tags
+    targetTokens = asArray("ISO Das CLOSE1 OPEN1 ist OPEN2 ein Test . CLOSE2 ISO");
+    expectedResult = asArray("ISO Das OPEN1 CLOSE1 ist OPEN2 ein Test . CLOSE2 ISO");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+
+    // mixed with isolated tags, nested
+    targetTokens = asArray("ISO Das CLOSE2 CLOSE1 OPEN1 OPEN2 ist ein Test . ISO");
+    expectedResult = asArray("ISO Das OPEN2 OPEN1 CLOSE1 CLOSE2 ist ein Test . ISO");
+    testHandleInvertedTagsMtrain(targetTokens, expectedResult);
+  }
+
+
+  private void testHandleInvertedTagsMtrain(String[] targetTokens, String[] expectedResult) {
+
+    targetTokens = MarkupInserter.handleInvertedTagsMtrain(tagMap, targetTokens);
+    assertThat(targetTokens)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            asString(expectedResult), asString(targetTokens)))
+        .containsExactly(expectedResult);
+  }
+
+
+  /**
    * Test {@link MarkupInserter#replaceEmptyTagPairsWithIsos(String[], TagMap, Map)} and
    * {@link MarkupInserter#replaceIsosWithEmptyTagPairs(String[], Map)}.
    */
