@@ -138,6 +138,14 @@ class MarkupInserterTest {
     testReinsertTagsMtrainWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
+    // two target tokens pointing to one source token
+    sourceTokens = asArray("I OPEN1 buy CLOSE1 chocolate for my kid");
+    targetTokensWithoutTags = asArray("Ich kaufe für mein Kind Schokolade ein");
+    rawAlignments = "0-0 1-1 1-6 2-5 3-2 4-3 5-4";
+    expectedResult = asArray("Ich OPEN1 kaufe für mein Kind CLOSE1 Schokolade ein");
+    testReinsertTagsMtrainWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
     // tag at end of sentence
     sourceTokens = asArray("Hello OPEN1 World CLOSE1 ! ISO1");
     targetTokensWithoutTags = asArray("Hallo Welt !");
@@ -673,6 +681,30 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("a b c");
     rawAlignments = "0-0 1-1 2-2";
     expectedResult = asArray("ISO1 OPEN1 a b CLOSE1 c");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    sourceTokens = asArray("voiture OPEN1 verte CLOSE1 !");
+    targetTokensWithoutTags = asArray("green car !");
+    rawAlignments = "0-1 1-0 2-2";
+    expectedResult = asArray("OPEN1 green CLOSE1 car !");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    sourceTokens = asArray("OPEN1 voiture CLOSE1 verte !");
+    targetTokensWithoutTags = asArray("green car !");
+    rawAlignments = "0-1 1-0 2-2";
+    expectedResult = asArray("green OPEN1 car CLOSE1 !");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // two target tokens pointing to one source token
+    sourceTokens = asArray("I OPEN1 buy CLOSE1 chocolate for my kid");
+    targetTokensWithoutTags = asArray("Ich kaufe für mein Kind Schokolade ein");
+    rawAlignments = "0-0 1-1 1-6 2-5 3-2 4-3 5-4";
+    expectedResult = asArray("Ich OPEN1 kaufe CLOSE1 für mein Kind Schokolade OPEN1 ein CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
@@ -1759,6 +1791,30 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("a b c");
     rawAlignments = "0-0 1-1 2-2";
     expectedResult = asArray("ISO1 OPEN1 a CLOSE1 OPEN1 b CLOSE1 c");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    sourceTokens = asArray("voiture OPEN1 verte CLOSE1 !");
+    targetTokensWithoutTags = asArray("green car !");
+    rawAlignments = "0-1 1-0 2-2";
+    expectedResult = asArray("OPEN1 green CLOSE1 car !");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // reversed alignment
+    sourceTokens = asArray("OPEN1 voiture CLOSE1 verte !");
+    targetTokensWithoutTags = asArray("green car !");
+    rawAlignments = "0-1 1-0 2-2";
+    expectedResult = asArray("green OPEN1 car CLOSE1 !");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // two target tokens pointing to one source token
+    sourceTokens = asArray("I OPEN1 buy CLOSE1 chocolate for my kid");
+    targetTokensWithoutTags = asArray("Ich kaufe für mein Kind Schokolade ein");
+    rawAlignments = "0-0 1-1 1-6 2-5 3-2 4-3 5-4";
+    expectedResult = asArray("Ich OPEN1 kaufe CLOSE1 für mein Kind Schokolade OPEN1 ein CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
   }
