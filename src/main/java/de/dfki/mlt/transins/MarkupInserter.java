@@ -362,9 +362,7 @@ public final class MarkupInserter {
    * x <\it> y <it> z
    * }
    * </pre>
-   *
    * is changed into
-   *
    * <pre>
    * {@code
    * x <it> y </it> z
@@ -1498,7 +1496,7 @@ public final class MarkupInserter {
 
 
   /**
-   * Add given tags at end of tag array
+   * Add given tags at end of tag array.
    *
    * @param tags
    *          tag array

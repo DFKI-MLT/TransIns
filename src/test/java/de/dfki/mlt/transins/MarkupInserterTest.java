@@ -620,11 +620,19 @@ class MarkupInserterTest {
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
-    // end-of-sentence points to source token with tag
-    sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2");
+    // end-of-sentence points to source token with CLOSE tag
+    sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2 end");
     targetTokensWithoutTags = asArray("aller au contenu");
     rawAlignments = "0-0 1-2 2-3";
-    expectedResult = asArray("ISO1 OPEN1 aller au contenu CLOSE1 ISO2");
+    expectedResult = asArray("ISO1 OPEN1 aller au contenu CLOSE1");
+    testReinsertTagsWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // end-of-sentence points to source token with ISO and CLOSE tag
+    sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt ISO2 springen CLOSE1 end");
+    targetTokensWithoutTags = asArray("aller au contenu");
+    rawAlignments = "0-0 1-2 2-3";
+    expectedResult = asArray("ISO1 OPEN1 aller au contenu ISO2 CLOSE1");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
@@ -1730,7 +1738,15 @@ class MarkupInserterTest {
     testReinsertTagsCompleteWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
 
-    // end-of-sentence points to source token with ISO tag
+    // end-of-sentence points to source token with CLOSE tag
+    sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2 end");
+    targetTokensWithoutTags = asArray("aller au contenu");
+    rawAlignments = "0-0 1-2 2-3";
+    expectedResult = asArray("ISO1 OPEN1 aller CLOSE1 au OPEN1 contenu CLOSE1");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+
+    // end-of-sentence points to source token with ISO and CLOSE tag
     sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt ISO2 springen CLOSE1 end");
     targetTokensWithoutTags = asArray("aller au contenu");
     rawAlignments = "0-0 1-2 2-3";
