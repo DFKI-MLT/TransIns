@@ -1870,6 +1870,7 @@ public final class MarkupInserter {
       List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
       NeighborTags neighborTags = null;
       if (sourceTokenIndexes.isEmpty()
+          // ignore eos in interpolation
           && targetTokenIndex < targetTokensWithoutTags.length - 1
           && interpolateTags) {
         neighborTags = interpolateNeighborTags(
@@ -1910,7 +1911,9 @@ public final class MarkupInserter {
   /**
    * Interpolate tags for given target token that has no alignments with source tokens from the
    * alignments of its previous and following tokens. Distance between neighbor tokens with
-   * alignments may not be larger than the given maximum gap size.
+   * alignments may not be larger than the given maximum gap size.<br/>
+   * Note that this method assumes that targetTokensWithoutTags has an end-of-sentence marker
+   * at the end that is ignored for gap size calculation and interpolation.
    *
    * @param targetTokenIndex
    *          index of the target token for which to interpolate the tags
@@ -1946,9 +1949,10 @@ public final class MarkupInserter {
         }
       }
     }
-    // search following token with alignments
+    // search following token with alignments;
+    // note that an eos marker has been added to targetTokensWithoutTags and is ignored
     if (targetTokenIndex < targetTokensWithoutTags.length - 2) {
-      for (int i = targetTokenIndex + 1; i < targetTokensWithoutTags.length; i++) {
+      for (int i = targetTokenIndex + 1; i < targetTokensWithoutTags.length - 1; i++) {
         followingSourceTokenIndexes = algn.getSourceTokenIndexes(i);
         if (!followingSourceTokenIndexes.isEmpty()) {
           folIndexWithAlgn = i;
@@ -1972,7 +1976,7 @@ public final class MarkupInserter {
 
     // only previous tokens with alignments
     if (followingSourceTokenIndexes == null
-        && targetTokensWithoutTags.length - prevIndexWithAlgn - 1 <= maxGapSize) {
+        && targetTokensWithoutTags.length - prevIndexWithAlgn - 2 <= maxGapSize) {
       // only previous token with alignments
       return getNeighborTags(previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
     }
