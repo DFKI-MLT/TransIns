@@ -1868,6 +1868,9 @@ public final class MarkupInserter {
       String targetToken = targetTokensWithoutTags[targetTokenIndex];
 
       List<Integer> sourceTokenIndexes = algn.getSourceTokenIndexes(targetTokenIndex);
+      // we treat target tokens pointing to end-of-sentence of source sentence
+      // as if they had no alignment and potentially interpolate
+      sourceTokenIndexes.remove(Integer.valueOf(sourceSentence.getTokensWithoutTags().length));
       NeighborTags neighborTags = null;
       if (sourceTokenIndexes.isEmpty()
           // ignore eos in interpolation
