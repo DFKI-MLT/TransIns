@@ -1877,7 +1877,7 @@ public final class MarkupInserter {
           && targetTokenIndex < targetTokensWithoutTags.length - 1
           && interpolateTags) {
         neighborTags = interpolateNeighborTags(
-            targetTokenIndex, algn, 1, targetTokensWithoutTags,
+            targetTokenIndex, algn, 3, targetTokensWithoutTags,
             sourceTokenIndex2tags, usedIsolatedTags);
       } else {
         neighborTags =
