@@ -18,7 +18,6 @@ import net.sf.okapi.common.pipelinedriver.PipelineDriver;
 import net.sf.okapi.common.resource.RawDocument;
 import net.sf.okapi.connectors.apertium.ApertiumMTConnector;
 import net.sf.okapi.connectors.microsoft.MicrosoftMTConnector;
-import net.sf.okapi.filters.html.HtmlFilter;
 import net.sf.okapi.filters.openoffice.OpenOfficeFilter;
 import net.sf.okapi.filters.openxml.OpenXMLFilter;
 import net.sf.okapi.steps.common.FilterEventsToRawDocumentStep;
@@ -70,7 +69,7 @@ public class Translator {
     // add filters for OpenXML, OpenOffice and HTML
     this.fcMapper.addConfigurations(OpenXMLFilter.class.getName());
     this.fcMapper.addConfigurations(OpenOfficeFilter.class.getName());
-    this.fcMapper.addConfigurations(HtmlFilter.class.getName());
+    this.fcMapper.addConfigurations(CustomHtmlFilter.class.getName());
 
     // init extension map
     this.extensionsMap = new Hashtable<>();
