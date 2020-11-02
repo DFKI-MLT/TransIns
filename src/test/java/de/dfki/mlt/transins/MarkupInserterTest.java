@@ -1690,7 +1690,7 @@ class MarkupInserterTest {
         + "0,0,0,0,0,1"; // EOS -> EOS
     expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test CLOSE2 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithSoftAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // reversed alignment
     targetTokensWithoutTags = "Test ein ist das .".split(" ");
@@ -1703,7 +1703,7 @@ class MarkupInserterTest {
         + "0,0,0,0,0,1"; // EOS -> EOS
     expectedResult = asArray("ISO1 OPEN2 Test CLOSE2 ein ist OPEN1 das CLOSE1 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithSoftAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
   }
 
 
@@ -1727,7 +1727,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
     expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test CLOSE2 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // reversed alignment
     sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
@@ -1736,7 +1736,7 @@ class MarkupInserterTest {
     rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
     expectedResult = asArray("ISO1 OPEN2 Test CLOSE2 ein ist OPEN1 das CLOSE1 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // end-of-sentence points to source token with CLOSE tag
     sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2 end");
@@ -1744,7 +1744,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-2 2-3";
     expectedResult = asArray("ISO1 OPEN1 aller CLOSE1 au OPEN1 contenu CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // end-of-sentence points to source token with ISO and CLOSE tag
     sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt ISO2 springen CLOSE1 end");
@@ -1752,7 +1752,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-2 2-3";
     expectedResult = asArray("ISO1 OPEN1 aller CLOSE1 au OPEN1 contenu CLOSE1 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // tags enclosing the whole sentence
     sourceTokens = asArray("ISO1 OPEN1 a b c d CLOSE1 ISO2");
@@ -1760,7 +1760,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-3 4-2";
     expectedResult = asArray("ISO1 OPEN1 b a d c CLOSE1 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // tag pair over the whole sentence
     sourceTokens = asArray("OPEN1 a b c d CLOSE1");
@@ -1768,7 +1768,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-3 4-2";
     expectedResult = asArray("OPEN1 b a d c CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // multiple tag pairs over the whole sentence
     sourceTokens = asArray("OPEN1 OPEN2 OPEN3 a b c d CLOSE3 CLOSE2 CLOSE1");
@@ -1776,7 +1776,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-3 4-2";
     expectedResult = asArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // tokens with isolated tags are pointed to multiple times
     sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
@@ -1784,7 +1784,7 @@ class MarkupInserterTest {
     rawAlignments = "1-0 1-1 2-2";
     expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 OPEN1 b CLOSE1 OPEN1 c CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // one target token to multiple source tokens with same tags
     sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
@@ -1792,7 +1792,7 @@ class MarkupInserterTest {
     rawAlignments = "1-0 2-0 2-2";
     expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 b OPEN1 c CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // single tag pair with ISO at end
     sourceTokens = asArray("x OPEN1 y z ISO1 CLOSE1");
@@ -1800,7 +1800,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 2-2";
     expectedResult = asArray("a OPEN1 b CLOSE1 OPEN1 c CLOSE1 ISO1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // single tag pair with ISO at beginning
     sourceTokens = asArray("ISO1 OPEN1 x y CLOSE1 z");
@@ -1808,7 +1808,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 2-2";
     expectedResult = asArray("ISO1 OPEN1 a CLOSE1 OPEN1 b CLOSE1 c");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // reversed alignment
     sourceTokens = asArray("voiture OPEN1 verte CLOSE1 !");
@@ -1816,7 +1816,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-2";
     expectedResult = asArray("OPEN1 green CLOSE1 car !");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // reversed alignment
     sourceTokens = asArray("OPEN1 voiture CLOSE1 verte !");
@@ -1824,7 +1824,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-2";
     expectedResult = asArray("green OPEN1 car CLOSE1 !");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // two target tokens pointing to one source token
     sourceTokens = asArray("I OPEN1 buy CLOSE1 chocolate for my kid");
@@ -1832,7 +1832,15 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 1-6 2-5 3-2 4-3 5-4";
     expectedResult = asArray("Ich OPEN1 kaufe CLOSE1 für mein Kind Schokolade OPEN1 ein CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+
+    // isolated tag next to gap
+    sourceTokens = asArray("x y ISO1 OPEN1 z CLOSE1 a b c");
+    targetTokensWithoutTags = asArray("x y z a b c");
+    rawAlignments = "0-0 2-2 3-3 4-4 5-5";
+    expectedResult = asArray("x y ISO1 OPEN1 z CLOSE1 a b c");
+    testReinsertTagsCompleteWithHardAlignments(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
   }
 
 
@@ -1856,45 +1864,45 @@ class MarkupInserterTest {
     rawAlignments = "0-0 0-3 2-2";
     expectedResult = asArray("OPEN1 X1 CLOSE1 N OPEN1 Z CLOSE1 OPEN1 X2 CLOSE1 N N");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // second test
     targetTokensWithoutTags = asArray("Z1 Z2 X N N N");
     rawAlignments = "0-2 2-0 2-1";
     expectedResult = asArray("OPEN1 Z1 CLOSE1 OPEN1 Z2 CLOSE1 OPEN1 X CLOSE1 N N N");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
 
     // third test
     targetTokensWithoutTags = asArray("Z1 N X1 Z2 N X2");
     rawAlignments = "0-2 0-5 2-0 2-3";
     expectedResult = asArray("OPEN1 Z1 CLOSE1 N OPEN1 X1 CLOSE1 OPEN1 Z2 CLOSE1 N OPEN1 X2 CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
   }
 
 
   private void testReinsertTagsCompleteWithSoftAlignments(
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult) {
+      String[] expectedResult, boolean interpolate) {
 
     testReinsertTagsComplete(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, interpolate, false);
   }
 
 
   private void testReinsertTagsCompleteWithHardAlignments(
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult) {
+      String[] expectedResult, boolean interpolate) {
 
     testReinsertTagsComplete(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, interpolate, true);
   }
 
 
   private void testReinsertTagsComplete(
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult, boolean hardAlignments) {
+      String[] expectedResult, boolean interpolate, boolean hardAlignments) {
 
     Alignments algn = null;
     if (hardAlignments) {
@@ -1909,7 +1917,7 @@ class MarkupInserterTest {
 
     String[] targetTokensWithTags =
         MarkupInserter.reinsertTagsComplete(
-            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, false);
+            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, interpolate);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
@@ -1920,10 +1928,10 @@ class MarkupInserterTest {
 
   /**
    * Test
-   * {@link MarkupInserter#interpolateNeighborTags(int, Alignments, int, String[], Map, java.util.Set)}.
+   * {@link MarkupInserter#interpolateNeighborTagsForNoAlignmentToken(int, Alignments, int, String[], Map, java.util.Set)}.
    */
   @Test
-  void testInterpolateNeighborTags() {
+  void testInterpolateNeighborTagsForNoAlignmentToken() {
 
     // init variables to be re-used between tests
     String[] sourceTokens = null;
@@ -1937,7 +1945,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 2-2 3-3 4-4 5-5";
     maxGapSize = 0;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).isEmpty();
     assertThat(neighborTags.getAfterTags()).isEmpty();
@@ -1947,7 +1955,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 2-2 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
@@ -1957,7 +1965,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 2-2 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1, OPEN2);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE2, CLOSE1);
@@ -1967,11 +1975,11 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).isEmpty();
     assertThat(neighborTags.getAfterTags()).isEmpty();
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).isEmpty();
     assertThat(neighborTags.getAfterTags()).isEmpty();
@@ -1981,11 +1989,11 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 3-3 4-4 5-5";
     maxGapSize = 2;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
@@ -1995,7 +2003,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "1-1 2-2 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
@@ -2005,8 +2013,12 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "2-2 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).isEmpty();
     assertThat(neighborTags.getAfterTags()).isEmpty();
 
@@ -2015,7 +2027,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 1-1 2-2 3-3 4-4";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         5, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
@@ -2025,7 +2037,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y ( z ) eos");
     rawAlignments = "0-0 1-1 2-3";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN3);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE3);
@@ -2035,7 +2047,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y ( z ) eos");
     rawAlignments = "0-0 1-1 2-3";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         4, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN3);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE3);
@@ -2045,7 +2057,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 1-1 2-2 3-3";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         5, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).isEmpty();
     assertThat(neighborTags.getAfterTags()).isEmpty();
@@ -2055,7 +2067,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 2-2 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN2, OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1, CLOSE2);
@@ -2066,7 +2078,7 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray("x y z a b c eos");
     rawAlignments = "0-0 2-2 3-3 4-4 5-5";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
@@ -2078,25 +2090,36 @@ class MarkupInserterTest {
     targetTokensWithoutTags = asArray(
         "soup@@ çon de fraude fiscale "
         + "fou@@ ille auprès de l&apos; Office fédéral des finances ( DF@@ B ) eos");
+    // indexes                                                     14  15 16 17 18
     rawAlignments = "0-0 0-1 1-2 1-3 2-4 6-5 7-6 9-7 9-8 9-9 "
         + "10-10 10-11 10-12 10-13 10-15 11-16 12-14 12-17 12-18";
     maxGapSize = 1;
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         14, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN3);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE3);
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         17, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN3);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE3);
-    neighborTags = testInterpolateNeighborTags(
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         18, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).isEmpty();
     assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1, nested interpolation
+    sourceTokens = asArray("x OPEN1 y CLOSE1 z a b OPEN1 c CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a b c eos");
+    rawAlignments = "0-0 1-1 2-2 4-4 5-5 6-6";
+    maxGapSize = 3;
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
+        3, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
   }
 
 
-  private NeighborTags testInterpolateNeighborTags(
+  private NeighborTags testInterpolateNeighborTagsForNoAlignmentToken(
       int targetTokenIndex, String[] targetTokensWithoutTags, String[] sourceTokens,
       String rawAlignments, int maxGapSize) {
 
@@ -2106,7 +2129,165 @@ class MarkupInserterTest {
     Map<Integer, List<String>> sourceTokenIndex2tags =
         MarkupInserter.createTokenIndex2TagsComplete(sourceSentence, tagMap);
 
-    return MarkupInserter.interpolateNeighborTags(
+    return MarkupInserter.interpolateNeighborTagsForNoAlignmentToken(
+        targetTokenIndex, algn, maxGapSize, targetTokensWithoutTags, sourceTokenIndex2tags,
+        Collections.emptySet());
+  }
+
+
+  /**
+   * Test
+   * {@link MarkupInserter#interpolateNeighborTagsForEmptyAlignmentToken(int, Alignments, int, String[], Map, java.util.Set)}.
+   */
+  @Test
+  void testInterpolateNeighborTagsForEmptyAlignmentToken() {
+
+    // init variables to be re-used between tests
+    String[] sourceTokens = null;
+    String[] targetTokensWithoutTags = null;
+    String rawAlignments = null;
+    int maxGapSize = 0;
+    NeighborTags neighborTags = null;
+
+    // gap 1, max gap size 0
+    sourceTokens = asArray("x OPEN1 y CLOSE1 z OPEN1 a CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a eos");
+    rawAlignments = "0-0 1-1 2-2 3-3";
+    maxGapSize = 0;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1
+    sourceTokens = asArray("x OPEN1 y CLOSE1 z OPEN1 a CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a eos");
+    rawAlignments = "0-0 1-1 2-2 3-3";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 1, max gap size 1, multiple tag pairs
+    sourceTokens = asArray("x OPEN1 OPEN2 y CLOSE2 CLOSE1 z OPEN1 OPEN2 a CLOSE2 CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a eos");
+    rawAlignments = "0-0 1-1 2-2 3-3";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1, OPEN2);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE2, CLOSE1);
+
+    // gap 2, max gap size 1
+    sourceTokens = asArray("x OPEN1 y CLOSE1 z a OPEN1 b CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a b eos");
+    rawAlignments = "0-0 1-1 2-2 3-3 4-4";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        3, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 2, max gap size 2
+    sourceTokens = asArray("x OPEN1 y CLOSE1 z a OPEN1 b CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a b eos");
+    rawAlignments = "0-0 1-1 2-2 3-3 4-4";
+    maxGapSize = 2;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        3, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 1, max gap size 1, gap at start
+    sourceTokens = asArray("x OPEN1 y CLOSE1");
+    targetTokensWithoutTags = asArray("x y eos");
+    rawAlignments = "0-0 1-1";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 2, max gap size 1, gap at start
+    sourceTokens = asArray("x y OPEN1 z CLOSE1");
+    targetTokensWithoutTags = asArray("x y z eos");
+    rawAlignments = "0-0 1-1 2-2";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1, gap at end
+    sourceTokens = asArray("OPEN1 x CLOSE1 y");
+    targetTokensWithoutTags = asArray("x y eos");
+    rawAlignments = "0-0 1-1";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 2, max gap size 1, gap at end
+    sourceTokens = asArray("OPEN1 x CLOSE1 y z");
+    targetTokensWithoutTags = asArray("x y z eos");
+    rawAlignments = "0-0 1-1 2-2";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).isEmpty();
+    assertThat(neighborTags.getAfterTags()).isEmpty();
+
+    // gap 1, max gap size 1, identical neighbor tags
+    sourceTokens = asArray("x OPEN2 OPEN1 y CLOSE1 CLOSE2 z OPEN2 OPEN1 a CLOSE1 CLOSE2");
+    targetTokensWithoutTags = asArray("x y z a eos");
+    rawAlignments = "0-0 1-1 2-2 3-3";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN2, OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1, CLOSE2);
+
+    // gap 1, max gap size 1, different neighbor tags with intersection
+    sourceTokens = asArray("x OPEN2 OPEN1 y CLOSE1 CLOSE2 z OPEN1 a CLOSE1");
+    targetTokensWithoutTags = asArray("x y z a eos");
+    rawAlignments = "0-0 1-1 2-2 3-3";
+    maxGapSize = 1;
+    neighborTags = testInterpolateNeighborTagsForEmptyAlignmentToken(
+        2, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+  }
+
+
+  private NeighborTags testInterpolateNeighborTagsForEmptyAlignmentToken(
+      int targetTokenIndex, String[] targetTokensWithoutTags, String[] sourceTokens,
+      String rawAlignments, int maxGapSize) {
+
+    Alignments algn = new HardAlignments(rawAlignments);
+
+    SplitTagsSentence sourceSentence = new SplitTagsSentence(sourceTokens, tagMap);
+    Map<Integer, List<String>> sourceTokenIndex2tags =
+        MarkupInserter.createTokenIndex2TagsComplete(sourceSentence, tagMap);
+
+    return MarkupInserter.interpolateNeighborTagsForEmptyAlignmentToken(
         targetTokenIndex, algn, maxGapSize, targetTokensWithoutTags, sourceTokenIndex2tags,
         Collections.emptySet());
   }

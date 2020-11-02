@@ -40,6 +40,9 @@ public final class MarkupInserter {
   // special token to mark end of sentence of target sentence
   private static final String EOS = "end-of-target-sentence-marker";
 
+  // maximal gap size when interpolating tags
+  private static final int GAP_SIZE = 3;
+
 
   private MarkupInserter() {
 
@@ -1871,17 +1874,25 @@ public final class MarkupInserter {
       // we treat target tokens pointing to end-of-sentence of source sentence
       // as if they had no alignment and potentially interpolate
       sourceTokenIndexes.remove(Integer.valueOf(sourceSentence.getTokensWithoutTags().length));
-      NeighborTags neighborTags = null;
-      if (sourceTokenIndexes.isEmpty()
+      NeighborTags neighborTags =
+          getNeighborTags(sourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, false);
+      if ((sourceTokenIndexes.isEmpty() || neighborTags.isEmpty())
           // ignore eos in interpolation
           && targetTokenIndex < targetTokensWithoutTags.length - 1
           && interpolateTags) {
-        neighborTags = interpolateNeighborTags(
-            targetTokenIndex, algn, 3, targetTokensWithoutTags,
-            sourceTokenIndex2tags, usedIsolatedTags);
-      } else {
-        neighborTags =
-            getNeighborTags(sourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+        if (sourceTokenIndexes.isEmpty()) {
+          // target token has no alignment with any source token
+          neighborTags = interpolateNeighborTagsForNoAlignmentToken(
+              targetTokenIndex, algn, GAP_SIZE, targetTokensWithoutTags,
+              sourceTokenIndex2tags, usedIsolatedTags);
+        } else if (neighborTags.isEmpty()) {
+          // target token is aligned with source token without tags;
+          // try to compensate for erroneous alignments and check if neighbor tokens
+          // within gap range have the same tags; if yes, use them for target token
+          neighborTags = interpolateNeighborTagsForEmptyAlignmentToken(
+              targetTokenIndex, algn, GAP_SIZE, targetTokensWithoutTags,
+              sourceTokenIndex2tags, usedIsolatedTags);
+        }
       }
       if (targetToken.equals(EOS)) {
         // tag pairs don't apply to EOS, so only pickup isolated tags;
@@ -1933,7 +1944,7 @@ public final class MarkupInserter {
    *          set of isolated tags already used; these are ignored
    * @return the interpolated tags, potentially empty or incomplete
    */
-  static NeighborTags interpolateNeighborTags(
+  static NeighborTags interpolateNeighborTagsForNoAlignmentToken(
       int targetTokenIndex, Alignments algn, int maxGapSize,
       String[] targetTokensWithoutTags,
       Map<Integer, List<String>> sourceTokenIndex2tags, Set<String> usedIsolatedTags) {
@@ -1964,34 +1975,118 @@ public final class MarkupInserter {
       }
     }
 
+    NeighborTags neighborTags = null;
     if (previousSourceTokenIndexes == null
         && followingSourceTokenIndexes == null) {
       // no previous and following tokens with alignments
+      neighborTags = new NeighborTags();
+    } else if (previousSourceTokenIndexes == null
+        && folIndexWithAlgn <= maxGapSize) {
+      // only following token with alignments
+      neighborTags = getNeighborTags(
+          followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
+    } else if (followingSourceTokenIndexes == null
+        && targetTokensWithoutTags.length - prevIndexWithAlgn - 2 <= maxGapSize) {
+      // only previous token with alignments
+      neighborTags = getNeighborTags(
+          previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
+    } else if (previousSourceTokenIndexes != null
+        && followingSourceTokenIndexes != null
+        && (folIndexWithAlgn - prevIndexWithAlgn - 1) <= maxGapSize) {
+      // previous and following tokens with alignments
+      NeighborTags prevTokenTags = getNeighborTags(
+          previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
+      NeighborTags folTokenTags = getNeighborTags(
+          followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
+      prevTokenTags.buildIntersection(folTokenTags);
+      neighborTags = prevTokenTags;
+    }
+
+    if (neighborTags == null) {
+      neighborTags = new NeighborTags();
+    }
+
+    if (neighborTags.isEmpty()) {
+      // if interpolation resulted in empty tags, run empty tag interpolation afterwards
+      return interpolateNeighborTagsForEmptyAlignmentToken(
+          targetTokenIndex, algn, maxGapSize, targetTokensWithoutTags,
+          sourceTokenIndex2tags, usedIsolatedTags);
+    }
+    return neighborTags;
+  }
+
+
+  /**
+   * Interpolate tags for given target token that has alignments, but no tags, with source tokens
+   * from the alignments of its previous and following tokens. Distance between neighbor tokens with
+   * alignments may not be larger than the given maximum gap size.<br/>
+   * Note that this method assumes that targetTokensWithoutTags has an end-of-sentence marker
+   * at the end that is ignored for gap size calculation and interpolation.<br/>
+   * The purpose of this method is to compensate for erroneous alignments.
+   *
+   * @param targetTokenIndex
+   *          index of the target token for which to interpolate the tags
+   * @param algn
+   *          alignments of source and target tokens
+   * @param maxGapSize
+   *          the maximum gap size
+   * @param targetTokensWithoutTags
+   *          target tokens without tags
+   * @param sourceTokenIndex2tags
+   *          map of source token indexes to associated tags, as created with
+   *          {@link #createTokenIndex2TagsComplete(String[], Map)}
+   * @param usedIsolatedTags
+   *          set of isolated tags already used; these are ignored
+   * @return the interpolated tags, potentially empty or incomplete
+   */
+  public static NeighborTags interpolateNeighborTagsForEmptyAlignmentToken(
+      int targetTokenIndex, Alignments algn, int maxGapSize,
+      String[] targetTokensWithoutTags,
+      Map<Integer, List<String>> sourceTokenIndex2tags,
+      Set<String> usedIsolatedTags) {
+
+    int prevIndexWithTags = -1;
+    int folIndexWithTags = -1;
+    NeighborTags prevTokenTags = null;
+    NeighborTags folTokenTags = null;
+    // search previous token with non-empty alignments
+    if (targetTokenIndex > 0) {
+      for (int i = targetTokenIndex - 1; i >= 0; i--) {
+        List<Integer> previousSourceTokenIndexes = algn.getSourceTokenIndexes(i);
+        prevTokenTags = getNeighborTags(
+            previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
+        if (!prevTokenTags.isEmpty()) {
+          prevIndexWithTags = i;
+          break;
+        }
+      }
+    }
+    // search following token with non-empty alignments;
+    // note that an eos marker has been added to targetTokensWithoutTags and is ignored
+    if (targetTokenIndex < targetTokensWithoutTags.length - 2) {
+      for (int i = targetTokenIndex + 1; i < targetTokensWithoutTags.length - 1; i++) {
+        List<Integer> followingSourceTokenIndexes = algn.getSourceTokenIndexes(i);
+        folTokenTags = getNeighborTags(
+            followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
+        if (!folTokenTags.isEmpty()) {
+          folIndexWithTags = i;
+          break;
+        }
+      }
+    }
+
+    if (prevIndexWithTags == -1
+        || folIndexWithTags == -1) {
+      // no previous or following tokens with non-empty alignments;
+      // we only interpolate tags for tokens *in between* tokens with tags
       return new NeighborTags();
     }
 
-    if (previousSourceTokenIndexes == null
-        && folIndexWithAlgn <= maxGapSize) {
-      // only following token with alignments
-      return getNeighborTags(followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
-
-    }
-
-    // only previous tokens with alignments
-    if (followingSourceTokenIndexes == null
-        && targetTokensWithoutTags.length - prevIndexWithAlgn - 2 <= maxGapSize) {
-      // only previous token with alignments
-      return getNeighborTags(previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
-    }
-
-    // previous and following tokens with alignments
-    if (previousSourceTokenIndexes != null
-        && followingSourceTokenIndexes != null
-        && (folIndexWithAlgn - prevIndexWithAlgn - 1) <= maxGapSize) {
-      NeighborTags prevTokenTags =
-          getNeighborTags(previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
-      NeighborTags folTokenTags =
-          getNeighborTags(followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags);
+    if (prevTokenTags != null
+        && folTokenTags != null
+        && (folIndexWithTags - prevIndexWithTags - 1) <= maxGapSize) {
+      // previous and following tokens with non-empty alignments;
+      // interpolate if within gap size
       prevTokenTags.buildIntersection(folTokenTags);
       return prevTokenTags;
     }
@@ -2010,12 +2105,14 @@ public final class MarkupInserter {
    *          {@link #createTokenIndex2TagsComplete(String[], Map)}
    * @param usedIsolatedTags
    *          set of isolated tags already used; these are ignored
+   * @param ignoreIsolated
+   *          if {@code true} ignore isolated tags, used when interpolating tags
    * @return the neighbor tags
    */
   static NeighborTags getNeighborTags(
       List<Integer> sourceTokenIndexes,
       Map<Integer, List<String>> sourceTokenIndex2tags,
-      Set<String> usedIsolatedTags) {
+      Set<String> usedIsolatedTags, boolean ignoreIsolated) {
 
     NeighborTags neighborTags = new NeighborTags();
     for (int oneSourceTokenIndex : sourceTokenIndexes) {
@@ -2028,12 +2125,16 @@ public final class MarkupInserter {
           neighborTags.addToAfterTags(oneSourceTag);
         } else {
           if (isIsolatedTag(oneSourceTag)) {
-            if (usedIsolatedTags.contains(oneSourceTag)) {
-              continue;
+            if (!ignoreIsolated) {
+              if (usedIsolatedTags.contains(oneSourceTag)) {
+                continue;
+              }
+              usedIsolatedTags.add(oneSourceTag);
+              neighborTags.addToBeforeTags(oneSourceTag);
             }
-            usedIsolatedTags.add(oneSourceTag);
+          } else {
+            neighborTags.addToBeforeTags(oneSourceTag);
           }
-          neighborTags.addToBeforeTags(oneSourceTag);
         }
       }
     }
@@ -2059,6 +2160,15 @@ public final class MarkupInserter {
 
       this.beforeTags = new ArrayList<>();
       this.afterTags = new ArrayList<>();
+    }
+
+
+    /**
+     * @return {@code true} if there are no before and after tags empty
+     */
+    boolean isEmpty() {
+
+      return this.beforeTags.isEmpty() && this.afterTags.isEmpty();
     }
 
 
