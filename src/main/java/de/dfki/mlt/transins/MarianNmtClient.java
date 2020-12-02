@@ -116,7 +116,6 @@ public class MarianNmtClient implements WebSocket.Listener {
   }
 
 
-
   /**
    * Send the given query texts for translation to the Marian NMT server.
    *

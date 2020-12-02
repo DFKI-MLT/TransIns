@@ -257,7 +257,7 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Create either hard or soft alignments instance, depending on the given raw alignments
+   * Create either hard or soft alignments instance, depending on the given raw alignments.
    *
    * @param rawAlignments
    *          the raw alignments

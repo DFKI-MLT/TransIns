@@ -365,7 +365,9 @@ public final class MarkupInserter {
    * x <\it> y <it> z
    * }
    * </pre>
-   * is changed into
+   *
+   * <p>is changed into
+   *
    * <pre>
    * {@code
    * x <it> y </it> z
@@ -1004,7 +1006,9 @@ public final class MarkupInserter {
    * x <\it> y <it> z
    * }
    * </pre>
-   * is changed into
+   *
+   * <p>is changed into
+   *
    * <pre>
    * {@code
    * <it> x y z </it>
@@ -1103,7 +1107,9 @@ public final class MarkupInserter {
    * x <it> y <it> z a </it> b c </it>
    * }
    * </pre>
-   * is changed into
+   *
+   * <p>is changed into
+   *
    * <pre>
    * {@code
    * x <it> y z a b c </it>
@@ -1184,19 +1190,25 @@ public final class MarkupInserter {
    * x <it> y <b> z </it> a </b> b
    * }
    * </pre>
-   * is changed into
+   *
+   * <p>is changed into
+   *
    * <pre>
    * {@code
    * x <it> y <b> z </b> </it> <b> a </b> b
    * }
    * </pre>
-   * Example 2:
+   *
+   * <p>Example 2:
+   *
    * <pre>
    * {@code
    * <it> x <b> y z </it> </b> a
    * }
    * </pre>
-   * is changed into
+   *
+   * <p>is changed into
+   *
    * <pre>
    * {@code
    * <it> x <b> y z </b> </it> a
@@ -1426,7 +1438,9 @@ public final class MarkupInserter {
    * x <b> <it> y </it> </b> <b> <it> z a b </it> </b>
    * }
    * </pre>
-   * is changed into
+   *
+   * <p>is changed into
+   *
    * <pre>
    * {@code
    * x <b> <it> y z a b </it> </b>
@@ -1705,7 +1719,9 @@ public final class MarkupInserter {
    * x <it> y <b> z </b> a </it> b
    * }
    * </pre>
-   * is interpreted as
+   *
+   * <p>is interpreted as
+   *
    * <pre>
    * {@code
    * x <it> y </it> <it> <b> z </b> </it> <it> a </it> b
@@ -2034,12 +2050,12 @@ public final class MarkupInserter {
    *          target tokens without tags
    * @param sourceTokenIndex2tags
    *          map of source token indexes to associated tags, as created with
-   *          {@link #createTokenIndex2TagsComplete(String[], Map)}
+   *          {@link #createTokenIndex2TagsComplete(SplitTagsSentence, TagMap)}
    * @param usedIsolatedTags
    *          set of isolated tags already used; these are ignored
    * @return the interpolated tags, potentially empty or incomplete
    */
-  public static NeighborTags interpolateNeighborTagsForEmptyAlignmentToken(
+  static NeighborTags interpolateNeighborTagsForEmptyAlignmentToken(
       int targetTokenIndex, Alignments algn, int maxGapSize,
       String[] targetTokensWithoutTags,
       Map<Integer, List<String>> sourceTokenIndex2tags,

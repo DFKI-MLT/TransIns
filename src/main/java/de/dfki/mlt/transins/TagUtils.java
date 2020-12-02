@@ -95,7 +95,7 @@ public final class TagUtils {
 
 
   /**
-   * Check if given token is an Okapi forward tag
+   * Check if given token is an Okapi forward tag.
    *
    * @param token
    *          the token

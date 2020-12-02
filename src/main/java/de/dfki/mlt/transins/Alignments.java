@@ -47,6 +47,4 @@ public interface Alignments {
    */
   @Override
   String toString();
-
-
 }
