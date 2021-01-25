@@ -2,6 +2,7 @@ package de.dfki.mlt.transins;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -164,9 +165,8 @@ public class Translator {
       // create the driver
       PipelineDriver driver = new PipelineDriver();
       driver.setFilterConfigurationMapper(this.fcMapper);
-      driver.setRootDirectories(
-          System.getProperty("user.dir"),
-          Util.getDirectoryName(rawDoc.getInputURI().getPath()));
+      String projectDir = Util.getDirectoryName(Paths.get(".").toAbsolutePath().toString());
+      driver.setRootDirectories(projectDir, projectDir);
 
       // raw document to filter events step
       driver.addStep(new RawDocumentToFilterEventsStep());
@@ -233,9 +233,8 @@ public class Translator {
     // create the driver
     PipelineDriver driver = new PipelineDriver();
     driver.setFilterConfigurationMapper(this.fcMapper);
-    driver.setRootDirectories(
-        System.getProperty("user.dir"),
-        Util.getDirectoryName(rawDoc.getInputURI().getPath()));
+    String projectDir = Util.getDirectoryName(Paths.get(".").toAbsolutePath().toString());
+    driver.setRootDirectories(projectDir, projectDir);
 
     // raw document to filter events step
     driver.addStep(new RawDocumentToFilterEventsStep());
