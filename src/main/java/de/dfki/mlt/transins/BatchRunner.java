@@ -270,7 +270,7 @@ public enum BatchRunner {
   private void postProcess(
       List<BatchItem> batchItems, String prePostHost, int prePostPort, String targetLang) {
 
-    logger.debug("preprocessing batch items...");
+    logger.debug("postprocessing batch items...");
 
     List<String> postprocessingInput = new ArrayList<>();
     for (BatchItem oneBatchItem : batchItems) {
