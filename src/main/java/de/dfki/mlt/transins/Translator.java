@@ -156,11 +156,13 @@ public class Translator {
 
       rawDoc.setFilterConfigId(configId);
 
+      String docId = "none";
       if (translatorId == TransId.MARIAN_BATCH) {
-        runMarianNmtBatch(rawDoc, sourceLang, targetLang, applySegmentation);
+        // create document id under which the results of the batch processor are stored
+        docId = rawDoc.hashCode() + "";
+        // run batch processor
+        runMarianNmtBatch(rawDoc, docId, sourceLang, targetLang, applySegmentation);
       }
-
-      String docId = rawDoc.hashCode() + "";
 
       // create the driver
       PipelineDriver driver = new PipelineDriver();
@@ -218,6 +220,8 @@ public class Translator {
    *
    * @param rawDoc
    *          the raw document
+   * @param docId
+   *          the document id
    * @param sourceLang
    *          the source language
    * @param targetLang
@@ -226,9 +230,8 @@ public class Translator {
    *          add segmentation when {@code true}
    */
   private void runMarianNmtBatch(
-      RawDocument rawDoc, String sourceLang, String targetLang, boolean applySegmentation) {
-
-    String docId = rawDoc.hashCode() + "";
+      RawDocument rawDoc, String docId, String sourceLang, String targetLang,
+      boolean applySegmentation) {
 
     // create the driver
     PipelineDriver driver = new PipelineDriver();
