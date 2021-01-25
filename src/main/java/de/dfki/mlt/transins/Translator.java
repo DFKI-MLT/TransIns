@@ -1,7 +1,11 @@
 package de.dfki.mlt.transins;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.Map;
@@ -11,10 +15,12 @@ import org.slf4j.LoggerFactory;
 
 import net.sf.okapi.common.LocaleId;
 import net.sf.okapi.common.MimeTypeMapper;
+import net.sf.okapi.common.StreamUtil;
 import net.sf.okapi.common.Util;
 import net.sf.okapi.common.exceptions.OkapiException;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.filters.IFilterConfigurationMapper;
+import net.sf.okapi.common.io.FileCachedInputStream;
 import net.sf.okapi.common.pipelinedriver.PipelineDriver;
 import net.sf.okapi.common.resource.RawDocument;
 import net.sf.okapi.connectors.apertium.ApertiumMTConnector;
@@ -127,17 +133,57 @@ public class Translator {
       throw new OkapiException(
           String.format("No file extension detected in \"%s\".", sourceFileName));
     }
-    // get configuration id for extension
-    String configId = this.extensionsMap.get(ext);
+
+    // create input stream and translate
+    try (InputStream inputStream =
+        Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
+      translate(inputStream, ext, sourceLang, sourceEnc,
+          targetFileName, targetLang, targetEnc, translatorId, applySegmentation);
+    } catch (IOException e) {
+      throw new OkapiException(
+          String.format("could not read source file \"%s\"", sourceFileName), e);
+    }
+  }
+
+
+  /**
+   * Translate source document read from the given input stream from the given source language to
+   * the given target language using the translator with the given id.
+   *
+   * @param inputStream
+   *          the stream to read the source document from
+   * @param fileExtension
+   *          the source document type, usually indicated by the file extension
+   * @param sourceLang
+   *          the source language
+   * @param sourceEnc
+   *          the source document encoding
+   * @param targetFileName
+   *          the target document file name
+   * @param targetLang
+   *          the target language
+   * @param targetEnc
+   *          the target document encoding
+   * @param translatorId
+   *          the translator id
+   * @param applySegmentation
+   *          apply segmentation when {@code true}
+   */
+  public void translate(
+      InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
+      String targetFileName, String targetLang, String targetEnc,
+      TransId translatorId, boolean applySegmentation) {
+
+    // get configuration id for file extension
+    String configId = this.extensionsMap.get(fileExtension);
     if (configId == null) {
       throw new OkapiException(String.format(
-          "Could not guess the configuration for the extension '%s'", ext));
+          "Could not guess the configuration for the extension '%s'", fileExtension));
     }
-    // get MIME type for extension
-    String mimeType = MimeTypeMapper.getMimeType(ext);
+    // get MIME type for file extension
+    String mimeType = MimeTypeMapper.getMimeType(fileExtension);
 
     // parameter summary
-    logger.info("             source file: {}", sourceFileName);
     logger.info("         source language: {}", sourceLang);
     logger.info("         source encoding: {}", sourceEnc);
     logger.info("             target file: {}", targetFileName);
@@ -147,22 +193,51 @@ public class Translator {
     logger.info("      MIME type detected: {}", mimeType);
     logger.info("  configuration detected: {}", configId);
 
+    String docId = "none";
+    if (translatorId == TransId.MARIAN_BATCH) {
+      try {
+        // make sure input stream is resettable, as we have to create the raw document twice
+        // from the same input stream
+        FileCachedInputStream resettableInputStream = StreamUtil.createResettableStream(
+            inputStream, FileCachedInputStream.DEFAULT_BUFFER_SIZE);
+
+        try (RawDocument rawDoc =
+            new RawDocument(
+                resettableInputStream,
+                sourceEnc,
+                LocaleId.fromString(sourceLang),
+                LocaleId.fromString(targetLang))) {
+          rawDoc.setFilterConfigId(configId);
+
+          // create document id under which the results of the batch processor are stored
+          docId = rawDoc.hashCode() + "";
+
+          // run batch processor
+          runMarianNmtBatch(rawDoc, docId, sourceLang, targetLang, applySegmentation);
+
+          // reset input stream so that the same rawDocument can be processed again
+          if (!resettableInputStream.isOpen()) {
+            resettableInputStream.reopen();
+          }
+          resettableInputStream.reset();
+          inputStream = resettableInputStream;
+        }
+      } catch (IOException e) {
+        throw new OkapiException("creation of resettable input stream failed", e);
+      }
+    }
+
+    // process document for the first time (if using MARIAN)
+    // or for the second time (if using MARIAN_BATCH); in the latter case, pre-/postprocessing
+    // results will be returned from cache
     try (RawDocument rawDoc =
         new RawDocument(
-            new File(sourceFileName).toURI(),
+            inputStream,
             sourceEnc,
             LocaleId.fromString(sourceLang),
             LocaleId.fromString(targetLang))) {
-
+      
       rawDoc.setFilterConfigId(configId);
-
-      String docId = "none";
-      if (translatorId == TransId.MARIAN_BATCH) {
-        // create document id under which the results of the batch processor are stored
-        docId = rawDoc.hashCode() + "";
-        // run batch processor
-        runMarianNmtBatch(rawDoc, docId, sourceLang, targetLang, applySegmentation);
-      }
 
       // create the driver
       PipelineDriver driver = new PipelineDriver();
