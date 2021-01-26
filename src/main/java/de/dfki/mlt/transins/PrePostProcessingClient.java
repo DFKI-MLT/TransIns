@@ -27,6 +27,8 @@ import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.sf.okapi.common.exceptions.OkapiException;
+
 
 /**
  * Client to talk to the pre-/postprocessing server.
@@ -96,7 +98,9 @@ public class PrePostProcessingClient {
           return EntityUtils.toString(entity);
         }
       } else {
-        logger.error(EntityUtils.toString(response.getEntity()));
+        String errorMessage = EntityUtils.toString(response.getEntity());
+        logger.error(errorMessage);
+        throw new OkapiException(errorMessage);
       }
     } catch (URISyntaxException | IOException e) {
       logger.error(e.getLocalizedMessage(), e);
@@ -169,7 +173,9 @@ public class PrePostProcessingClient {
           }
         }
       } else {
-        logger.error(EntityUtils.toString(response.getEntity()));
+        String errorMessage = EntityUtils.toString(response.getEntity());
+        logger.error(errorMessage);
+        throw new OkapiException(errorMessage);
       }
 
     } catch (URISyntaxException | IOException e) {
