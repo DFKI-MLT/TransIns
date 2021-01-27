@@ -64,28 +64,20 @@ public enum BatchRunner {
 
 
   /**
-   * Process batch input list stored under the given id using the pre/postprocessing
-   * and translation servers with the given coordinates.
+   * Process batch input list stored under the id (as set in the given Marian NMT configuration)
+   * using Marian NMT with the given configuration.
    *
-   * @param docId
-   *          the document id
-   * @param transUrl
-   *          the URL of the translation server
-   * @param prePostHost
-   *          the host of the pre/postprocessing server
-   * @param prePostPort
-   *          the port of the pre/postprocessing server
    * @param sourceLang
    *          the source language
    * @param targetLang
    *          the target language
+   * @param marianNmtResourceParams
+   *          the Marian NMT configuration
    */
-  public void processBatch(
-      String docId, String transUrl, String prePostHost, int prePostPort,
-      String sourceLang, String targetLang) {
+  public void processBatch(String sourceLang, String targetLang,
+      MarianNmtParameters marianNmtResourceParams) {
 
-    MarianNmtClient translatorClient = new MarianNmtClient(transUrl);
-
+    String docId = marianNmtResourceParams.getDocumentId();
     List<TextFragment> batchInputList = this.batchInputs.get(docId);
     if (batchInputList == null) {
       // nothing to do
@@ -95,6 +87,11 @@ public enum BatchRunner {
 
     StopWatch watch = new StopWatch();
     watch.start();
+
+    MarianNmtClient translatorClient =
+        new MarianNmtClient(marianNmtResourceParams.getTranslationUrl());
+    String prePostHost = marianNmtResourceParams.getPrePostHost();
+    int prePostPort = marianNmtResourceParams.getPrePostPort();
 
     List<BatchItem> batchItems = createBatchItems(batchInputList);
     preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);

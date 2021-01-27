@@ -193,7 +193,13 @@ public class Translator {
     logger.info("      MIME type detected: {}", mimeType);
     logger.info("  configuration detected: {}", configId);
 
-    String docId = "none";
+    // read Marian NMT configuration if Marian NMT is used as translator
+    MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
+    if (translatorId == TransId.MARIAN || translatorId == TransId.MARIAN_BATCH) {
+      URI paramUri = new File("src/main/resources/marianConfig.cfg").toURI();
+      marianNmtResourceParams.load(Util.URItoURL(paramUri), false);
+    }
+
     if (translatorId == TransId.MARIAN_BATCH) {
       try {
         // make sure input stream is resettable, as we have to create the raw document twice
@@ -209,11 +215,13 @@ public class Translator {
                 LocaleId.fromString(targetLang))) {
           rawDoc.setFilterConfigId(configId);
 
-          // create document id under which the results of the batch processor are stored
-          docId = rawDoc.hashCode() + "";
+          // add document id under which the results of the batch processor are stored
+          // to Marian NMT configuration
+          marianNmtResourceParams.setDocumentId(rawDoc.hashCode() + "");
 
           // run batch processor
-          runMarianNmtBatch(rawDoc, docId, sourceLang, targetLang, applySegmentation);
+          runMarianNmtBatch(
+              rawDoc, sourceLang, targetLang, marianNmtResourceParams, applySegmentation);
 
           // reset input stream so that the same rawDocument can be processed again
           if (!resettableInputStream.isOpen()) {
@@ -236,7 +244,7 @@ public class Translator {
             sourceEnc,
             LocaleId.fromString(sourceLang),
             LocaleId.fromString(targetLang))) {
-      
+
       rawDoc.setFilterConfigId(configId);
 
       // create the driver
@@ -263,8 +271,7 @@ public class Translator {
           break;
         case MARIAN:
         case MARIAN_BATCH:
-          driver.addStep(createMarianLeveragingStep(
-              "src/main/resources/marianConfig.cfg", docId));
+          driver.addStep(createMarianLeveragingStep(marianNmtResourceParams));
           break;
         case UPPERCASE_DUMMY:
           driver.addStep(new UppercaseStep());
@@ -284,7 +291,7 @@ public class Translator {
 
       if (translatorId == TransId.MARIAN_BATCH) {
         // remove processed text fragments for this document from batch runner
-        BatchRunner.INSTANCE.clear(docId);
+        BatchRunner.INSTANCE.clear(marianNmtResourceParams.getDocumentId());
       }
     }
   }
@@ -295,18 +302,18 @@ public class Translator {
    *
    * @param rawDoc
    *          the raw document
-   * @param docId
-   *          the document id
    * @param sourceLang
    *          the source language
    * @param targetLang
    *          the target language
+   * @param marianNmtResourceParams
+   *          the Marian NMT configuration
    * @param applySegmentation
    *          add segmentation when {@code true}
    */
   private void runMarianNmtBatch(
-      RawDocument rawDoc, String docId, String sourceLang, String targetLang,
-      boolean applySegmentation) {
+      RawDocument rawDoc, String sourceLang, String targetLang,
+      MarianNmtParameters marianNmtResourceParams, boolean applySegmentation) {
 
     // create the driver
     PipelineDriver driver = new PipelineDriver();
@@ -323,7 +330,7 @@ public class Translator {
     }
 
     // collect all text fragments for batch processor
-    driver.addStep(new TextFragmentsCollector(docId));
+    driver.addStep(new TextFragmentsCollector(marianNmtResourceParams.getDocumentId()));
 
     // add document to Okapi pipeline for processing
     driver.addBatchItem(rawDoc);
@@ -333,16 +340,8 @@ public class Translator {
 
     // batch process text fragments collected in the pipeline above;
     // use parameters of MarianNmtConnector
-    URI paramUri = new File("src/main/resources/marianConfig.cfg").toURI();
-    MarianNmtParameters translatorParams = new MarianNmtParameters();
-    translatorParams.load(Util.URItoURL(paramUri), false);
-    BatchRunner.INSTANCE.processBatch(
-        docId,
-        translatorParams.getTranslationUrl(),
-        translatorParams.getPrePostHost(),
-        translatorParams.getPrePostPort(),
-        sourceLang, targetLang);
-    logger.debug(BatchRunner.INSTANCE.getStats(docId));
+    BatchRunner.INSTANCE.processBatch(sourceLang, targetLang, marianNmtResourceParams);
+    logger.debug(BatchRunner.INSTANCE.getStats(marianNmtResourceParams.getDocumentId()));
   }
 
 
@@ -429,29 +428,18 @@ public class Translator {
   /**
    * Create leveraging step using Marian translator.
    *
-   * @param translatorConfig
-   *          the translator configuration
-   * @param docId
-   *          the document id of the document to translate; use hash code of raw document
+   * @param marianNmtResourceParams
+   *          the Marian NMT configuration
    * @return the leveraging step
    */
-  private LeveragingStep createMarianLeveragingStep(String translatorConfig, String docId) {
+  private LeveragingStep createMarianLeveragingStep(MarianNmtParameters marianNmtResourceParams) {
 
     LeveragingStep levStep = new LeveragingStep();
 
     net.sf.okapi.steps.leveraging.Parameters levParams =
         (net.sf.okapi.steps.leveraging.Parameters)levStep.getParameters();
     levParams.setResourceClassName(MarianNmtConnector.class.getName());
-
-    MarianNmtParameters resourceParams = new MarianNmtParameters();
-
-    // use the specified parameters if available, otherwise use the default
-    if (translatorConfig != null) {
-      URI paramUri = new File(translatorConfig).toURI();
-      resourceParams.load(Util.URItoURL(paramUri), false);
-    }
-    resourceParams.setDocumentId(docId);
-    levParams.setResourceParameters(resourceParams.toString());
+    levParams.setResourceParameters(marianNmtResourceParams.toString());
     levParams.setFillTarget(true);
 
     return levStep;

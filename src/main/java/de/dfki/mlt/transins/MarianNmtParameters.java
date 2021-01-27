@@ -6,7 +6,9 @@ import net.sf.okapi.common.uidescription.EditorDescription;
 import net.sf.okapi.common.uidescription.IEditorDescriptionProvider;
 
 /**
- * Parameters used for {@link MarianNmtConnector}.
+ * Parameters used for {@link MarianNmtConnector}. These are initialized from a config file, but
+ * we add further parameters at runtime, as this is the only way to pass arguments to
+ * MarianNmtConnector. This currently applies for the document id.
  *
  * @author Jörg Steffen, DFKI
  */
@@ -107,25 +109,6 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   }
 
 
-  /**
-   * @return the document id of the document to translate
-   */
-  public String getDocumentId() {
-
-    return getString(DOC_ID);
-  }
-
-
-  /**
-   * @param docId
-   *          the document id of the document to translate
-   */
-  public void setDocumentId(String docId) {
-
-    setString(DOC_ID, docId);
-  }
-
-
   @Override
   public ParametersDescription getParametersDescription() {
 
@@ -136,8 +119,6 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
         "Host where pre-/postprocessing server runs");
     desc.add(PREPOST_PORT, "Pre-/Postprocessing Port:",
         "Port of the pre-/postprocessing server");
-    desc.add(DOC_ID, "document id:",
-        "document id of the document to translate; use the hash code of the raw document");
 
     return desc;
   }
@@ -152,5 +133,26 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
     desc.addTextInputPart(paramsDesc.get(PREPOST_HOST));
     desc.addTextInputPart(paramsDesc.get(PREPOST_PORT));
     return desc;
+  }
+
+
+  /**
+   * @return the document id of the document to translate;
+   *         not part of the config file, but set at runtime
+   */
+  public String getDocumentId() {
+
+    return getString(DOC_ID);
+  }
+
+
+  /**
+   * @param docId
+   *          the document id of the document to translate;
+   *          not part of the config file, but set at runtime
+   */
+  public void setDocumentId(String docId) {
+
+    setString(DOC_ID, docId);
   }
 }
