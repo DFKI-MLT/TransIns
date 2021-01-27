@@ -66,15 +66,59 @@
     </dependency>
 
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.10.1</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>20200518</version>
+    </dependency>
+
+    <dependency>
+      <!-- core Jetty server -->
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+      <version>9.4.36.v20210114</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <!-- Jetty servlet container -->
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>9.4.36.v20210114</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <!-- JAX-RS API -->
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-servlet</artifactId>
+      <version>2.33</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <!-- Jersey JSON Jackson (2.x) entity providers support module -->
+      <groupId>org.glassfish.jersey.media</groupId>
+      <artifactId>jersey-media-json-jackson</artifactId>
+      <version>2.33</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <!--  HK2 InjectionManager implementation -->
+      <groupId>org.glassfish.jersey.inject</groupId>
+      <artifactId>jersey-hk2</artifactId>
+      <version>2.33</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <!-- JavaBeans activation framework -->
+      <groupId>javax.activation</groupId>
+      <artifactId>activation</artifactId>
+      <version>1.1.1</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <!-- Java architecture for XML binding -->
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+      <version>2.3.1</version>
+      <scope>runtime</scope>
     </dependency>
 
     <!-- Okapi dependencies -->

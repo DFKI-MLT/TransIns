@@ -1,4 +1,6 @@
 /target/
+/incoming/
+/outgoing/
 /log/
 /.settings/
 /.classpath

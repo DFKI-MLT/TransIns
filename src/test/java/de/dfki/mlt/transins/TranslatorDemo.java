@@ -1,5 +1,7 @@
 package de.dfki.mlt.transins;
 
+import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
+
 /**
  * Demo of {@link Translator} class usage.
  *
@@ -27,7 +29,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MICROSOFT, applySegmentation);
+        Translator.TransId.MICROSOFT, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
   }
 
 
@@ -45,7 +47,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.APERTIUM, applySegmentation);
+        Translator.TransId.APERTIUM, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
   }
 
 
@@ -63,7 +65,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MARIAN_BATCH, applySegmentation);
+        Translator.TransId.MARIAN, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
   }
 
 
@@ -81,7 +83,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MARIAN_BATCH, applySegmentation);
+        Translator.TransId.MARIAN_BATCH, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
   }
 
 
@@ -99,6 +101,6 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.UPPERCASE_DUMMY, applySegmentation);
+        Translator.TransId.UPPERCASE_DUMMY, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
   }
 }

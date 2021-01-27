@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +98,15 @@ public class Translator {
 
     this.extensionsMap.put("htm", "okf_html");
     this.extensionsMap.put("html", "okf_html");
+  }
+
+
+  /**
+   * @return set of supported file extensions
+   */
+  public Set<String> getSupportedExtensions() {
+
+    return this.extensionsMap.keySet();
   }
 
 
