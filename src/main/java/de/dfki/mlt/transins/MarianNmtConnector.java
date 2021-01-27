@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import de.dfki.mlt.transins.PrePostProcessingClient.Mode;
 import net.sf.okapi.common.IParameters;
 import net.sf.okapi.common.exceptions.OkapiException;
@@ -165,8 +166,8 @@ public class MarianNmtConnector extends BaseConnector {
     } catch (InterruptedException | ExecutionException e) {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
     }
-    String translation =
-        processRawTranslation(rawTranslation, fragment, preprocessedSourceSentence);
+    String translation = processRawTranslation(
+        rawTranslation, fragment, preprocessedSourceSentence, this.params.getMarkupStrategy());
 
     // postprocessing
     String postprocessedSentence =
@@ -224,10 +225,13 @@ public class MarianNmtConnector extends BaseConnector {
    *          the fragment from which the source sentence to translate was provided
    * @param preprocessedSourceSentence
    *          the preprocessed source sentence
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use
    * @return the translation with re-inserted tags (if required) and resolved byte pair encoding
    */
   static String processRawTranslation(
-      String rawTranslation, TextFragment fragment, String preprocessedSourceSentence) {
+      String rawTranslation, TextFragment fragment, String preprocessedSourceSentence,
+      MarkupStrategy markupStrategy) {
 
     // split into translation and alignments
     String[] parts = rawTranslation.split(" \\|\\|\\| ");
@@ -245,8 +249,8 @@ public class MarianNmtConnector extends BaseConnector {
         Alignments algn = createAlignments(rawAlignments);
         // compensate for leading target language token in source sentence
         algn.shiftSourceIndexes(-1);
-        translation = MarkupInserter.insertMarkupComplete(
-            preprocessedSourceSentence, translation, algn);
+        translation = MarkupInserter.insertMarkup(
+            preprocessedSourceSentence, translation, algn, markupStrategy);
       } else {
         // no tags, just undo byte pair encoding
         translation = translation.replaceAll("@@ ", "");

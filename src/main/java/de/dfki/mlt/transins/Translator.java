@@ -13,6 +13,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import net.sf.okapi.common.LocaleId;
 import net.sf.okapi.common.MimeTypeMapper;
 import net.sf.okapi.common.StreamUtil;
@@ -117,13 +118,15 @@ public class Translator {
    *          the target document encoding
    * @param translatorId
    *          the translator id
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use; only applies when using Marian NMT
    * @param applySegmentation
    *          add segmentation when {@code true}
    */
   public void translate(
       String sourceFileName, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      TransId translatorId, boolean applySegmentation) {
+      TransId translatorId, MarkupStrategy markupStrategy, boolean applySegmentation) {
 
     // get file extension
     String ext = Util.getExtension(sourceFileName);
@@ -138,7 +141,7 @@ public class Translator {
     try (InputStream inputStream =
         Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
       translate(inputStream, ext, sourceLang, sourceEnc,
-          targetFileName, targetLang, targetEnc, translatorId, applySegmentation);
+          targetFileName, targetLang, targetEnc, translatorId, markupStrategy, applySegmentation);
     } catch (IOException e) {
       throw new OkapiException(
           String.format("could not read source file \"%s\"", sourceFileName), e);
@@ -166,13 +169,15 @@ public class Translator {
    *          the target document encoding
    * @param translatorId
    *          the translator id
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use; only applies when using Marian NMT
    * @param applySegmentation
    *          apply segmentation when {@code true}
    */
   public void translate(
       InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      TransId translatorId, boolean applySegmentation) {
+      TransId translatorId, MarkupStrategy markupStrategy, boolean applySegmentation) {
 
     // get configuration id for file extension
     String configId = this.extensionsMap.get(fileExtension);
@@ -184,20 +189,22 @@ public class Translator {
     String mimeType = MimeTypeMapper.getMimeType(fileExtension);
 
     // parameter summary
-    logger.info("         source language: {}", sourceLang);
-    logger.info("         source encoding: {}", sourceEnc);
-    logger.info("             target file: {}", targetFileName);
-    logger.info("         target language: {}", targetLang);
-    logger.info("         target encoding: {}", targetEnc);
-    logger.info("           translator id: {}", translatorId);
-    logger.info("      MIME type detected: {}", mimeType);
-    logger.info("  configuration detected: {}", configId);
+    logger.info("             source language: {}", sourceLang);
+    logger.info("             source encoding: {}", sourceEnc);
+    logger.info("                 target file: {}", targetFileName);
+    logger.info("             target language: {}", targetLang);
+    logger.info("             target encoding: {}", targetEnc);
+    logger.info("               translator id: {}", translatorId);
+    logger.info("markup re-insertion strategy: {}", markupStrategy);
+    logger.info("          MIME type detected: {}", mimeType);
+    logger.info("      configuration detected: {}", configId);
 
     // read Marian NMT configuration if Marian NMT is used as translator
     MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
     if (translatorId == TransId.MARIAN || translatorId == TransId.MARIAN_BATCH) {
       URI paramUri = new File("src/main/resources/marianConfig.cfg").toURI();
       marianNmtResourceParams.load(Util.URItoURL(paramUri), false);
+      marianNmtResourceParams.setMarkupStrategy(markupStrategy);
     }
 
     if (translatorId == TransId.MARIAN_BATCH) {

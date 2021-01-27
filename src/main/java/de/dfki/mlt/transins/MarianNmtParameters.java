@@ -1,5 +1,6 @@
 package de.dfki.mlt.transins;
 
+import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import net.sf.okapi.common.ParametersDescription;
 import net.sf.okapi.common.StringParameters;
 import net.sf.okapi.common.uidescription.EditorDescription;
@@ -8,7 +9,7 @@ import net.sf.okapi.common.uidescription.IEditorDescriptionProvider;
 /**
  * Parameters used for {@link MarianNmtConnector}. These are initialized from a config file, but
  * we add further parameters at runtime, as this is the only way to pass arguments to
- * MarianNmtConnector. This currently applies for the document id.
+ * MarianNmtConnector. This currently applies for the document id and markup strategy.
  *
  * @author Jörg Steffen, DFKI
  */
@@ -18,6 +19,7 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   private static final String PREPOST_HOST = "prepost_host";
   private static final String PREPOST_PORT = "prepost_port";
   private static final String DOC_ID = "doc_id";
+  private static final String MARKUP_STRATEGY = "markup_strategy";
 
 
   /**
@@ -154,5 +156,26 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   public void setDocumentId(String docId) {
 
     setString(DOC_ID, docId);
+  }
+
+
+  /**
+   * @return the markup re-insertion strategy;
+   *         not part of the config file, but set at runtime
+   */
+  public MarkupStrategy getMarkupStrategy() {
+
+    return MarkupStrategy.valueOf(getString(MARKUP_STRATEGY));
+  }
+
+
+  /**
+   * @param markupStrategy
+   *          the markup re-insertion strategy;
+   *          not part of the config file, but set at runtime
+   */
+  public void setMarkupStrategy(MarkupStrategy markupStrategy) {
+
+    setString(MARKUP_STRATEGY, markupStrategy.toString());
   }
 }

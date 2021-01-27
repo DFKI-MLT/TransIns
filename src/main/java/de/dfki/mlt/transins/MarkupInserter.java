@@ -35,6 +35,20 @@ import net.sf.okapi.common.exceptions.OkapiException;
  */
 public final class MarkupInserter {
 
+  /** markup re-insertion strategies, currently only supported when using Marian NMT server */
+  public enum MarkupStrategy {
+
+    /** naive implementation based on the strategy implemented in mtrain */
+    MTRAIN,
+
+    /** improved mtrain implementation */
+    MTRAIN_IMPROVED,
+
+    /** implementation with complete token-index-2-tags mapping */
+    COMPLETE_MAPPING
+  }
+
+
   private static final Logger logger = LoggerFactory.getLogger(MarkupInserter.class);
 
   // special token to mark end of sentence of target sentence
@@ -47,6 +61,37 @@ public final class MarkupInserter {
   private MarkupInserter() {
 
     // private constructor to enforce noninstantiability
+  }
+
+
+  /**
+   * Insert markup from given source sentence into its given translation using the given alignments
+   * and re-insertion strategy.
+   *
+   * @param preprocessedSourceSentence
+   *          the preprocessed source sentence with whitespace separated tokens
+   * @param translation
+   *          the translation of the source sentence with whitespace separated tokens
+   * @param algn
+   *          the alignments
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use
+   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   */
+  public static String insertMarkup(
+      String preprocessedSourceSentence, String translation, Alignments algn,
+      MarkupStrategy markupStrategy) {
+
+    switch (markupStrategy) {
+      case MTRAIN:
+        return insertMarkupMtrain(preprocessedSourceSentence, translation, algn);
+      case MTRAIN_IMPROVED:
+        return insertMarkupMtrainImproved(preprocessedSourceSentence, translation, algn);
+      case COMPLETE_MAPPING:
+        return insertMarkupComplete(preprocessedSourceSentence, translation, algn);
+      default:
+        return insertMarkupComplete(preprocessedSourceSentence, translation, algn);
+    }
   }
 
 

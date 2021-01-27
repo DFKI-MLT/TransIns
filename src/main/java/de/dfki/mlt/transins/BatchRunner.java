@@ -14,6 +14,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import de.dfki.mlt.transins.PrePostProcessingClient.Mode;
 import lombok.Data;
 import net.sf.okapi.common.exceptions.OkapiException;
@@ -92,10 +93,11 @@ public enum BatchRunner {
         new MarianNmtClient(marianNmtResourceParams.getTranslationUrl());
     String prePostHost = marianNmtResourceParams.getPrePostHost();
     int prePostPort = marianNmtResourceParams.getPrePostPort();
+    MarkupStrategy markupStrategy = marianNmtResourceParams.getMarkupStrategy();
 
     List<BatchItem> batchItems = createBatchItems(batchInputList);
     preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);
-    translate(batchItems, translatorClient);
+    translate(batchItems, translatorClient, markupStrategy);
     postProcess(batchItems, prePostHost, prePostPort, targetLang);
     createBatchResult(batchItems, docId);
 
@@ -227,8 +229,11 @@ public enum BatchRunner {
    *          the batch items
    * @param translatorClient
    *          the translator client to use
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use
    */
-  private void translate(List<BatchItem> batchItems, MarianNmtClient translatorClient) {
+  private void translate(List<BatchItem> batchItems, MarianNmtClient translatorClient,
+      MarkupStrategy markupStrategy) {
 
     logger.debug("translating batch items...");
 
@@ -244,7 +249,8 @@ public enum BatchRunner {
       for (BatchItem oneBatchItem : batchItems) {
         String rawTranslation = translatorResult.get(oneBatchItem.getTransInput());
         oneBatchItem.setPostInput(MarianNmtConnector.processRawTranslation(
-            rawTranslation, oneBatchItem.getTextFragment(), oneBatchItem.getPreResult()));
+            rawTranslation, oneBatchItem.getTextFragment(), oneBatchItem.getPreResult(),
+            markupStrategy));
       }
     } catch (InterruptedException | ExecutionException e) {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
