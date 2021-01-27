@@ -101,6 +101,7 @@ public final class MarkupInserter {
 
   /**
    * Insert markup from given source sentence into its given translation using the given alignments.
+   * This is an improved  version of the strategy implemented in mtrain.
    *
    * @param preprocessedSourceSentence
    *          the preprocessed source sentence with whitespace separated tokens
@@ -110,7 +111,7 @@ public final class MarkupInserter {
    *          the alignments
    * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
    */
-  public static String insertMarkup(
+  public static String insertMarkupMtrainImproved(
       String preprocessedSourceSentence, String translation, Alignments algn) {
 
     logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
