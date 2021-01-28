@@ -141,7 +141,9 @@ public class Translator {
     // get file extension
     String ext = Util.getExtension(sourceFileName);
     // remove dot from extension
-    ext = ext.substring(1);
+    if (ext.length() > 0) {
+      ext = ext.substring(1);
+    }
     if (Util.isEmpty(ext)) {
       throw new OkapiException(
           String.format("No file extension detected in \"%s\".", sourceFileName));
