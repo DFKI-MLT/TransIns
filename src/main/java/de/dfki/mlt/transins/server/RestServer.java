@@ -7,6 +7,7 @@ import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -46,6 +47,7 @@ public final class RestServer {
         ServerProperties.PROVIDER_CLASSNAMES, TransInsService.class.getCanonicalName());
     resourceConfig.property(
         ServerProperties.WADL_FEATURE_DISABLE, true);
+    resourceConfig.register(MultiPartFeature.class);
     // init Jersey servlet and add to context
     ServletHolder jerseyServlet = new ServletHolder(new ServletContainer(resourceConfig));
     jerseyServlet.setInitOrder(0);

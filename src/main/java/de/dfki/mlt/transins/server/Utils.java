@@ -40,4 +40,24 @@ public final class Utils {
                 .setListDelimiterHandler(new DefaultListDelimiterHandler(',')));
     return builder.getConfiguration();
   }
+
+
+  /**
+   * Extract the file extension (without leading dot) from the given file name.
+   *
+   * @param fileName
+   *          the file name
+   * @return the extension without the leading dot
+   */
+  public static String getFileExtension(String fileName) {
+
+    int dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex != -1) {
+      String fileExtension = fileName.substring(dotIndex);
+      if (fileExtension.length() > 0) {
+        return fileExtension.substring(1);
+      }
+    }
+    return "";
+  }
 }

@@ -19,12 +19,13 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,82 +85,62 @@ public class TransInsService {
 
 
   /**
-   * Translate the document with the given type and encoding that is read from the given stream from
+   * Translate the document with the given encoding that is read from the given input stream from
    * the given source language to the given target language. Target document will use the same
    * encoding.
    *
    * @param inputStream
    *          the stream to read the document from
-   * @param fileExtension
-   *          the document type, usually indicated by the file extension,
-   *          as given by the query parameter 'ext'
+   * @param fileDisposition
+   *          form-data content disposition header
    * @param encoding
    *          the document encoding,
-   *          as given by the query parameter 'enc'
+   *          as given by the form parameter 'enc'
    * @param sourceLang
    *          the source language,
-   *          as given by the query parameter 'sl'
+   *          as given by the form parameter 'sl'
    * @param targetLang
    *          the target language,
-   *          as given by the query parameter 'tl'
+   *          as given by the form parameter 'tl'
    * @param markupStrategyString
-   *          the markup re-insertion strategy to use, defaults to COMPLETE_MAPPING
+   *          the markup re-insertion strategy to use, defaults to COMPLETE_MAPPING,
+   *          as given by the form parameter 'strategy'
    * @return an id to be used to retrieve the translation via {@link #getTranslation(String)}
    */
   @Path("/transins/translate")
   @POST
-  @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+  @Consumes(MediaType.MULTIPART_FORM_DATA)
   @Produces(MediaType.TEXT_PLAIN)
   @SuppressWarnings("checkstyle:IllegalCatch")
   public static Response translate(
-      InputStream inputStream,
-      @QueryParam("ext") String fileExtension, @QueryParam("enc") String encoding,
-      @QueryParam("sl") String sourceLang, @QueryParam("tl") String targetLang,
-      @DefaultValue("COMPLETE_MAPPING") @QueryParam("strategy") String markupStrategyString) {
+      @FormDataParam("file") InputStream inputStream,
+      @FormDataParam("file") FormDataContentDisposition fileDisposition,
+      @FormDataParam("enc") String encoding,
+      @FormDataParam("sl") String sourceLang, @FormDataParam("tl") String targetLang,
+      @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString) {
 
-    // create random document name;
-    // this is returned to caller and used as file name to store document in input folder
-    final String docId =
-        String.format("%s_%s-%s.%s", random.nextString(), sourceLang, targetLang, fileExtension);
-    logger.info("receiving source document \"{}\"", docId);
+    // extract file extension
+    String originalFileName = fileDisposition.getFileName();
+    String fileExtension = Utils.getFileExtension(originalFileName);
 
-    // check for valid query parameters:
-    // supported language pairs
-    String queryLangPair =
-        String.format("%s-%s", sourceLang.toLowerCase(), targetLang.toLowerCase());
-    if (!suppportedLangPairs.contains(queryLangPair)) {
-      String errorMessage = String.format("unsupported language pair %s", queryLangPair);
-      logger.error(errorMessage);
-      return Response.status(400, errorMessage).build();
-    }
-    // document type
-    if (!translator.getSupportedExtensions().contains(fileExtension.toLowerCase())) {
-      String errorMessage = String.format("unsupported file extension %s", fileExtension);
-      logger.error(errorMessage);
-      return Response.status(400, errorMessage).build();
-    }
-    // encoding
-    try {
-      Charset.forName(encoding);
-    } catch (UnsupportedCharsetException e) {
-      String errorMessage = String.format("unsupported encoding %s", encoding);
-      logger.error(errorMessage);
-      return Response.status(400, errorMessage).build();
-    }
-    // markup re-insertion strategy
-    MarkupStrategy markupStrategy;
-    try {
-      markupStrategy = MarkupStrategy.valueOf(markupStrategyString);
-    } catch (IllegalArgumentException e) {
-      String errorMessage =
-          String.format("unsupported markup re-insertion strategy %s", markupStrategyString);
+    // check for valid query parameters
+    String errorMessage =
+        checkQueryParameters(sourceLang, targetLang, fileExtension, encoding, markupStrategyString);
+    if (errorMessage != null) {
       logger.error(errorMessage);
       return Response.status(400, errorMessage).build();
     }
 
-    // write content from input stream to source file
-    final java.nio.file.Path sourcePath = Paths.get(INPUT_FOLDER).resolve(docId);
-    final java.nio.file.Path targetPath = Paths.get(OUTPUT_FOLDER).resolve(docId);
+    // create random job id; this is returned to caller and used to retrieve translation
+    String jobId = random.nextString();
+    // create input file name based on job id; this is only used internally
+    String internalFileName =
+        String.format("%s_%s-%s.%s", jobId, sourceLang, targetLang, fileExtension);
+    logger.info("receiving source document \"{}\"", internalFileName);
+
+    // write content from input stream to file
+    final java.nio.file.Path sourcePath = Paths.get(INPUT_FOLDER).resolve(internalFileName);
+    final java.nio.file.Path targetPath = Paths.get(OUTPUT_FOLDER).resolve(internalFileName);
     try (inputStream) {
       java.nio.file.Files.copy(
           inputStream,
@@ -167,17 +148,19 @@ public class TransInsService {
           StandardCopyOption.REPLACE_EXISTING);
       // check if file actually contains content
       if (Files.size(sourcePath) == 0) {
-        String errorMessage = "empty file";
-        logger.error(errorMessage);
-        return Response.status(400, errorMessage).build();
+        logger.error("empty file");
+        return Response.status(400, "empty file").build();
       }
     } catch (IOException e) {
       logger.error(e.getLocalizedMessage(), e);
       return Response.status(Status.SERVICE_UNAVAILABLE).build();
     }
 
-
-    jobManager.addJobToQueue(docId);
+    jobManager.addJobToQueue(
+        new Job(
+            jobId, originalFileName, internalFileName,
+            sourceLang, targetLang, encoding,
+            MarkupStrategy.valueOf(markupStrategyString)));
 
     // run translation in new thread;
     // because executor service thread pool only contains a single thread, it is guaranteed that
@@ -188,14 +171,15 @@ public class TransInsService {
       public Boolean call() {
 
         try {
-          jobManager.markJobAsInTranslation(docId);
+          jobManager.markJobAsInTranslation(jobId);
           translator.translate(
               sourcePath.toAbsolutePath().toString(), sourceLang, encoding,
               targetPath.toAbsolutePath().toString(),
-              targetLang, encoding, Translator.TransId.MARIAN_BATCH, markupStrategy, true);
-          jobManager.markJobAsFinished(docId);
+              targetLang, encoding, Translator.TransId.MARIAN_BATCH,
+              MarkupStrategy.valueOf(markupStrategyString), true);
+          jobManager.markJobAsFinished(jobId);
         } catch (Throwable e) {
-          jobManager.markJobAsFailed(docId);
+          jobManager.markJobAsFailed(jobId);
           logger.error(e.getLocalizedMessage(), e);
         }
 
@@ -203,23 +187,23 @@ public class TransInsService {
       }
     });
 
-    return Response.accepted(docId).build();
+    return Response.accepted(jobId).build();
   }
 
 
   /**
-   * Retrieve the translation of the document with the given id.
+   * Retrieve the translation of the document with the given job id.
    *
-   * @param docId
-   *          the document id
+   * @param jobId
+   *          the job id
    * @return the translated document
    */
-  @Path("/transins/getTranslation/{docId}")
+  @Path("/transins/getTranslation/{jobId}")
   @GET
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
-  public static Response getTranslation(@PathParam("docId") String docId) {
+  public static Response getTranslation(@PathParam("jobId") String jobId) {
 
-    JobManager.Status status = jobManager.getStatus(docId);
+    Job.Status status = jobManager.getStatus(jobId);
     switch (status) {
       case QUEUED:
         return Response.status(404, "document still queued for translation").build();
@@ -228,16 +212,65 @@ public class TransInsService {
       case FAILED:
         return Response.status(404, "document translation failed").build();
       case UNKONWN:
-        return Response.status(404, "unknown document").build();
+        return Response.status(404, "unknown job id").build();
       case FINISHED:
-        java.nio.file.Path translation = Paths.get(OUTPUT_FOLDER).resolve(docId);
+        java.nio.file.Path translation =
+            Paths.get(OUTPUT_FOLDER).resolve(jobManager.getInternalFileName(jobId));
         return Response.ok(translation.toFile(), MediaType.APPLICATION_OCTET_STREAM)
             .header("Content-Disposition",
-                String.format("attachment; filename=\"%s\"", translation.getFileName()))
+                String.format("attachment; filename=\"%s\"", jobManager.getResultFileName(jobId)))
             .build();
       default:
         return Response.status(Status.INTERNAL_SERVER_ERROR).build();
     }
+  }
+
+
+  /**
+   * Check validity of given query parameters.
+   *
+   * @param sourceLang
+   *          the source language
+   * @param targetLang
+   *          the target language
+   * @param fileExtension
+   *          the document type, usually indicated by the file extension
+   * @param encoding
+   *          the encoding
+   * @param markupStrategyString
+   *          the markup re-insertion strategy
+   * @return error message if a parameter is not valid, <code>null</code> if all parameters are
+   *         valid
+   */
+  private static String checkQueryParameters(
+      String sourceLang, String targetLang, String fileExtension, String encoding,
+      String markupStrategyString) {
+
+    // supported language pairs
+    String queryLangPair =
+        String.format("%s-%s", sourceLang.toLowerCase(), targetLang.toLowerCase());
+    if (!suppportedLangPairs.contains(queryLangPair)) {
+      return String.format("unsupported language pair %s", queryLangPair);
+    }
+    // document type
+    if (!translator.getSupportedExtensions().contains(fileExtension.toLowerCase())) {
+      return String.format("unsupported file extension %s", fileExtension);
+    }
+    // encoding
+    try {
+      Charset.forName(encoding);
+    } catch (UnsupportedCharsetException e) {
+      return String.format("unsupported encoding %s", encoding);
+    }
+    // markup re-insertion strategy
+    try {
+      MarkupStrategy.valueOf(markupStrategyString);
+    } catch (IllegalArgumentException e) {
+      return String.format("unsupported markup re-insertion strategy %s", markupStrategyString);
+    }
+
+    // all parameters valid
+    return null;
   }
 
 

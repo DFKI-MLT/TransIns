@@ -93,24 +93,17 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <!-- Jersey JSON Jackson (2.x) entity providers support module -->
+      <!-- Jersey Multipart entity providers support module -->
       <groupId>org.glassfish.jersey.media</groupId>
-      <artifactId>jersey-media-json-jackson</artifactId>
+      <artifactId>jersey-media-multipart</artifactId>
       <version>2.33</version>
-      <scope>runtime</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <!--  HK2 InjectionManager implementation -->
       <groupId>org.glassfish.jersey.inject</groupId>
       <artifactId>jersey-hk2</artifactId>
       <version>2.33</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <!-- JavaBeans activation framework -->
-      <groupId>javax.activation</groupId>
-      <artifactId>activation</artifactId>
-      <version>1.1.1</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
