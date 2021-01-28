@@ -31,6 +31,7 @@ public enum BatchRunner {
   /** the only instance of this class */
   INSTANCE;
 
+
   private static final Logger logger = LoggerFactory.getLogger(BatchRunner.class);
 
   // map of document id to list of text fragments to batch process

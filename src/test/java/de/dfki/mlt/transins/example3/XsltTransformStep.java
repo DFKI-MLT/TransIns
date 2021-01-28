@@ -103,5 +103,4 @@ public class XsltTransformStep extends BasePipelineStep {
 
     return done;
   }
-
 }

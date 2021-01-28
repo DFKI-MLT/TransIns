@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import de.dfki.mlt.transins.Translator;
 
-
 /**
  * TransIns service providing methods to upload files to translate and retrieving the translation.
  *

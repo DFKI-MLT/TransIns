@@ -29,15 +29,12 @@ import org.slf4j.LoggerFactory;
 
 import net.sf.okapi.common.exceptions.OkapiException;
 
-
 /**
  * Client to talk to the pre-/postprocessing server.
  *
  * @author Jörg Steffen, DFKI
  */
 public class PrePostProcessingClient {
-
-  private static final Logger logger = LoggerFactory.getLogger(PrePostProcessingClient.class);
 
   /** processing modes; either preprocess or postprocess */
   public enum Mode {
@@ -49,6 +46,8 @@ public class PrePostProcessingClient {
     POSTPROCESS
   }
 
+
+  private static final Logger logger = LoggerFactory.getLogger(PrePostProcessingClient.class);
 
   private HttpClient httpClient;
 

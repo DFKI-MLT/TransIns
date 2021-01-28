@@ -62,6 +62,7 @@ public class Translator {
     UPPERCASE_DUMMY
   }
 
+
   private static final Logger logger = LoggerFactory.getLogger(Translator.class);
 
   private IFilterConfigurationMapper fcMapper;

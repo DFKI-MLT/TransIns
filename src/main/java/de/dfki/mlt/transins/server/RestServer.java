@@ -23,6 +23,7 @@ public final class RestServer {
 
   private static final Logger logger = LoggerFactory.getLogger(RestServer.class);
 
+
   private RestServer() {
 
     // private constructor to enforce noninstantiability

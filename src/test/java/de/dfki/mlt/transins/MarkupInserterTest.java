@@ -2086,10 +2086,10 @@ class MarkupInserterTest {
     // gap 1, max gap size 1, example from test Spiegel site
     sourceTokens = asArray(
         "OPEN1 OPEN2 Verdacht der Steu@@ erh@@ inter@@ ziehung CLOSE2 "
-        + "OPEN3 Durch@@ su@@ chung beim DF@@ B CLOSE3 CLOSE1");
+            + "OPEN3 Durch@@ su@@ chung beim DF@@ B CLOSE3 CLOSE1");
     targetTokensWithoutTags = asArray(
         "soup@@ çon de fraude fiscale "
-        + "fou@@ ille auprès de l&apos; Office fédéral des finances ( DF@@ B ) eos");
+            + "fou@@ ille auprès de l&apos; Office fédéral des finances ( DF@@ B ) eos");
     // indexes                                                     14  15 16 17 18
     rawAlignments = "0-0 0-1 1-2 1-3 2-4 6-5 7-6 9-7 9-8 9-9 "
         + "10-10 10-11 10-12 10-13 10-15 11-16 12-14 12-17 12-18";

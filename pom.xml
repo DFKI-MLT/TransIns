@@ -100,7 +100,7 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <!--  HK2 InjectionManager implementation -->
+    <!-- HK2 InjectionManager implementation -->
       <groupId>org.glassfish.jersey.inject</groupId>
       <artifactId>jersey-hk2</artifactId>
       <version>2.33</version>

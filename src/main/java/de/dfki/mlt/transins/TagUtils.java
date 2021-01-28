@@ -17,7 +17,6 @@ import net.sf.okapi.common.resource.TextFragment;
  */
 public final class TagUtils {
 
-
   private static final Logger logger = LoggerFactory.getLogger(TagUtils.class);
 
 

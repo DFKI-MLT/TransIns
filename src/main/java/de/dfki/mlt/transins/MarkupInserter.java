@@ -146,7 +146,7 @@ public final class MarkupInserter {
 
   /**
    * Insert markup from given source sentence into its given translation using the given alignments.
-   * This is an improved  version of the strategy implemented in mtrain.
+   * This is an improved version of the strategy implemented in mtrain.
    *
    * @param preprocessedSourceSentence
    *          the preprocessed source sentence with whitespace separated tokens

@@ -18,7 +18,6 @@ import static de.dfki.mlt.transins.TestUtils.OPEN3;
  */
 public class TagMapTest {
 
-
   /**
    * Test {@link TagMap#getOpeningTag(String)} and {@link TagMap#getClosingTag(String)}.
    */
