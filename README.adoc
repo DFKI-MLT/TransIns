@@ -10,3 +10,38 @@ Email: steffen@dfki.de
 
 == Summary
 Okapi-based tool with connector for Marian NMT translation server implementing a strategy for re-inserting markup of the source text into the translated text.
+
+== REST API
+
+TransIns provides a RESTful API that allows to query the translation service in an asynchronous way.
+
+The REST endpoint for sending a document to translate is `/transins/translate`. The query has to be sent as POST request encoded as `multipart/form-data` with the following fields:
+
+* `file` the file name of the document to translate
+* `sl` the source language, i.e. the language of the above document
+* `tl` the target language, i.e. the language to translate the document to
+* `enc` the encoding of the document; the translated document will use the same encoding
+* `strategy` the markup re-insertion strategy to use; possible values are `MTRAIN`, `MTRAIN_IMPROVED` and `COMPLETE_MAPPING` (default if strategy is not provided)
+
+If successful, the service returns a token which is required to retrieve the translated document with a second query. That query has to be sent as GET request to the `/transins/getTranslation` REST endpoint. It requires the token as path parameter. Please note that it is not guaranteed that the translated document can be retrieved immediately, as the translation may take some time. In this case, or if another problem occurs, the second call returns the HTTP response code 404 with one of the following error messages:
+
+* "document still queued for translation"
+* "document is currently being translated"
+* "document translation failed", i.e. an error occurred when translating the document
+* "unknown job id", i.e. the token could not be matched to any previously sent document
+
+To test the REST service, use the https://curl.haxx.se/[curl] and https://www.gnu.org/software/wget/[wget] tools.
+
+A query to translate an MS Office document `MyDoc.docx` from German to French sent to a TransIns service running on port 7777 at localhost would look like this:
+```
+curl -i -X POST -H "Content-Type: multipart/form-data" \
+-F "file=@MyDoc.docx" -F "sl=de" -F "tl=fr" -F "enc=windows-1252" \
+-F "strategy=COMPLETE_MAPPING" \
+localhost:7777/transins/translate
+```
+
+This returns a token `cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo` that must be used in the second query to retrieve the translated document:
+
+```
+wget -S --content-disposition localhost:7777/transins/getTranslation/cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo
+```
