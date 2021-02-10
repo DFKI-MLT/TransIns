@@ -21,7 +21,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
@@ -124,7 +123,7 @@ public class TransInsService {
             fileDisposition, sourceLang, targetLang, encoding, markupStrategyString);
     if (errorMessage != null) {
       logger.error(errorMessage);
-      return Response.status(400, errorMessage).build();
+      return createResponse(400, errorMessage);
     }
 
     // extract file extension
@@ -149,11 +148,11 @@ public class TransInsService {
       // check if file actually contains content
       if (Files.size(sourcePath) == 0) {
         logger.error("empty file");
-        return Response.status(400, "empty file").build();
+        return createResponse(400, "empty file");
       }
     } catch (IOException e) {
       logger.error(e.getLocalizedMessage(), e);
-      return Response.status(Status.SERVICE_UNAVAILABLE).build();
+      return createResponse(503, e.getMessage());
     }
 
     jobManager.addJobToQueue(
@@ -187,7 +186,8 @@ public class TransInsService {
       }
     });
 
-    return Response.accepted(jobId).build();
+    return Response.accepted(jobId)
+        .build();
   }
 
 
@@ -206,13 +206,13 @@ public class TransInsService {
     Job.Status status = jobManager.getStatus(jobId);
     switch (status) {
       case QUEUED:
-        return Response.status(202, "document still queued for translation").build();
+        return createResponse(202, "document still queued for translation");
       case IN_TRANSLATION:
-        return Response.status(202, "document is currently being translated").build();
+        return createResponse(202, "document is currently being translated");
       case FAILED:
-        return Response.status(404, "document translation failed").build();
+        return createResponse(404, "document translation failed");
       case UNKONWN:
-        return Response.status(404, "unknown job id").build();
+        return createResponse(404, "unknown job id");
       case FINISHED:
         java.nio.file.Path translation =
             Paths.get(OUTPUT_FOLDER).resolve(jobManager.getInternalFileName(jobId));
@@ -221,7 +221,7 @@ public class TransInsService {
                 String.format("attachment; filename=\"%s\"", jobManager.getResultFileName(jobId)))
             .build();
       default:
-        return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+        return createResponse(500, String.format("unknown job status \"%s\"", status));
     }
   }
 
@@ -289,6 +289,23 @@ public class TransInsService {
   @Produces(MediaType.TEXT_PLAIN)
   public static synchronized Response alive() {
 
-    return Response.ok("TransIns server is alive").build();
+    return Response.ok("TransIns server is alive")
+        .build();
+  }
+
+
+  /**
+   * Create a response with the given status and message.
+   *
+   * @param status
+   *          the status
+   * @param message
+   *          the message
+   * @return the response
+   */
+  private static Response createResponse(int status, String message) {
+
+    return Response.status(status, message)
+        .build();
   }
 }
