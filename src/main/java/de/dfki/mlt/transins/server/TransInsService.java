@@ -118,17 +118,18 @@ public class TransInsService {
       @FormDataParam("sl") String sourceLang, @FormDataParam("tl") String targetLang,
       @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString) {
 
-    // extract file extension
-    String originalFileName = fileDisposition.getFileName();
-    String fileExtension = Utils.getFileExtension(originalFileName);
-
     // check for valid query parameters
     String errorMessage =
-        checkQueryParameters(sourceLang, targetLang, fileExtension, encoding, markupStrategyString);
+        checkQueryParameters(
+            fileDisposition, sourceLang, targetLang, encoding, markupStrategyString);
     if (errorMessage != null) {
       logger.error(errorMessage);
       return Response.status(400, errorMessage).build();
     }
+
+    // extract file extension
+    String originalFileName = fileDisposition.getFileName();
+    String fileExtension = Utils.getFileExtension(originalFileName);
 
     // create random job id; this is returned to caller and used to retrieve translation
     String jobId = random.nextString();
@@ -228,12 +229,12 @@ public class TransInsService {
   /**
    * Check validity of given query parameters.
    *
+   * @param fileDisposition
+   *          the form data content disposition
    * @param sourceLang
    *          the source language
    * @param targetLang
    *          the target language
-   * @param fileExtension
-   *          the document type, usually indicated by the file extension
    * @param encoding
    *          the encoding
    * @param markupStrategyString
@@ -242,8 +243,8 @@ public class TransInsService {
    *         valid
    */
   private static String checkQueryParameters(
-      String sourceLang, String targetLang, String fileExtension, String encoding,
-      String markupStrategyString) {
+      FormDataContentDisposition fileDisposition,
+      String sourceLang, String targetLang, String encoding, String markupStrategyString) {
 
     // supported language pairs
     String queryLangPair =
@@ -252,6 +253,11 @@ public class TransInsService {
       return String.format("unsupported language pair %s", queryLangPair);
     }
     // document type
+    String originalFileName = fileDisposition.getFileName();
+    if (originalFileName == null) {
+      return "no file provided";
+    }
+    String fileExtension = Utils.getFileExtension(originalFileName);
     if (!translator.getSupportedExtensions().contains(fileExtension.toLowerCase())) {
       return String.format("unsupported file extension %s", fileExtension);
     }
