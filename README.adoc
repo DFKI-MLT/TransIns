@@ -23,12 +23,12 @@ The REST endpoint for sending a document to translate is `/transins/translate`. 
 * `enc` the encoding of the document; the translated document will use the same encoding
 * `strategy` the markup re-insertion strategy to use; possible values are `MTRAIN`, `MTRAIN_IMPROVED` and `COMPLETE_MAPPING` (default if strategy is not provided)
 
-If successful, the service returns a token which is required to retrieve the translated document with a second query. That query has to be sent as GET request to the `/transins/getTranslation` REST endpoint. It requires the token as path parameter. Please note that it is not guaranteed that the translated document can be retrieved immediately, as the translation may take some time. In this case, or if another problem occurs, the second call returns the HTTP response code 404 with one of the following error messages:
+If successful, the service returns a token which is required to retrieve the translated document with a second query. That query has to be sent as GET request to the `/transins/getTranslation` REST endpoint. It requires the token as path parameter. Please note that it is not guaranteed that the translated document can be retrieved immediately, as the translation may take some time. If the translation is not (yet) available, the second call returns one of the following HTTP response codes and messages:
 
-* "document still queued for translation"
-* "document is currently being translated"
-* "document translation failed", i.e. an error occurred when translating the document
-* "unknown job id", i.e. the token could not be matched to any previously sent document
+* `202`: "document still queued for translation"
+* `202`: "document is currently being translated"
+* `404`: "document translation failed", i.e. an error occurred when translating the document
+* `404`: "unknown job id", i.e. the token could not be matched to any previously sent document
 
 To test the REST service, use the https://curl.haxx.se/[curl] and https://www.gnu.org/software/wget/[wget] tools.
 

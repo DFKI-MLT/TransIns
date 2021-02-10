@@ -206,9 +206,9 @@ public class TransInsService {
     Job.Status status = jobManager.getStatus(jobId);
     switch (status) {
       case QUEUED:
-        return Response.status(404, "document still queued for translation").build();
+        return Response.status(202, "document still queued for translation").build();
       case IN_TRANSLATION:
-        return Response.status(404, "document is currently being translated").build();
+        return Response.status(202, "document is currently being translated").build();
       case FAILED:
         return Response.status(404, "document translation failed").build();
       case UNKONWN:
