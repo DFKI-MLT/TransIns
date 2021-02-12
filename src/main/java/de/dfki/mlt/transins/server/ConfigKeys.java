@@ -13,6 +13,9 @@ public final class ConfigKeys {
   /** supported language pairs */
   public static final String SUPPORTED_LANG_PAIRS = "supported_lang_pairs";
 
+  /** maximum size of documents to translate in MB */
+  public static final String MAX_FILE_SIZE = "max_file_size";
+
 
   private ConfigKeys() {
 

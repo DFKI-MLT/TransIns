@@ -23,6 +23,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
@@ -60,6 +61,9 @@ public class TransInsService {
   // supported language pairs
   private static List<String> suppportedLangPairs;
 
+  // maximum size of documents to translate in MB
+  private static int maxFileSize;
+
 
   /**
    * Initialize TransIns service using the given configuration.
@@ -79,6 +83,7 @@ public class TransInsService {
     Files.createDirectories(Paths.get(INPUT_FOLDER));
     Files.createDirectories(Paths.get(OUTPUT_FOLDER));
     suppportedLangPairs = config.getList(String.class, ConfigKeys.SUPPORTED_LANG_PAIRS);
+    maxFileSize = config.getInt(ConfigKeys.MAX_FILE_SIZE);
   }
 
 
@@ -140,9 +145,20 @@ public class TransInsService {
     // write content from input stream to file
     final java.nio.file.Path sourcePath = Paths.get(INPUT_FOLDER).resolve(internalFileName);
     final java.nio.file.Path targetPath = Paths.get(OUTPUT_FOLDER).resolve(internalFileName);
-    try (inputStream) {
+    LimitedInputStream limitedInputStream =
+        new LimitedInputStream(inputStream, maxFileSize * 1024 * 1024) {
+
+          @Override
+          protected void raiseError(long sizeMax, long count)
+              throws IOException {
+
+            throw new FileTooLargeException(
+                String.format("file too large, max size is %dMB ", maxFileSize));
+          }
+        };
+    try (limitedInputStream) {
       java.nio.file.Files.copy(
-          inputStream,
+          limitedInputStream,
           sourcePath,
           StandardCopyOption.REPLACE_EXISTING);
       // check if file actually contains content
@@ -150,6 +166,9 @@ public class TransInsService {
         logger.error("empty file");
         return createResponse(400, "empty file");
       }
+    } catch (FileTooLargeException e) {
+      logger.error(e.getLocalizedMessage());
+      return createResponse(400, e.getMessage());
     } catch (IOException e) {
       logger.error(e.getLocalizedMessage(), e);
       return createResponse(503, e.getMessage());
@@ -307,5 +326,35 @@ public class TransInsService {
 
     return Response.status(status, message)
         .build();
+  }
+
+
+  /**
+   * Custom IO exception to handle uploaded files that are too large.
+   */
+  static class FileTooLargeException extends IOException {
+
+    private static final long serialVersionUID = 1L;
+
+
+    /**
+     * Create a new exception.
+     */
+    FileTooLargeException() {
+
+      super("file too large");
+    }
+
+
+    /**
+     * Create a new exception with the given message.
+     *
+     * @param message
+     *          the message
+     */
+    FileTooLargeException(String message) {
+
+      super(message);
+    }
   }
 }
