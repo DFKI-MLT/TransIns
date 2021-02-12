@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import de.dfki.mlt.transins.Translator;
+import de.dfki.mlt.transins.server.Job.Status;
 
 /**
  * TransIns service providing methods to upload files to translate and retrieving the translation.
@@ -108,7 +110,7 @@ public class TransInsService {
    * @param markupStrategyString
    *          the markup re-insertion strategy to use, defaults to COMPLETE_MAPPING,
    *          as given by the form parameter 'strategy'
-   * @return an id to be used to retrieve the translation via {@link #getTranslation(String)}
+   * @return a job id to be used to retrieve the translation via {@link #getTranslation(String)}
    */
   @Path("/transins/translate")
   @POST
@@ -188,6 +190,11 @@ public class TransInsService {
       @Override
       public Boolean call() {
 
+        if (jobManager.getStatus(jobId) != Status.QUEUED) {
+          // job was cancelled, nothing to do
+          return true;
+        }
+
         try {
           jobManager.markJobAsInTranslation(jobId);
           translator.translate(
@@ -239,6 +246,34 @@ public class TransInsService {
             .header("Content-Disposition",
                 String.format("attachment; filename=\"%s\"", jobManager.getResultFileName(jobId)))
             .build();
+      default:
+        return createResponse(500, String.format("unknown job status \"%s\"", status));
+    }
+  }
+
+
+  /**
+   * Delete files associated with the given job id. Cancel translation if job is still in queue.
+   *
+   * @param jobId
+   *          the job id
+   * @return the response
+   */
+  @Path("/transins/deleteTranslation/{jobId}")
+  @DELETE
+  public static Response deleteTranslation(@PathParam("jobId") String jobId) {
+
+    Job.Status status = jobManager.getStatus(jobId);
+    switch (status) {
+      case QUEUED:
+      case FINISHED:
+      case FAILED:
+        jobManager.deleteJob(jobId);
+        return createResponse(204, "job deleted");
+      case IN_TRANSLATION:
+        return createResponse(406, "document is currently being translated");
+      case UNKONWN:
+        return createResponse(404, "unknown job id");
       default:
         return createResponse(500, String.format("unknown job status \"%s\"", status));
     }

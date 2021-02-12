@@ -70,6 +70,48 @@ public class JobManager {
 
 
   /**
+   * Delete files associated with the given job id. Cancel translation if job is still in queue.
+   *
+   * @param jobId
+   *          the job id
+   */
+  public synchronized void deleteJob(String jobId) {
+
+    Job job = this.jobs.get(jobId);
+    if (job == null) {
+      // unknown job, nothing to do
+      return;
+    }
+
+    Status status = job.getStatus();
+    if (status == Status.QUEUED || status == Status.FINISHED || status == Status.FAILED) {
+
+      this.jobs.remove(job.getId());
+
+      // delete associated file in input folder
+      try {
+        Files.delete(Paths.get(this.inputFolder).resolve(job.getInternalFileName()));
+        logger.info("deleted job input file: {} ", job.getInternalFileName());
+      } catch (NoSuchFileException e) {
+        // nothing to do
+      } catch (IOException e) {
+        logger.error(e.getLocalizedMessage(), e);
+      }
+
+      // delete associated file in output folder
+      try {
+        Files.delete(Paths.get(this.outputFolder).resolve(job.getInternalFileName()));
+        logger.info("deleted job output file: {} ", job.getInternalFileName());
+      } catch (NoSuchFileException e) {
+        // nothing to do
+      } catch (IOException e) {
+        logger.error(e.getLocalizedMessage(), e);
+      }
+    }
+  }
+
+
+  /**
    * Mark given job as in translation.
    *
    * @param jobId
