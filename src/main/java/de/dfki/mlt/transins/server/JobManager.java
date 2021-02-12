@@ -23,6 +23,7 @@ public class JobManager {
 
   private static final Logger logger = LoggerFactory.getLogger(JobManager.class);
 
+  // maximum number of finished or failed job files too keep before deleting the oldest
   private static final int MAX_JOB_LIST_SIZE = 100;
   private List<String> finishedJobs;
   private List<String> failedJobs;
@@ -99,7 +100,7 @@ public class JobManager {
       logger.info("mark job as finished: {}", jobId);
       job.setStatus(Status.FINISHED);
       this.finishedJobs.add(0, jobId);
-      cleanUpJobList(this.finishedJobs);
+      cleanUpJobs(this.finishedJobs);
     } else {
       logger.error("unknown in translation job: {}", jobId);
     }
@@ -119,7 +120,7 @@ public class JobManager {
       logger.info("mark job as failed: {}", jobId);
       job.setStatus(Status.FAILED);
       this.failedJobs.add(0, jobId);
-      cleanUpJobList(this.failedJobs);
+      cleanUpJobs(this.failedJobs);
     } else {
       logger.error("unknown in translation job: {}", jobId);
     }
@@ -171,33 +172,36 @@ public class JobManager {
 
   /**
    * Check if the given job list contains more than the maximum number of entries. If yes, delete
-   * files associated with the oldest jobs.
+   * files associated with the oldest jobs. Also remove these jobs from jobs map.
    *
    * @param jobList
    *          the job list to check
    */
-  private void cleanUpJobList(List<String> jobList) {
+  private void cleanUpJobs(List<String> jobList) {
 
-    try {
-      while (jobList.size() > MAX_JOB_LIST_SIZE) {
-        Job jobToDelete = this.jobs.get(jobList.remove(jobList.size() - 1));
-        // delete file associated with oldest job in job list in input folder
-        try {
-          Files.delete(Paths.get(this.inputFolder).resolve(jobToDelete.getInternalFileName()));
-          logger.info("deleted old job input file: {} ", jobToDelete.getInternalFileName());
-        } catch (NoSuchFileException e) {
-          // nothing to do
-        }
-        // delete file associated with oldest job in job list in output folder
-        try {
-          Files.delete(Paths.get(this.outputFolder).resolve(jobToDelete.getInternalFileName()));
-          logger.info("deleted old job output file: {} ", jobToDelete.getInternalFileName());
-        } catch (NoSuchFileException e) {
-          // nothing to do
-        }
+    while (jobList.size() > MAX_JOB_LIST_SIZE) {
+      String oldestJobId = jobList.remove(jobList.size() - 1);
+      Job jobToDelete = this.jobs.get(oldestJobId);
+      // delete file associated with oldest job in job list in input folder
+      try {
+        Files.delete(Paths.get(this.inputFolder).resolve(jobToDelete.getInternalFileName()));
+        logger.info("deleted old job input file: {} ", jobToDelete.getInternalFileName());
+      } catch (NoSuchFileException e) {
+        // nothing to do
+      } catch (IOException e) {
+        logger.error(e.getLocalizedMessage(), e);
       }
-    } catch (IOException e) {
-      logger.error(e.getLocalizedMessage(), e);
+      // delete file associated with oldest job in job list in output folder
+      try {
+        Files.delete(Paths.get(this.outputFolder).resolve(jobToDelete.getInternalFileName()));
+        logger.info("deleted old job output file: {} ", jobToDelete.getInternalFileName());
+      } catch (NoSuchFileException e) {
+        // nothing to do
+      } catch (IOException e) {
+        logger.error(e.getLocalizedMessage(), e);
+      }
+      // remove job from jobs map
+      this.jobs.remove(oldestJobId);
     }
   }
 }
