@@ -25,13 +25,15 @@ public class JobManager {
 
   // maximum number of finished or failed job files too keep before deleting the oldest
   private static final int MAX_JOB_LIST_SIZE = 100;
+
+  private String inputFolder;
+  private String outputFolder;
+
+  private int queuedJobsCount;
   private List<String> finishedJobs;
   private List<String> failedJobs;
 
   private Map<String, Job> jobs;
-
-  private String inputFolder;
-  private String outputFolder;
 
 
   /**
@@ -48,6 +50,7 @@ public class JobManager {
     this.inputFolder = inputFolder;
     this.outputFolder = outputFolder;
 
+    this.queuedJobsCount = 0;
     this.finishedJobs = new ArrayList<String>(MAX_JOB_LIST_SIZE + 1);
     this.failedJobs = new ArrayList<String>(MAX_JOB_LIST_SIZE + 1);
 
@@ -66,6 +69,7 @@ public class JobManager {
     logger.info("add job to queue: {}", job.getId());
     job.setStatus(Status.QUEUED);
     this.jobs.put(job.getId(), job);
+    this.queuedJobsCount++;
   }
 
 
@@ -87,6 +91,10 @@ public class JobManager {
     if (status == Status.QUEUED || status == Status.FINISHED || status == Status.FAILED) {
 
       this.jobs.remove(job.getId());
+
+      if (status == Status.QUEUED) {
+        this.queuedJobsCount--;
+      }
 
       // delete associated file in input folder
       try {
@@ -123,6 +131,7 @@ public class JobManager {
     if (job != null && job.getStatus() == Status.QUEUED) {
       logger.info("mark job as in translation: {}", jobId);
       job.setStatus(Status.IN_TRANSLATION);
+      this.queuedJobsCount--;
     } else {
       logger.error("unknown queued job: {}", jobId);
     }
@@ -183,6 +192,15 @@ public class JobManager {
       return job.getStatus();
     }
     return Status.UNKONWN;
+  }
+
+
+  /**
+   * @return the number of jobs in queue
+   */
+  public synchronized int getQueuedJobsCount() {
+
+    return this.queuedJobsCount;
   }
 
 

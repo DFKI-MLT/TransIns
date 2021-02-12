@@ -63,6 +63,9 @@ public class TransInsService {
   // supported language pairs
   private static List<String> suppportedLangPairs;
 
+  // maximum number of jobs in queue
+  private static int maxQueueSize;
+
   // maximum size of documents to translate in MB
   private static int maxFileSize;
 
@@ -85,6 +88,7 @@ public class TransInsService {
     Files.createDirectories(Paths.get(INPUT_FOLDER));
     Files.createDirectories(Paths.get(OUTPUT_FOLDER));
     suppportedLangPairs = config.getList(String.class, ConfigKeys.SUPPORTED_LANG_PAIRS);
+    maxQueueSize = config.getInt(ConfigKeys.MAX_QUEUE_SIZE);
     maxFileSize = config.getInt(ConfigKeys.MAX_FILE_SIZE);
   }
 
@@ -123,6 +127,12 @@ public class TransInsService {
       @FormDataParam("enc") String encoding,
       @FormDataParam("sl") String sourceLang, @FormDataParam("tl") String targetLang,
       @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString) {
+
+    // reject job if too many jobs in queue
+    if (jobManager.getQueuedJobsCount() > maxQueueSize) {
+      logger.error("server busy");
+      return createResponse(503, "server busy");
+    }
 
     // check for valid query parameters
     String errorMessage =
