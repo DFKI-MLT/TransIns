@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
@@ -180,6 +181,15 @@ public class TransInsService {
       }
     } catch (FileTooLargeException e) {
       logger.error(e.getLocalizedMessage());
+      // delete partially saved input file
+      try {
+        Files.delete(sourcePath);
+        logger.info("too large, deleted input file: {} ", sourcePath);
+      } catch (NoSuchFileException ex) {
+        // nothing to do
+      } catch (IOException ex) {
+        logger.error(e.getLocalizedMessage(), ex);
+      }
       return createResponse(400, e.getMessage());
     } catch (IOException e) {
       logger.error(e.getLocalizedMessage(), e);
