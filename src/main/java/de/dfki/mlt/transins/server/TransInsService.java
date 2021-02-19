@@ -17,12 +17,14 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.OPTIONS;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.fileupload.util.LimitedInputStream;
@@ -70,6 +72,9 @@ public class TransInsService {
   // maximum size of documents to translate in MB
   private static int maxFileSize;
 
+  // switch for activating development mode; allows cross-origin resource sharing
+  private static boolean developmentMode;
+
 
   /**
    * Initialize TransIns service using the given configuration.
@@ -91,6 +96,7 @@ public class TransInsService {
     suppportedLangPairs = config.getList(String.class, ConfigKeys.SUPPORTED_LANG_PAIRS);
     maxQueueSize = config.getInt(ConfigKeys.MAX_QUEUE_SIZE);
     maxFileSize = config.getInt(ConfigKeys.MAX_FILE_SIZE);
+    developmentMode = config.getBoolean(ConfigKeys.DEVELOPMENT_MODE);
   }
 
 
@@ -232,8 +238,11 @@ public class TransInsService {
       }
     });
 
-    return Response.accepted(jobId)
-        .build();
+    ResponseBuilder response = Response.accepted(jobId);
+    if (developmentMode) {
+      response.header("Access-Control-Allow-Origin", "*");
+    }
+    return response.build();
   }
 
 
@@ -262,10 +271,16 @@ public class TransInsService {
       case FINISHED:
         java.nio.file.Path translation =
             Paths.get(OUTPUT_FOLDER).resolve(jobManager.getInternalFileName(jobId));
-        return Response.ok(translation.toFile(), MediaType.APPLICATION_OCTET_STREAM)
-            .header("Content-Disposition",
-                String.format("attachment; filename=\"%s\"", jobManager.getResultFileName(jobId)))
-            .build();
+        ResponseBuilder response =
+            Response.ok(translation.toFile(), MediaType.APPLICATION_OCTET_STREAM)
+                .header("Content-Disposition",
+                    String.format("attachment; filename=\"%s\"",
+                        jobManager.getResultFileName(jobId)));
+        if (developmentMode) {
+          response.header("Access-Control-Allow-Origin", "*")
+              .header("Access-Control-Expose-Headers", "*");
+        }
+        return response.build();
       default:
         return createResponse(500, String.format("unknown job status \"%s\"", status));
     }
@@ -297,6 +312,27 @@ public class TransInsService {
       default:
         return createResponse(500, String.format("unknown job status \"%s\"", status));
     }
+  }
+
+
+  /**
+   * Handle OPTIONS request sent prior to an DELETE request in case of cross-origin resource
+   * sharing. Only used in development mode.
+   *
+   * @param jobId
+   *          the job id
+   * @return the response
+   */
+  @Path("/transins/deleteTranslation/{jobId}")
+  @OPTIONS
+  public static Response deleteTranslationOptions(@PathParam("jobId") String jobId) {
+
+    Response response = Response.ok("test3 with OPTIONS, body content")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Expose-Headers", "*")
+        .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+        .build();
+    return response;
   }
 
 
@@ -363,8 +399,11 @@ public class TransInsService {
   @Produces(MediaType.TEXT_PLAIN)
   public static synchronized Response alive() {
 
-    return Response.ok("TransIns server is alive")
-        .build();
+    ResponseBuilder response = Response.ok("TransIns server is alive");
+    if (developmentMode) {
+      response.header("Access-Control-Allow-Origin", "*");
+    }
+    return response.build();
   }
 
 
@@ -379,8 +418,11 @@ public class TransInsService {
    */
   private static Response createResponse(int status, String message) {
 
-    return Response.status(status, message)
-        .build();
+    ResponseBuilder response = Response.status(status, message);
+    if (developmentMode) {
+      response.header("Access-Control-Allow-Origin", "*");
+    }
+    return response.build();
   }
 
 

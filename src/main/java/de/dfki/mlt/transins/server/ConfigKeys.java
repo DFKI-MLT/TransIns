@@ -19,6 +19,9 @@ public final class ConfigKeys {
   /** maximum size of documents to translate in MB */
   public static final String MAX_FILE_SIZE = "max_file_size";
 
+  /** switch for activating development mode; allows cross-origin resource sharing */
+  public static final String DEVELOPMENT_MODE = "development_mode";
+
 
   private ConfigKeys() {
 
