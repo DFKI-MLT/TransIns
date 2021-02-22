@@ -1,0 +1,247 @@
+*:focus {
+  outline: 1px solid lightgrey;
+}
+
+body {
+  height: 100%;
+  width: 1026px;
+  margin: auto;
+  font-family: 'Fira Sans', Arial;
+  background-color: rgb(160, 160, 160);
+}
+
+.header {
+  display: flex;
+  margin-top: 50px;
+}
+
+.header__text {
+  color: white;
+  line-height: 1.4em;
+  font-size: large;
+  text-align: left;
+  padding: 0px 10px;
+}
+
+.header__text__title,
+.header__text__subtitle {
+  color: black;
+}
+
+ul {
+  margin-top: -15px;
+}
+
+li {
+  margin-bottom: 5px;
+}
+
+.header__logo {
+  text-align: right;
+  color: white;
+  line-height: 1.5em;
+}
+
+a:link,
+a:visited {
+  color: white;
+}
+
+a:hover {
+  color: rgb(230, 230, 230);
+}
+
+.nav-link:link,
+.nav-link:visited {
+  color: white;
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+.center {
+  min-width: 800px;
+  padding: 10px;
+  border: 3px solid rgb(60, 60, 60);
+  background: linear-gradient(top, rgb(0, 0, 240), rgba(0, 0, 240, .2));
+  background: -webkit-linear-gradient(top, rgb(0, 0, 240), rgba(0, 0, 240, .2));
+  background: -moz-linear-gradient(top, rgb(0, 0, 240), rgba(0, 0, 240, .2));
+  display: inline-block;
+  position: relative;
+}
+
+.query {
+  line-height: 2em;
+  display: flex;
+}
+
+.query__labels,
+.query__param {
+  color: white;
+  font-weight: bold;
+}
+
+.query__labels {
+  min-width: 13em;
+  text-align: right;
+  margin-right: 20px;
+}
+
+.query__param {
+  border: 2px solid rgb(60, 60, 60);
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.query__param--enabled {
+  background-color: rgb(110, 110, 110);
+}
+
+.query__param--disabled {
+  background-color: rgb(160, 160, 160);
+}
+
+.query__param--invalid {
+  background-color: red;
+}
+
+.translation {
+  text-align: right;
+}
+
+.translation__button {
+  font-weight: bold;
+  font-size: medium;
+  color: black;
+  padding: 7px;
+  border: 2px solid rgb(60, 60, 60);
+}
+
+.translation__button--enabled {
+  background-color: rgb(255, 255, 0);
+}
+
+.translation__button--enabled:hover {
+  background-color: rgb(255, 220, 0);
+  outline: 1px solid red;
+}
+
+.translation__button--enabled:active {
+  background-color: rgb(255, 180, 0);
+}
+
+.translation__button--disabled {
+  background-color: rgb(160, 160, 160);
+}
+
+.translation__button--disabled:focus {
+  outline: 0px;
+}
+
+.footer {
+  text-align: right;
+  font-weight: bold;
+  color: white;
+  margin-top: 20px;
+  padding: 3px;
+  background-color: rgb(110, 110, 110);
+}
+
+.spinner--enabled {
+  color: official;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  z-index: 1;
+}
+
+.spinner--enabled div {
+  transform-origin: 40px 40px;
+  animation: spinner 1.2s linear infinite;
+}
+
+.spinner--enabled div:after {
+  content: ' ';
+  display: block;
+  position: absolute;
+  top: 3px;
+  left: 37px;
+  width: 6px;
+  height: 18px;
+  border-radius: 20%;
+  background: #fff;
+}
+
+.spinner--enabled div:nth-child(1) {
+  transform: rotate(0deg);
+  animation-delay: -1.1s;
+}
+
+.spinner--enabled div:nth-child(2) {
+  transform: rotate(30deg);
+  animation-delay: -1s;
+}
+
+.spinner--enabled div:nth-child(3) {
+  transform: rotate(60deg);
+  animation-delay: -0.9s;
+}
+
+.spinner--enabled div:nth-child(4) {
+  transform: rotate(90deg);
+  animation-delay: -0.8s;
+}
+
+.spinner--enabled div:nth-child(5) {
+  transform: rotate(120deg);
+  animation-delay: -0.7s;
+}
+
+.spinner--enabled div:nth-child(6) {
+  transform: rotate(150deg);
+  animation-delay: -0.6s;
+}
+
+.spinner--enabled div:nth-child(7) {
+  transform: rotate(180deg);
+  animation-delay: -0.5s;
+}
+
+.spinner--enabled div:nth-child(8) {
+  transform: rotate(210deg);
+  animation-delay: -0.4s;
+}
+
+.spinner--enabled div:nth-child(9) {
+  transform: rotate(240deg);
+  animation-delay: -0.3s;
+}
+
+.spinner--enabled div:nth-child(10) {
+  transform: rotate(270deg);
+  animation-delay: -0.2s;
+}
+
+.spinner--enabled div:nth-child(11) {
+  transform: rotate(300deg);
+  animation-delay: -0.1s;
+}
+
+.spinner--enabled div:nth-child(12) {
+  transform: rotate(330deg);
+  animation-delay: 0s;
+}
+
+@keyframes spinner {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

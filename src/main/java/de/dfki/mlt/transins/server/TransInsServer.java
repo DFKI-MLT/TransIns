@@ -5,6 +5,9 @@ import java.io.IOException;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -15,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The server providing the TransIns REST service.
+ * The server providing the TransIns REST service and web interface.
  *
  * @author Jörg Steffen, DFKI
  */
@@ -39,8 +42,11 @@ public final class TransInsServer {
   @SuppressWarnings("checkstyle:IllegalCatch")
   public static void main(String[] args) {
 
-    ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
-    context.setContextPath("/");
+    // configure handler for web interface
+    ResourceHandler resourceHandler = new ResourceHandler();
+    resourceHandler.setResourceBase("src/main/web");
+    ContextHandler webContext = new ContextHandler("/");
+    webContext.setHandler(resourceHandler);
 
     // configure Jersey servlet
     ResourceConfig resourceConfig = new ResourceConfig();
@@ -52,7 +58,12 @@ public final class TransInsServer {
     // init Jersey servlet and add to context
     ServletHolder jerseyServlet = new ServletHolder(new ServletContainer(resourceConfig));
     jerseyServlet.setInitOrder(0);
-    context.addServlet(jerseyServlet, "/*");
+    ServletContextHandler servletContext =
+        new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+    servletContext.setContextPath("/");
+    servletContext.addServlet(jerseyServlet, "/*");
+
+    ContextHandlerCollection contexts = new ContextHandlerCollection(webContext, servletContext);
 
     try {
       String configFileName = "server.cfg";
@@ -62,7 +73,7 @@ public final class TransInsServer {
       PropertiesConfiguration serverConfig = Utils.readConfigFromClasspath(configFileName);
       TransInsService.init(serverConfig);
       Server server = new Server(serverConfig.getInt(ConfigKeys.PORT, 7777));
-      server.setHandler(context);
+      server.setHandler(contexts);
 
       try {
         server.start();

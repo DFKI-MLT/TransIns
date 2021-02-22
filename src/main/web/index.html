@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+
+<head>
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+  <meta charset="UTF-8">
+  <title>TransIns Translator</title>
+  <script src="assets/jquery-3.5.1.min.js"></script>
+  <script src="script.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="header">
+    <div class="header__text">
+      <h1 class="header__text__title">TransIns</h1>
+      <h2 class="header__text__subtitle">Document Translation with Advanced Markup Re-Insertion</h2>
+      TransIns uses the <a href="https://okapiframework.org/">Okapi</a> framework to parse documents of supported formats (currently MS Office, OpenOffice and html) into a representation that preserves the document markup and allows access to the document's
+      text content on a sentence level. The sentences, without the markup, are translated using translation models trained and provided by the neural machine translation framework <a href="https://marian-nmt.github.io/">MarianNMT</a>. Afterwards, the
+      markup is re-inserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
+      <p/> We implement the following strategies for re-inserting markup into the translated sentence using the tokens' alignments:
+      <ul>
+        <li><b>MTRAIN</b>: A strategy assigning markup to the token next to it, as described in this <a href="https://www.aclweb.org/anthology/W17-4804/">paper</a> of Matthias Müller and implemented in the Zurich NLP <a href="https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315">mtrain</a>          Python package</li>
+        <li><b>MTRAIN_IMPROVED</b>: An improved version of the MTRAIN strategy</li>
+        <li><b>COMPLETE_MAPPING</b>: A strategy assigning markup to
+          <i>all</i> tokens in the markup's range</li>
+      </ul>
+    </div>
+    <div class="header__logo">
+      <a href="https://www.dfki.de"><img src="assets/DFKI_Logo.png"></a><br/> <a class="nav-link" href="https://www.dfki.de/en/web/data-protection/">Data Protection</a><br/><a class="nav-link" href="https://www.dfki.de/en/web/legal-notice/">Legal Information</a>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="query">
+      <div class="query__labels">
+        <label for="file">Select File</label><br/>
+        <label for="sl">Source Language</label><br/>
+        <label for="tl">Target Language</label><br/>
+        <label for="enc">Encoding</label><br/>
+        <label for="strategy">Markup Re-Insertion Strategy</label>
+      </div>
+      <form id="queryForm">
+        <input class="query__param query__param--enabled" id="file" name="file" type="file" onfocus="removeInvalid(this)" /><br/>
+        <input class="query__param query__param--enabled" id="sl" name="sl" value="de" maxlength="2" size="2" onfocus="removeInvalid(this)" /><br/>
+        <input class="query__param query__param--enabled" id="tl" name="tl" value="fr" maxlength="2" size="2" onfocus="removeInvalid(this)" /><br/>
+        <input class="query__param query__param--enabled" id="enc" name="enc" value="utf-8" maxlength="10" size="7" onfocus="removeInvalid(this)" /><br/>
+        <select class="query__param query__param--enabled" name="strategy">
+            <option value="COMPLETE_MAPPING">COMPLETE_MAPPING</option>
+            <option value="MTRAIN">MTRAIN</option>
+            <option value="MTRAIN_IMPROVED">MTRAIN_IMPROVED</option>
+          </select>
+      </form>
+    </div>
+    <div class="translation">
+      <button class="translation__button translation__button--enabled" onclick="translate()">Translate</button>
+    </div>
+    <div class="spinner">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <div class="footer">
+    ©&nbsp;DFKI,&nbsp;2021
+  </div>
+</body>
