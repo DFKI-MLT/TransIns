@@ -21,7 +21,7 @@ We implement the following strategies for re-inserting markup into the translate
 
 TransIns provides a RESTful API that allows to query the translation service in an asynchronous way.
 
-The REST endpoint for sending a document to translate is `/transins/translate`. The query has to be sent as POST request encoded as `multipart/form-data` with the following fields:
+The REST endpoint for sending a document to translate is `/translate`. The query has to be sent as POST request encoded as `multipart/form-data` with the following fields:
 
 * `file` the file name of the document to translate
 * `sl` the source language, i.e. the language of the above document
@@ -29,9 +29,9 @@ The REST endpoint for sending a document to translate is `/transins/translate`. 
 * `enc` the encoding of the document; the translated document will use the same encoding
 * `strategy` the markup re-insertion strategy to use; possible values are `MTRAIN`, `MTRAIN_IMPROVED` and `COMPLETE_MAPPING` (default if strategy is not provided)
 
-If successful, the service returns a token which is required to retrieve the translated document with a second query. That query has to be sent as GET request to the `/transins/getTranslation` REST endpoint. It requires the token as path parameter. Please note that it is not guaranteed that the translated document can be retrieved immediately, as the translation may take some time. If the translation is not yet available, the second call returns a `202` HTTP response code.
+If successful, the service returns a token which is required to retrieve the translated document with a second query. That query has to be sent as GET request to the `/getTranslation` REST endpoint. It requires the token as path parameter. Please note that it is not guaranteed that the translated document can be retrieved immediately, as the translation may take some time. If the translation is not yet available, the second call returns a `202` HTTP response code.
 
-If required, the token can also be used to cancel a translation and/or force the deletion of all associated files on the server. A delete query has to be sent as DELETE request to the `/transins/deleteTranslation` REST endpoint with the token as path parameter.
+If required, the token can also be used to cancel a translation and/or force the deletion of all associated files on the server. A delete query has to be sent as DELETE request to the `/deleteTranslation` REST endpoint with the token as path parameter.
 
 To test the REST service, use the https://curl.haxx.se/[curl] and https://www.gnu.org/software/wget/[wget] tools.
 
@@ -40,18 +40,18 @@ A POST query to translate an MS Office document `MyDoc.docx` from German to Fren
 curl -i -X POST -H "Content-Type: multipart/form-data" \
   -F "file=@MyDoc.docx" -F "sl=de" -F "tl=fr" -F "enc=windows-1252" \
   -F "strategy=COMPLETE_MAPPING" \
-  localhost:7777/transins/translate
+  localhost:7777/translate
 ```
 
 This returns a token `cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo` that must be used in the second GET query to retrieve the translated document:
 
 ```
 wget -S --content-disposition \
-  localhost:7777/transins/getTranslation/cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo
+  localhost:7777/getTranslation/cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo
 ```
 
 In order to delete the files on the server, use this DELETE query:
 ```
 curl -i -X DELETE \
-  localhost:7777/transins/deleteTranslation/cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo
+  localhost:7777/deleteTranslation/cbVHK6U2oJIO8hCPvU4LR6dL3FSt2oU0nw9VBbFo
 ```

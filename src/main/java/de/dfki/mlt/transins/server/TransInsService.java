@@ -123,7 +123,7 @@ public class TransInsService {
    *          as given by the form parameter 'strategy'
    * @return a job id to be used to retrieve the translation via {@link #getTranslation(String)}
    */
-  @Path("/transins/translate")
+  @Path("/translate")
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   @Produces(MediaType.TEXT_PLAIN + ";charset=utf-8")
@@ -253,7 +253,7 @@ public class TransInsService {
    *          the job id
    * @return the translated document
    */
-  @Path("/transins/getTranslation/{jobId}")
+  @Path("/getTranslation/{jobId}")
   @GET
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   public static Response getTranslation(@PathParam("jobId") String jobId) {
@@ -294,7 +294,7 @@ public class TransInsService {
    *          the job id
    * @return the response
    */
-  @Path("/transins/deleteTranslation/{jobId}")
+  @Path("/deleteTranslation/{jobId}")
   @DELETE
   public static Response deleteTranslation(@PathParam("jobId") String jobId) {
 
@@ -323,7 +323,7 @@ public class TransInsService {
    *          the job id
    * @return the response
    */
-  @Path("/transins/deleteTranslation/{jobId}")
+  @Path("/deleteTranslation/{jobId}")
   @OPTIONS
   public static Response deleteTranslationOptions(@PathParam("jobId") String jobId) {
 
@@ -394,7 +394,7 @@ public class TransInsService {
    *
    * @return alive message
    */
-  @Path("/transins/alive")
+  @Path("/alive")
   @GET
   @Produces(MediaType.TEXT_PLAIN + ";charset=utf-8")
   public static synchronized Response alive() {
