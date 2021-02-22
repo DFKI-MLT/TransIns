@@ -126,7 +126,7 @@ public class TransInsService {
   @Path("/transins/translate")
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
-  @Produces(MediaType.TEXT_PLAIN)
+  @Produces(MediaType.TEXT_PLAIN + ";charset=utf-8")
   @SuppressWarnings("checkstyle:IllegalCatch")
   public static Response translate(
       @FormDataParam("file") InputStream inputStream,
@@ -396,7 +396,7 @@ public class TransInsService {
    */
   @Path("/transins/alive")
   @GET
-  @Produces(MediaType.TEXT_PLAIN)
+  @Produces(MediaType.TEXT_PLAIN + ";charset=utf-8")
   public static synchronized Response alive() {
 
     ResponseBuilder response = Response.ok("TransIns server is alive");
