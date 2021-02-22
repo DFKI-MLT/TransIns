@@ -15,23 +15,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The REST server providing the TransIns service.
+ * The server providing the TransIns REST service.
  *
  * @author Jörg Steffen, DFKI
  */
-public final class RestServer {
+public final class TransInsServer {
 
-  private static final Logger logger = LoggerFactory.getLogger(RestServer.class);
+  private static final Logger logger = LoggerFactory.getLogger(TransInsServer.class);
 
 
-  private RestServer() {
+  private TransInsServer() {
 
     // private constructor to enforce noninstantiability
   }
 
 
   /**
-   * Start the REST server.
+   * Start the server.
    *
    * @param args
    *          the arguments
