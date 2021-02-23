@@ -3,7 +3,6 @@ package de.dfki.mlt.transins;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -215,8 +214,8 @@ public class Translator {
     // read Marian NMT configuration if Marian NMT is used as translator
     MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
     if (translatorId == TransId.MARIAN || translatorId == TransId.MARIAN_BATCH) {
-      URI paramUri = new File("src/main/resources/marianConfig.cfg").toURI();
-      marianNmtResourceParams.load(Util.URItoURL(paramUri), false);
+      InputStream configIn = getClass().getClassLoader().getResourceAsStream("marianConfig.cfg");
+      marianNmtResourceParams.load(configIn, false);
       marianNmtResourceParams.setMarkupStrategy(markupStrategy);
     }
 
@@ -284,10 +283,10 @@ public class Translator {
       // add leveraging step for selected translator
       switch (translatorId) {
         case MICROSOFT:
-          driver.addStep(createMicrosoftLeveragingStep("src/main/resources/msConfig.cfg"));
+          driver.addStep(createMicrosoftLeveragingStep("msConfig.cfg"));
           break;
         case APERTIUM:
-          driver.addStep(createApertiumLeveragingStep("src/main/resources/apertiumConfig.cfg"));
+          driver.addStep(createApertiumLeveragingStep("apertiumConfig.cfg"));
           break;
         case MARIAN:
         case MARIAN_BATCH:
@@ -376,9 +375,12 @@ public class Translator {
         (net.sf.okapi.steps.segmentation.Parameters)segStep.getParameters();
     segParams.setSegmentSource(true);
     segParams.setSegmentTarget(true);
-    File segRules = new File("src/main/resources/defaultSegmentation.srx");
-    segParams.setSourceSrxPath(segRules.getAbsolutePath());
-    segParams.setTargetSrxPath(segRules.getAbsolutePath());
+    InputStream sourceSrxIn =
+        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
+    InputStream targetSrxIn =
+        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
+    segParams.setSourceSrxStream(sourceSrxIn);
+    segParams.setTargetSrxStream(targetSrxIn);
     segParams.setCopySource(true);
 
     return segStep;
@@ -405,8 +407,9 @@ public class Translator {
 
     // use the specified parameters if available, otherwise use the default
     if (translatorConfig != null) {
-      URI paramUri = new File(translatorConfig).toURI();
-      resourceParams.load(Util.URItoURL(paramUri), false);
+      InputStream translatorConfigIn =
+          getClass().getClassLoader().getResourceAsStream(translatorConfig);
+      resourceParams.load(translatorConfigIn, false);
     }
     levParams.setResourceParameters(resourceParams.toString());
     levParams.setFillTarget(true);
@@ -435,8 +438,9 @@ public class Translator {
 
     // use the specified parameters if available, otherwise use the default
     if (translatorConfig != null) {
-      URI paramUri = new File(translatorConfig).toURI();
-      resourceParams.load(Util.URItoURL(paramUri), false);
+      InputStream translatorConfigIn =
+          getClass().getClassLoader().getResourceAsStream(translatorConfig);
+      resourceParams.load(translatorConfigIn, false);
     }
     levParams.setResourceParameters(resourceParams.toString());
     levParams.setFillTarget(true);
