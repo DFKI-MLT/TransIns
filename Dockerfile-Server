@@ -1,0 +1,44 @@
+FROM maven:3.6.3-openjdk-11-slim as buildstage
+
+LABEL maintainer="Joerg Steffen <steffen@dfki.de>"
+LABEL description="Docker container of TransIns with web interface and REST API"
+
+COPY pom.xml /tmp/
+COPY src/main/java /tmp/src/main/java/
+COPY src/main/resources/de /tmp/src/main/resources/de/
+WORKDIR /tmp/
+RUN mvn package
+
+FROM adoptopenjdk/openjdk11:jre-11.0.10_9-alpine as appstage
+
+ARG user=transins
+ARG group=transins
+ARG uid=1001
+ARG gid=1001
+# app home will also be used as user home
+ARG app_home=/TransIns-server
+
+# setup user
+RUN mkdir $app_home \
+  && addgroup -g $gid $group \
+  && chown $uid:$gid $app_home \
+  && adduser -D -h "$app_home" -u $uid -G $group $user
+
+# copy app
+COPY --from=buildstage /tmp/target/*.jar $app_home
+COPY --from=buildstage /tmp/target/lib $app_home/lib/
+COPY src/main/resources/*.properties $app_home/config/
+COPY src/main/resources/logback.xml $app_home/config/
+COPY src/main/resources/defaultSegmentation.srx $app_home/config/
+COPY src/main/resources/marianConfig.cfg $app_home/config/
+COPY src/main/resources/server.cfg $app_home/config/
+COPY src/main/web $app_home/web/
+
+# give user access to app
+RUN chown -R $user:$group $app_home
+
+# run TransIns server as user when container starts
+USER $user
+WORKDIR $app_home
+ENTRYPOINT ["java", "-cp", "config:./*:lib/*", "de.dfki.mlt.transins.server.TransInsServer"]
+EXPOSE 7777
