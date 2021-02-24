@@ -207,10 +207,11 @@ def postprocess_sentence(sentence, lang):
     return detokenizer.detokenize(sentence_detruecased_as_tokens)
 
 
-def init(config):
+def init(config, config_folder):
     """
     Init global tools for each supported language
     :param config: the config with sections for each supported language
+    :param config_folder: the config folder
     :return:
     """
 
@@ -224,7 +225,6 @@ def init(config):
     moses_detruecaser = MosesDetruecaser()
 
     # all other tools need language specific initialization
-    config_folder = config['DEFAULT']['config_folder']
     global moses_tokenizer
     global moses_detokenizer
     global moses_truecaser
@@ -244,19 +244,20 @@ def init(config):
                 codecs.open(f"{config_folder}/{config[lang]['bpe_vocabulary']}", encoding='utf-8'), None))
 
 
-def main(port):
+def main(config_folder, port):
     """
     The main function
+    :param config_folder: config folder
     :param port: server port, None if not provided
     :return:
     """
 
     # load config file
     config = configparser.ConfigParser()
-    config.read('src/main/resources/prepostprocessing/config.ini')
+    config.read(f"{config_folder}/config.ini")
 
     # init globals
-    init(config)
+    init(config, config_folder)
 
     # start REST server
     host = config['DEFAULT']['server_ip']
@@ -280,9 +281,15 @@ def parse_arguments():
     """
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-cf', '--config_folder', help="config folder")
     parser.add_argument('-p', '--port', help="server port (optional)")
 
     parsed_args = parser.parse_args()
+
+    # check required --config-folder argument
+    if not parsed_args.config_folder:
+        parser.print_help()
+        exit(1)
 
     return parsed_args
 
@@ -290,4 +297,4 @@ def parse_arguments():
 if __name__ == '__main__':
     # read command-line arguments and pass them to main function
     args = parse_arguments()
-    main(args.port)
+    main(args.config_folder, args.port)
