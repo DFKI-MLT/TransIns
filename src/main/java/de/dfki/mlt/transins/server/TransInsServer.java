@@ -1,6 +1,8 @@
 package de.dfki.mlt.transins.server;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
@@ -44,7 +46,13 @@ public final class TransInsServer {
 
     // configure handler for web interface
     ResourceHandler resourceHandler = new ResourceHandler();
-    resourceHandler.setResourceBase("src/main/web");
+    if (Files.exists(Paths.get("src/main/web"))) {
+      // web folder in source distribution
+      resourceHandler.setResourceBase("src/main/web");
+    } else if (Files.exists(Paths.get("web"))) {
+      // web folder in runtime distribution
+      resourceHandler.setResourceBase("web");
+    }
     ContextHandler webContext = new ContextHandler("/");
     webContext.setHandler(resourceHandler);
 
