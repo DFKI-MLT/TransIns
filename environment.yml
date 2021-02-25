@@ -1,0 +1,11 @@
+name: transins
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - flask=1.1.2
+  - sacremoses=0.0.43
+  - waitress=1.4.3
+  - pip=20.2.4
+  - pip:
+    - subword-nmt==0.3.7

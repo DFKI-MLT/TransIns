@@ -1,0 +1,6 @@
+# by default, ignore everything
+**
+
+# allowed files and folders
+!/environment.yml
+!/src/main/python/*.py

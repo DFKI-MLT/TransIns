@@ -1,0 +1,38 @@
+FROM continuumio/miniconda3:4.9.2-alpine
+
+LABEL maintainer="Joerg Steffen <steffen@dfki.de>"
+LABEL description="Docker container of TransIns pre-/postprocessing server"
+
+ARG user=transins
+ARG group=transins
+ARG uid=1001
+ARG gid=1001
+# app home will also be used as user home
+ARG app_home=/TransIns-prepost
+
+# setup user
+RUN mkdir $app_home \
+  && addgroup -g $gid $group \
+  && chown $uid:$gid $app_home \
+  && adduser -D -h "$app_home" -u $uid -G $group $user
+
+# copy app
+COPY src/main/python/*.py $app_home
+COPY environment.yml $app_home
+
+# give user access to app
+RUN chown -R $user:$group $app_home
+
+# add packages from environment.yml to base environment
+RUN conda env update -n base -f $app_home/environment.yml
+
+# run Flask server as user when container starts;
+# PLEASE NOTE: model/resources are NOT included in image;
+# requires that a folder with a file 'config.ini' and
+# all models/resources is passed as bind mount to destination
+# 'TransIns-prepost/config' when container is started:
+# -v <your-config-path-on-host>:/TransIns-prepost/config:ro
+USER $user
+WORKDIR $app_home
+ENTRYPOINT ["python", "PrePostProcessingServer.py", "-cf", "config", "-p", "5000"]
+EXPOSE 5000
