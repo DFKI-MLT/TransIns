@@ -254,7 +254,9 @@ def main(config_folder, port):
 
     # load config file
     config = configparser.ConfigParser()
-    config.read(f"{config_folder}/config.ini")
+    if not config.read(f"{config_folder}/config.ini"):
+        logger.error("provided config folder not found or no config.ini found in config folder")
+        exit(1)
 
     # init globals
     init(config, config_folder)
