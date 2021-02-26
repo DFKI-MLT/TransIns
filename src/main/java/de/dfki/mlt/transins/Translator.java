@@ -214,7 +214,8 @@ public class Translator {
     // read Marian NMT configuration if Marian NMT is used as translator
     MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
     if (translatorId == TransId.MARIAN || translatorId == TransId.MARIAN_BATCH) {
-      InputStream configIn = getClass().getClassLoader().getResourceAsStream("marianConfig.cfg");
+      InputStream configIn =
+          getClass().getClassLoader().getResourceAsStream("marian-translator.cfg");
       marianNmtResourceParams.load(configIn, false);
       marianNmtResourceParams.setMarkupStrategy(markupStrategy);
     }
@@ -283,10 +284,10 @@ public class Translator {
       // add leveraging step for selected translator
       switch (translatorId) {
         case MICROSOFT:
-          driver.addStep(createMicrosoftLeveragingStep("msConfig.cfg"));
+          driver.addStep(createMicrosoftLeveragingStep("microsoft-translator.cfg"));
           break;
         case APERTIUM:
-          driver.addStep(createApertiumLeveragingStep("apertiumConfig.cfg"));
+          driver.addStep(createApertiumLeveragingStep("apertium-translator.cfg"));
           break;
         case MARIAN:
         case MARIAN_BATCH:

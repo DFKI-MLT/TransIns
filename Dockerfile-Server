@@ -30,7 +30,7 @@ COPY --from=buildstage /tmp/target/lib $app_home/lib/
 COPY src/main/resources/*.properties $app_home/config/
 COPY src/main/resources/logback.xml $app_home/config/
 COPY src/main/resources/defaultSegmentation.srx $app_home/config/
-COPY src/main/resources/marianConfig.cfg $app_home/config/
+COPY src/main/resources/marian-translator.cfg $app_home/config/
 COPY src/main/resources/server.cfg $app_home/config/
 COPY src/main/web $app_home/web/
 
