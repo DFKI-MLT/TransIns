@@ -1,0 +1,77 @@
+# define global args
+ARG marianpath=/marian
+
+FROM nvcr.io/nvidia/cuda:9.2-devel-ubuntu18.04 as buildstage
+
+LABEL maintainer="Joerg Steffen <steffen@dfki.de>"
+LABEL description="Docker container of TransIns Marian-NMT server"
+
+# install dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    cmake \
+    build-essential \
+    libboost-all-dev \
+    pkg-config \
+    libtool \
+    zlib1g-dev \
+    libbz2-dev \
+    automake \
+    python-dev \
+    perl \
+    libsparsehash-dev \
+    wget \
+    unzip \
+    libssl-dev \
+    libgoogle-perftools-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# clone and build Marian-NMT
+RUN git clone --branch 1.7.0 https://github.com/marian-nmt/marian
+ARG marianpath
+WORKDIR $marianpath
+RUN mkdir -p build
+WORKDIR $marianpath/build
+RUN cmake $marianpath -DCMAKE_BUILD_TYPE=Release -DCOMPILE_SERVER=on -DCOMPILE_CPU=off -DCOMPILE_CUDA=on && \
+    make -j
+
+FROM nvcr.io/nvidia/cuda:9.2-runtime-ubuntu18.04 as appstage
+
+# install dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libtcmalloc-minimal4 \
+    libboost-timer-dev \
+    libboost-iostreams-dev \
+    libboost-filesystem-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG user=transins
+ARG group=transins
+ARG uid=1001
+ARG gid=1001
+# app home will also be used as user home
+ARG app_home=/TransIns-marian
+
+# setup user
+RUN addgroup -gid $gid $group \
+  && adduser --home "$app_home" --uid $uid --gid $gid --disabled-password --gecos "" $user
+
+# copy app
+ARG marianpath
+COPY --from=buildstage $marianpath/build/marian-server $app_home/
+
+# give user access to app
+RUN chown -R $user:$group $app_home
+
+# run Marian NMT server as user when container starts;
+# PLEASE NOTE: model/resources are NOT included in image;
+# requires that a folder with a file 'config.yml' and
+# all models/resources is passed as bind mount to destination
+# 'TransIns-marian/config' when container is started:
+# -v <your-config-path-on-host>:/TransIns-marian/config:ro
+USER $user
+WORKDIR $app_home
+ENTRYPOINT ./marian-server --config config/config.yml
+EXPOSE 8080
