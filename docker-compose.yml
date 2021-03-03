@@ -1,0 +1,42 @@
+version: '3'
+
+networks:
+  transins:
+
+services:
+  transins-marian:
+    image: 'dfki/transins-marian:0.0.1'
+    networks:
+      - transins
+    container_name: transins-marian
+    restart: always
+    volumes:
+      - './src/main/resources/marian-nmt:/TransIns-marian/config:ro'
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            device_ids: ['0']
+            capabilities: [gpu]
+
+  transins-prepost:
+    image: 'dfki/transins-prepost:0.0.1'
+    networks:
+      - transins
+    container_name: transins-prepost
+    restart: always
+    volumes:
+      - './src/main/resources/prepostprocessing:/TransIns-prepost/config:ro'
+
+  transins-server:
+    depends_on:
+      - transins-marian
+      - transins-prepost
+    image: 'dfki/transins-server:0.0.1'
+    networks:
+      - transins
+    container_name: transins-server
+    restart: always
+    ports:
+      - '7777:7777'
