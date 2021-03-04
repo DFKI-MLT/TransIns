@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -78,31 +79,50 @@ public class PrePostProcessingClient {
    */
   public String process(String lang, String sentence, Mode mode, String host, int port) {
 
-    try {
-      // send sentence and language to server
-      URL url = new URL(
-          "http",
-          host,
-          port,
-          String.format(Locale.US, "/%s?lang=%s&sentence=%s",
-              mode == Mode.PREPROCESS ? "preprocess" : "postprocess",
-              lang,
-              URLEncoder.encode(sentence, StandardCharsets.UTF_8.toString())));
-      HttpGet getMethod = new HttpGet(url.toURI());
-      HttpResponse response = this.httpClient.execute(getMethod);
-      int status = response.getStatusLine().getStatusCode();
-      if (status >= 200 && status < 300) {
-        HttpEntity entity = response.getEntity();
-        if (entity != null) {
-          return EntityUtils.toString(entity);
+    int connectionAttempts = 0;
+    int maxConnectionAttempts = 3;
+    while (true) {
+      try {
+        // send sentence and language to server
+        URL url = new URL(
+            "http",
+            host,
+            port,
+            String.format(Locale.US, "/%s?lang=%s&sentence=%s",
+                mode == Mode.PREPROCESS ? "preprocess" : "postprocess",
+                lang,
+                URLEncoder.encode(sentence, StandardCharsets.UTF_8.toString())));
+        HttpGet getMethod = new HttpGet(url.toURI());
+        HttpResponse response = this.httpClient.execute(getMethod);
+        int status = response.getStatusLine().getStatusCode();
+        if (status >= 200 && status < 300) {
+          HttpEntity entity = response.getEntity();
+          if (entity != null) {
+            return EntityUtils.toString(entity);
+          }
+        } else {
+          String errorMessage = EntityUtils.toString(response.getEntity());
+          logger.error(errorMessage);
+          throw new OkapiException(errorMessage);
         }
-      } else {
-        String errorMessage = EntityUtils.toString(response.getEntity());
-        logger.error(errorMessage);
-        throw new OkapiException(errorMessage);
+      } catch (URISyntaxException e) {
+        logger.error(e.getLocalizedMessage());
+        throw new OkapiException(e);
+      } catch (IOException e) {
+        if (connectionAttempts == maxConnectionAttempts) {
+          throw new OkapiException(e);
+        }
+        connectionAttempts++;
+        logger.warn("{}, retrying in 5 seconds...", e.getCause().getMessage());
+        try {
+          TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+        }
+        continue;
       }
-    } catch (URISyntaxException | IOException e) {
-      logger.error(e.getLocalizedMessage(), e);
+      // connection successful
+      break;
     }
 
     return sentence;
@@ -138,47 +158,66 @@ public class PrePostProcessingClient {
 
     Map<String, String> resultMap = new LinkedHashMap<>();
 
-    try {
-      // add sentences to JSON array
-      JSONArray sentencesAsJsonArray = new JSONArray();
-      for (String oneSentence : uniqueSentences) {
-        sentencesAsJsonArray.put(oneSentence);
-      }
-
-      // send sentences and language to server
-      StringEntity requestEntity =
-          new StringEntity(sentencesAsJsonArray.toString(), ContentType.APPLICATION_JSON);
-      URI uri = new URI(
-          "http",
-          null,
-          host,
-          port,
-          String.format(Locale.US, "/%s",
-              mode == Mode.PREPROCESS ? "preprocess" : "postprocess"),
-          String.format(Locale.US, "lang=%s", lang),
-          null);
-      HttpPost postMethod = new HttpPost(uri);
-      postMethod.setEntity(requestEntity);
-
-      HttpResponse response = this.httpClient.execute(postMethod);
-      int status = response.getStatusLine().getStatusCode();
-      if (status >= 200 && status < 300) {
-        HttpEntity entity = response.getEntity();
-        if (entity != null) {
-          String jsonResultString = EntityUtils.toString(entity);
-          JSONArray jsonArray = new JSONArray(jsonResultString);
-          for (int i = 0; i < jsonArray.length(); i++) {
-            resultMap.put(uniqueSentences.get(i), jsonArray.getString(i));
-          }
+    int connectionAttempts = 0;
+    int maxConnectionAttempts = 3;
+    while (true) {
+      try {
+        // add sentences to JSON array
+        JSONArray sentencesAsJsonArray = new JSONArray();
+        for (String oneSentence : uniqueSentences) {
+          sentencesAsJsonArray.put(oneSentence);
         }
-      } else {
-        String errorMessage = EntityUtils.toString(response.getEntity());
-        logger.error(errorMessage);
-        throw new OkapiException(errorMessage);
-      }
 
-    } catch (URISyntaxException | IOException e) {
-      logger.error(e.getLocalizedMessage());
+        // send sentences and language to server
+        StringEntity requestEntity =
+            new StringEntity(sentencesAsJsonArray.toString(), ContentType.APPLICATION_JSON);
+        URI uri = new URI(
+            "http",
+            null,
+            host,
+            port,
+            String.format(Locale.US, "/%s",
+                mode == Mode.PREPROCESS ? "preprocess" : "postprocess"),
+            String.format(Locale.US, "lang=%s", lang),
+            null);
+        HttpPost postMethod = new HttpPost(uri);
+        postMethod.setEntity(requestEntity);
+
+        HttpResponse response = this.httpClient.execute(postMethod);
+        int status = response.getStatusLine().getStatusCode();
+        if (status >= 200 && status < 300) {
+          HttpEntity entity = response.getEntity();
+          if (entity != null) {
+            String jsonResultString = EntityUtils.toString(entity);
+            JSONArray jsonArray = new JSONArray(jsonResultString);
+            for (int i = 0; i < jsonArray.length(); i++) {
+              resultMap.put(uniqueSentences.get(i), jsonArray.getString(i));
+            }
+          }
+        } else {
+          String errorMessage = EntityUtils.toString(response.getEntity());
+          logger.error(errorMessage);
+          throw new OkapiException(errorMessage);
+        }
+
+      } catch (URISyntaxException e) {
+        logger.error(e.getLocalizedMessage());
+        throw new OkapiException(e);
+      } catch (IOException e) {
+        if (connectionAttempts == maxConnectionAttempts) {
+          throw new OkapiException(e);
+        }
+        connectionAttempts++;
+        logger.warn("{}, retrying in 5 seconds...", e.getCause().getMessage());
+        try {
+          TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+        }
+        continue;
+      }
+      // connection successful
+      break;
     }
 
     return resultMap;

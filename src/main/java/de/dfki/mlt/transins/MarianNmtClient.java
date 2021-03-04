@@ -11,11 +11,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import net.sf.okapi.common.exceptions.OkapiException;
 
 /**
  * Client for Marian NMT server.
@@ -47,11 +51,33 @@ public class MarianNmtClient implements WebSocket.Listener {
    */
   public MarianNmtClient(String url) {
 
-    this.ws = HttpClient
-        .newHttpClient()
-        .newWebSocketBuilder()
-        .buildAsync(URI.create(url), this)
-        .join();
+    // init web socket
+    int connectionAttempts = 0;
+    int maxConnectionAttempts = 3;
+    while (true) {
+      try {
+        this.ws = HttpClient
+            .newHttpClient()
+            .newWebSocketBuilder()
+            .buildAsync(URI.create(url), this)
+            .join();
+      } catch (CompletionException e) {
+        if (connectionAttempts == maxConnectionAttempts) {
+          logger.error(e.getLocalizedMessage());
+          throw new OkapiException(e);
+        }
+        connectionAttempts++;
+        logger.warn("{}, retrying in 5 seconds...", e.getCause().getMessage());
+        try {
+          TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+        }
+        continue;
+      }
+      // connection successful
+      break;
+    }
 
     // init translation cache
     this.translationCache =
