@@ -3,6 +3,7 @@ package de.dfki.mlt.transins;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +22,7 @@ import net.sf.okapi.common.Util;
 import net.sf.okapi.common.exceptions.OkapiException;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.filters.IFilterConfigurationMapper;
+import net.sf.okapi.common.filterwriter.IFilterWriter;
 import net.sf.okapi.common.io.FileCachedInputStream;
 import net.sf.okapi.common.pipelinedriver.PipelineDriver;
 import net.sf.okapi.common.resource.RawDocument;
@@ -302,16 +304,35 @@ public class Translator {
       }
 
       // filter events to raw document final step
-      driver.addStep(new FilterEventsToRawDocumentStep());
+      FilterEventsToRawDocumentStep filterEventsToRawDocumentStep =
+          new FilterEventsToRawDocumentStep();
+      driver.addStep(filterEventsToRawDocumentStep);
 
       driver.addBatchItem(rawDoc, new File(targetFileName).toURI(), targetEnc);
 
       // process
-      driver.processBatch();
+      try {
+        driver.processBatch();
+      } finally {
+        // if an exception is thrown during processing, make sure all resources are released
 
-      if (translatorId == TransId.MARIAN_BATCH) {
+        // this is a *HACK* to make sure that the output file is closed properly and
+        // can be deleted later
+        try {
+          Field filterWriterField =
+              FilterEventsToRawDocumentStep.class.getDeclaredField("filterWriter");
+          filterWriterField.setAccessible(true);
+          IFilterWriter filterWriter =
+              (IFilterWriter)filterWriterField.get(filterEventsToRawDocumentStep);
+          filterWriter.close();
+        } catch (ReflectiveOperationException | SecurityException | IllegalArgumentException e) {
+          logger.error(e.getLocalizedMessage(), e);
+        }
+
         // remove processed text fragments for this document from batch runner
-        BatchRunner.INSTANCE.clear(marianNmtResourceParams.getDocumentId());
+        if (translatorId == TransId.MARIAN_BATCH) {
+          BatchRunner.INSTANCE.clear(marianNmtResourceParams.getDocumentId());
+        }
       }
     }
   }
