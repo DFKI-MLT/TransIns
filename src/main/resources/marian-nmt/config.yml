@@ -1,0 +1,17 @@
+devices:
+  - 0
+workspace: 1500
+relative-paths: true
+models:
+  - model.npz
+vocabs:
+  - vocab.yml
+  - vocab.yml
+alignment: 1
+beam-size: 5
+normalize: 1
+word-penalty: 0
+mini-batch: 32
+maxi-batch: 128
+maxi-batch-sort: src
+port: 8080
