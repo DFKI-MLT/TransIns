@@ -26,8 +26,7 @@ The REST endpoint for getting the supported translation directions is `\getTrans
 The REST endpoint for sending a document to translate is `/translate`. The query has to be sent as POST request encoded as `multipart/form-data` with the following fields:
 
 * `file` the file name of the document to translate
-* `sl` the source language, i.e. the language of the above document
-* `tl` the target language, i.e. the language to translate the document to
+* `transDir` the translation direction; use the same format as returned by the `getTranslationDirections` endpoint
 * `enc` the encoding of the document; the translated document will use the same encoding
 * `strategy` the markup re-insertion strategy to use; possible values are `MTRAIN`, `MTRAIN_IMPROVED` and `COMPLETE_MAPPING` (default if strategy is not provided)
 
@@ -46,7 +45,7 @@ This would return a JSON array like `["de-fr","fr-de"]`.
 A POST query to translate an MS Office document `MyDoc.docx` from German to French would look like this:
 ```
 curl -i -X POST -H "Content-Type: multipart/form-data" \
-  -F "file=@MyDoc.docx" -F "sl=de" -F "tl=fr" -F "enc=windows-1252" \
+  -F "file=@MyDoc.docx" -F "transDir=de-fr" -F "enc=windows-1252" \
   -F "strategy=COMPLETE_MAPPING" \
   localhost:7777/translate
 ```

@@ -34,15 +34,16 @@
     <div class="query">
       <div class="query__labels">
         <label for="file">Select File</label><br/>
-        <label for="sl">Source Language</label><br/>
-        <label for="tl">Target Language</label><br/>
+        <label for="transDir">Translation Direction</label><br/>
         <label for="enc">Encoding</label><br/>
         <label for="strategy">Markup Re-Insertion Strategy</label>
       </div>
       <form id="queryForm">
         <input class="query__param query__param--enabled" id="file" name="file" type="file" onfocus="removeInvalid(this)" /><br/>
-        <input class="query__param query__param--enabled" id="sl" name="sl" value="de" maxlength="2" size="2" onfocus="removeInvalid(this)" /><br/>
-        <input class="query__param query__param--enabled" id="tl" name="tl" value="fr" maxlength="2" size="2" onfocus="removeInvalid(this)" /><br/>
+        <select class="query__param query__param--enabled" id="transDir" name="transDir">
+          <option value="de-fr">de → fr</option>
+          <option value="fr-de">fr → de</option>
+        </select><br/>
         <input class="query__param query__param--enabled" id="enc" name="enc" value="utf-8" maxlength="10" size="7" onfocus="removeInvalid(this)" /><br/>
         <select class="query__param query__param--enabled" name="strategy">
             <option value="COMPLETE_MAPPING">COMPLETE_MAPPING</option>

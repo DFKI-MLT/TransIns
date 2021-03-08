@@ -137,12 +137,9 @@ public class TransInsService {
    * @param encoding
    *          the document encoding,
    *          as given by the form parameter 'enc'
-   * @param sourceLang
-   *          the source language,
-   *          as given by the form parameter 'sl'
-   * @param targetLang
-   *          the target language,
-   *          as given by the form parameter 'tl'
+   * @param transDir
+   *          the translation direction,
+   *          as given by the form parameter 'transDir'
    * @param markupStrategyString
    *          the markup re-insertion strategy to use, defaults to COMPLETE_MAPPING,
    *          as given by the form parameter 'strategy'
@@ -157,7 +154,7 @@ public class TransInsService {
       @FormDataParam("file") InputStream inputStream,
       @FormDataParam("file") FormDataContentDisposition fileDisposition,
       @FormDataParam("enc") String encoding,
-      @FormDataParam("sl") String sourceLang, @FormDataParam("tl") String targetLang,
+      @FormDataParam("transDir") String transDir,
       @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString) {
 
     // reject job if too many jobs in queue
@@ -169,7 +166,7 @@ public class TransInsService {
     // check for valid query parameters
     String errorMessage =
         checkQueryParameters(
-            fileDisposition, sourceLang, targetLang, encoding, markupStrategyString);
+            fileDisposition, transDir, encoding, markupStrategyString);
     if (errorMessage != null) {
       logger.error(errorMessage);
       return createResponse(400, errorMessage);
@@ -183,7 +180,7 @@ public class TransInsService {
     String jobId = random.nextString();
     // create input file name based on job id; this is only used internally
     String internalFileName =
-        String.format("%s_%s-%s.%s", jobId, sourceLang, targetLang, fileExtension);
+        String.format("%s_%s.%s", jobId, transDir, fileExtension);
     logger.info("receiving source document \"{}\"", internalFileName);
 
     // write content from input stream to file
@@ -227,6 +224,9 @@ public class TransInsService {
       return createResponse(503, e.getMessage());
     }
 
+    String[] transDirParts = transDir.split("-");
+    String sourceLang = transDirParts[0];
+    String targetLang = transDirParts[1];
     jobManager.addJobToQueue(
         new Job(
             jobId, originalFileName, internalFileName,
@@ -366,10 +366,8 @@ public class TransInsService {
    *
    * @param fileDisposition
    *          the form data content disposition
-   * @param sourceLang
-   *          the source language
-   * @param targetLang
-   *          the target language
+   * @param transDir
+   *          the translation direction
    * @param encoding
    *          the encoding
    * @param markupStrategyString
@@ -379,13 +377,11 @@ public class TransInsService {
    */
   private static String checkQueryParameters(
       FormDataContentDisposition fileDisposition,
-      String sourceLang, String targetLang, String encoding, String markupStrategyString) {
+      String transDir, String encoding, String markupStrategyString) {
 
-    // supported language pairs
-    String queryLangPair =
-        String.format("%s-%s", sourceLang.toLowerCase(), targetLang.toLowerCase());
-    if (!suppportedLangPairs.contains(queryLangPair)) {
-      return String.format("unsupported language pair %s", queryLangPair);
+    // translation direction
+    if (!suppportedTransDirs.contains(transDir)) {
+      return String.format("unsupported translation direction %s", transDir);
     }
     // document type
     String originalFileName = fileDisposition.getFileName();

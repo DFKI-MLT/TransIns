@@ -49,14 +49,6 @@ function validate() {
     $("#file").addClass("query__param--invalid");
     allValid = false;
   }
-  if (!$("#sl").val()) {
-    $("#sl").addClass("query__param--invalid");
-    allValid = false;
-  }
-  if (!$("#tl").val()) {
-    $("#tl").addClass("query__param--invalid");
-    allValid = false;
-  }
   if (!$("#enc").val()) {
     $("#enc").addClass("query__param--invalid");
     allValid = false;
