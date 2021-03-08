@@ -17,9 +17,99 @@ We implement the following strategies for re-inserting markup into the translate
 * `MTRAIN_IMPROVED`: An improved version of the MTRAIN strategy
 * `COMPLETE_MAPPING`: A strategy assigning markup to *all* tokens in the markup's range
 
-== REST API
+== Requirements
+TransIns was tested on https://www.opensuse.org/[openSUSE Leap 15.1]. For local deployment, the following software is required:
 
-TransIns provides a RESTful API that allows to query the translation service in an asynchronous way.
+* https://www.oracle.com/java/technologies/javase-jdk11-downloads.html[Java 11 JDK] or higher
+* https://maven.apache.org/[Maven] build tool, version 3.5 or higher
+* https://docs.conda.io/en/latest/miniconda.html[Conda] package and environment management system, version 4.9.2 or higher
+* https://marian-nmt.github.io/[Marian NMT] neural machine translation framework, version 1.7
+
+TransIns also provides Docker images for easy deployment (see <<_docker_deployment>>). This requires
+
+* https://www.docker.com/[Docker], version 19.03 or higher
+* https://docs.docker.com/compose/[Docker Compose], version 1.28.5 or higher
+
+For efficient performance, we recommend to run Marin NMT on a server with at least one GPU. Our setup uses a GeForce RTX 2080 Ti with 11GB RAM.
+
+== Content
+This distribution consists of the following files:
+
+* `README.adoc`: this readme file
+* `pom.xm`: Maven build tool descriptor file
+* `environment.yml`: Conda environment definition file
+* `Dockerfile-*`: Docker image descriptions for the three TransIns components
+* `build-transins-docker-images.sh`: a convenience script for building TransIns Docker images
+* `docker-compose.yml`: docker-compose file to run TransIns in Docker containers
+* `src/main/java/*`: Java source code of the core TransIns component, including an embedded server for web page and REST API
+* `src/main/python`: Python source code of the pre- and postprocessing server
+* `src/main/web`: Source files of the TransIns web page
+* `src/main/resources`:
+** `server.cfg`: configuration file of embedded server for web page and REST API
+** `marian-translator.cfg`: Okapi connector configuration file for Marian NMT, including connection settings for pre-/postprocessing server
+** `prepostprocessing`: configuration folder of pre-/postprocessing server; required resources/models are *not* included in this distribution
+** `marian-nmt`: configuration folder of Marian NMT translation server; required resources/models are *not* included in this distribution
+** `defaultSegmentation.srx`: configuration file of the Okapi segmentation step
+** `de/dfki/mlt/transins/*Configuration.yml`: configuration files used by the Okapi HTML filter
+** `apertium-translator.cfg`, `microsoft-translator.cfg`: Okapi connector configuration files for alternative translation services
+** `logback.xml`: TransIns logger configuration
+** `log4j2.xml`, `commons-logging.properties`, `simplelog.properties`: logger configuration for third-party libraries
+* `src/test/java`: Java source code of unit tests and demos
+* `src/test/resources`: files used in demos
+
+== Installation
+TransIns consists of the following components:
+
+* the TransIns core component, including web server and REST API
+* the server for handling pre- and postprocessing of sentences to translate
+* the Marian NMT server for translating sentences
+
+=== TransIns Core Component
+To compile the Java source code for the TransIns core component, run `mvn clean install` in the top level folder of the distribution (where `pom.xml` is located). Start the server providing the web page and REST API by running the following command:
+```
+java -cp src/main/resources:target/*:target/lib/* \
+  de.dfki.mlt.transins.server.TransInsServer
+```
+Configuration files are loaded from Java classpath via `src/main/resources/`. Please note that the connection settings in `marian-translator.cfg` are set by default for deployment in Docker and have to be adapted for local deployment.
+
+The TransIns web page can be accessed at `http://localhost:7777`, the REST API is available at `http://localhost:7777/*` (see <<_rest_api>> for more details).
+
+=== TransIns Pre-/Postprocessing Server
+To run the pre-/postprocessing server, several Python packages have to be installed first. We suggest to create a dedicated Conda environment by running `conda create --name transins` and then switching to it by running `conda activate transins`. Install the required packages by running the following Conda commands:
+```
+conda install -c anaconda flask=1.1.2
+conda install -c conda-forge sacremoses=0.0.43
+conda install -c anaconda pip=20.2.4
+pip install subword-nmt==0.3.7
+```
+Alternatively, the creation of the Conda environment and the installation of the required packages can also be done by a single Conda command using the environment definition file: `conda env create -f environment.yml`
+
+Start the pre-/postprocessing server by running the following command:
+```
+python src/main/python/PrePostProcessingServer.py \
+  --config_folder src/main/resources/prepostprocessing \
+  --port 5000
+```
+The configuration of the pre-/postprocessing server is loaded from the file `config.ini` in the provided configuration folder. Please note that the required resources/models are *not* included in this distribution.
+
+The pre-/postprocessing server is now accessible via a REST API running at `http://localhost:5000`.
+
+=== TransIns Marian NMT Server
+Install Marian NMT on your system following these https://marian-nmt.github.io/docs/#installation[instructions]. Start the translation server by running the following command in the top level folder of the distribution (assuming that `marian-server` is on your $PATH)
+```
+marian-server --config src/main/resources/marian-nmt/config.yml
+```
+Please note that `config.yml` assumes a GPU with at lest 12GB of memory, so adapt according to your GPU if required. Also note that the required resources/models are *not* included in this distribution. 
+
+The Marian NMT translation server is now accessible via a web socket running at `ws://localhost:8080/translate`.
+
+=== Docker Deployment
+Instead of installing the TransIns components as described above, we also provide Docker images for easy deployment. Each TransIns component runs in a separate container within a Docker network. The Docker image for each component is defined in the corresponding Dockerfile. Build the TransIns Docker images by running `./build-transins-docker-images.sh` in the top level folder of the distribution. All TransIns components can then be started by running `docker-compose up -d`.
+
+Note that the configuration folders of both the pre-/postprocessing server as well as the Marian NMT server are passed as bind mounts to the corresponding Docker containers.
+
+== REST API
+TransIns provides a RESTful API that allows to query the translation service in an asynchronous way. This API is also used by the web page.
 
 The REST endpoint for getting the supported translation directions is `\getTranslationDirections`. Sending a GET request returns a JSON array of strings where each string represents a translation direction in the format `<sourceLang>-<targetLang>`.
 
