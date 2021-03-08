@@ -3,6 +3,23 @@ const restBaseUrl = "";
 
 
 /**
+ * Query server for available translation directions and set them as options
+ * at 'transDir' dropdown menu.
+ */
+function setTranslationDirections() {
+
+  fetch(`${restBaseUrl}/getTranslationDirections`)
+    .then(response => response.json())
+    .then(transDirList => {
+      let dropdown = $("#transDir");
+      transDirList.forEach(
+        transDir => dropdown.append(new Option(transDir.replace("-", " → "), transDir)));
+    })
+    .catch(errorMessage => console.log(errorMessage));
+}
+
+
+/**
  * Top level function to translate a document.
  */
 async function translate() {

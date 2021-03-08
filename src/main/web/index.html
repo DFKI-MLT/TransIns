@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body onload="setTranslationDirections()">
   <div class="header">
     <div class="header__text">
       <h1 class="header__text__title">TransIns</h1>
@@ -41,8 +41,6 @@
       <form id="queryForm">
         <input class="query__param query__param--enabled" id="file" name="file" type="file" onfocus="removeInvalid(this)" /><br/>
         <select class="query__param query__param--enabled" id="transDir" name="transDir">
-          <option value="de-fr">de → fr</option>
-          <option value="fr-de">fr → de</option>
         </select><br/>
         <input class="query__param query__param--enabled" id="enc" name="enc" value="utf-8" maxlength="10" size="7" onfocus="removeInvalid(this)" /><br/>
         <select class="query__param query__param--enabled" name="strategy">
