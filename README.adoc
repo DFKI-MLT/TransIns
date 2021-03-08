@@ -21,6 +21,8 @@ We implement the following strategies for re-inserting markup into the translate
 
 TransIns provides a RESTful API that allows to query the translation service in an asynchronous way.
 
+The REST endpoint for getting the supported translation directions is `\getTranslationDirections`. Sending a GET request returns a JSON array of strings where each string represents a translation direction in the format `<sourceLang>-<targetLang>`.
+
 The REST endpoint for sending a document to translate is `/translate`. The query has to be sent as POST request encoded as `multipart/form-data` with the following fields:
 
 * `file` the file name of the document to translate
@@ -35,7 +37,13 @@ If required, the token can also be used to cancel a translation and/or force the
 
 To test the REST service, use the https://curl.haxx.se/[curl] and https://www.gnu.org/software/wget/[wget] tools.
 
-A POST query to translate an MS Office document `MyDoc.docx` from German to French sent to a TransIns service running on port 7777 at localhost would look like this:
+The following GET query retrieves the supported translation directions from a TransIns service running on port 7777 at localhost:
+```
+curl -i -X GET localhost:7777/getTranslationDirections
+```
+This would return a JSON array like `["de-fr","fr-de"]`.
+
+A POST query to translate an MS Office document `MyDoc.docx` from German to French would look like this:
 ```
 curl -i -X POST -H "Content-Type: multipart/form-data" \
   -F "file=@MyDoc.docx" -F "sl=de" -F "tl=fr" -F "enc=windows-1252" \

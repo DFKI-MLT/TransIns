@@ -33,6 +33,9 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import de.dfki.mlt.transins.Translator;
 import de.dfki.mlt.transins.server.Job.Status;
@@ -63,8 +66,8 @@ public class TransInsService {
   // thread pool for running the translation
   private static ExecutorService executorService;
 
-  // supported language pairs
-  private static List<String> suppportedLangPairs;
+  // supported translation directions
+  private static List<String> suppportedTransDirs;
 
   // maximum number of jobs in queue
   private static int maxQueueSize;
@@ -93,10 +96,32 @@ public class TransInsService {
     executorService = Executors.newFixedThreadPool(1);
     Files.createDirectories(Paths.get(INPUT_FOLDER));
     Files.createDirectories(Paths.get(OUTPUT_FOLDER));
-    suppportedLangPairs = config.getList(String.class, ConfigKeys.SUPPORTED_LANG_PAIRS);
+    suppportedTransDirs = config.getList(String.class, ConfigKeys.SUPPORTED_TRANS_DIRS);
     maxQueueSize = config.getInt(ConfigKeys.MAX_QUEUE_SIZE);
     maxFileSize = config.getInt(ConfigKeys.MAX_FILE_SIZE);
     developmentMode = config.getBoolean(ConfigKeys.DEVELOPMENT_MODE);
+  }
+
+
+  /**
+   * @return the supported translation directions as JSON array
+   */
+  @Path("/getTranslationDirections")
+  @GET
+  @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+  public static Response getTranslationDirections() {
+
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      ResponseBuilder response = Response.accepted(mapper.writeValueAsString(suppportedTransDirs));
+      if (developmentMode) {
+        response.header("Access-Control-Allow-Origin", "*");
+      }
+      return response.build();
+    } catch (JsonProcessingException e) {
+      logger.error(e.getLocalizedMessage(), e);
+      return createResponse(500, e.getMessage());
+    }
   }
 
 
