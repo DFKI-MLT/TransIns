@@ -248,11 +248,10 @@ public class TransInsService {
 
         try {
           jobManager.markJobAsInTranslation(jobId);
-          translator.translate(
+          translator.translateWithMarianNmt(
               sourcePath.toAbsolutePath().toString(), sourceLang, encoding,
-              targetPath.toAbsolutePath().toString(),
-              targetLang, encoding, Translator.TransId.MARIAN_BATCH,
-              MarkupStrategy.valueOf(markupStrategyString), true);
+              targetPath.toAbsolutePath().toString(), targetLang, encoding,
+              true, MarkupStrategy.valueOf(markupStrategyString), true);
           jobManager.markJobAsFinished(jobId);
         } catch (Throwable e) {
           jobManager.markJobAsFailed(jobId);

@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,6 +25,8 @@ import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.filters.IFilterConfigurationMapper;
 import net.sf.okapi.common.filterwriter.IFilterWriter;
 import net.sf.okapi.common.io.FileCachedInputStream;
+import net.sf.okapi.common.pipeline.BasePipelineStep;
+import net.sf.okapi.common.pipeline.IPipelineStep;
 import net.sf.okapi.common.pipelinedriver.PipelineDriver;
 import net.sf.okapi.common.resource.RawDocument;
 import net.sf.okapi.connectors.apertium.ApertiumMTConnector;
@@ -44,7 +47,7 @@ import net.sf.okapi.steps.segmentation.SegmentationStep;
  */
 public class Translator {
 
-  /** supported translation engines */
+  /** supported translation engines, not including Marian NMT */
   public enum TransId {
 
     /** Microsoft Azure translation engine */
@@ -52,12 +55,6 @@ public class Translator {
 
     /** Apertium */
     APERTIUM,
-
-    /** Marian NMT server */
-    MARIAN,
-
-    /** Marian NMT server with batch runner */
-    MARIAN_BATCH,
 
     /** dummy that just uppercases all content */
     UPPERCASE_DUMMY
@@ -114,7 +111,7 @@ public class Translator {
 
   /**
    * Translate source document from the given source language to the given target language using the
-   * translator with the given id.
+   * translator with the given id. Use this method for non-Marian NMT translations.
    *
    * @param sourceFileName
    *          the source document file name
@@ -128,34 +125,24 @@ public class Translator {
    *          the target language
    * @param targetEnc
    *          the target document encoding
-   * @param translatorId
-   *          the translator id
-   * @param markupStrategy
-   *          the markup re-insertion strategy to use; only applies when using Marian NMT
    * @param applySegmentation
    *          add segmentation when {@code true}
+   * @param translatorId
+   *          the translator id
    */
   public void translate(
       String sourceFileName, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      TransId translatorId, MarkupStrategy markupStrategy, boolean applySegmentation) {
+      boolean applySegmentation, TransId translatorId) {
 
     // get file extension
-    String ext = Util.getExtension(sourceFileName);
-    // remove dot from extension
-    if (ext.length() > 0) {
-      ext = ext.substring(1);
-    }
-    if (Util.isEmpty(ext)) {
-      throw new OkapiException(
-          String.format("No file extension detected in \"%s\".", sourceFileName));
-    }
+    String ext = getExtensionFromFileName(sourceFileName);
 
     // create input stream and translate
     try (InputStream inputStream =
         Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
       translate(inputStream, ext, sourceLang, sourceEnc,
-          targetFileName, targetLang, targetEnc, translatorId, markupStrategy, applySegmentation);
+          targetFileName, targetLang, targetEnc, applySegmentation, translatorId);
     } catch (IOException e) {
       throw new OkapiException(
           String.format("could not read source file \"%s\"", sourceFileName), e);
@@ -165,7 +152,8 @@ public class Translator {
 
   /**
    * Translate source document read from the given input stream from the given source language to
-   * the given target language using the translator with the given id.
+   * the given target language using the translator with the given id. Use this method for
+   * non-Marian NMT translations.
    *
    * @param inputStream
    *          the stream to read the source document from
@@ -181,17 +169,15 @@ public class Translator {
    *          the target language
    * @param targetEnc
    *          the target document encoding
-   * @param translatorId
-   *          the translator id
-   * @param markupStrategy
-   *          the markup re-insertion strategy to use; only applies when using Marian NMT
    * @param applySegmentation
    *          apply segmentation when {@code true}
+   * @param translatorId
+   *          the translator id
    */
   public void translate(
       InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      TransId translatorId, MarkupStrategy markupStrategy, boolean applySegmentation) {
+      boolean applySegmentation, TransId translatorId) {
 
     // get configuration id for file extension
     String configId = this.extensionsMap.get(fileExtension);
@@ -209,57 +195,9 @@ public class Translator {
     logger.info("             target language: {}", targetLang);
     logger.info("             target encoding: {}", targetEnc);
     logger.info("               translator id: {}", translatorId);
-    logger.info("markup re-insertion strategy: {}", markupStrategy);
     logger.info("          MIME type detected: {}", mimeType);
     logger.info("      configuration detected: {}", configId);
 
-    // read Marian NMT configuration if Marian NMT is used as translator
-    MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
-    if (translatorId == TransId.MARIAN || translatorId == TransId.MARIAN_BATCH) {
-      InputStream configIn =
-          getClass().getClassLoader().getResourceAsStream("marian-translator.cfg");
-      marianNmtResourceParams.load(configIn, false);
-      marianNmtResourceParams.setMarkupStrategy(markupStrategy);
-    }
-
-    if (translatorId == TransId.MARIAN_BATCH) {
-      try {
-        // make sure input stream is resettable, as we have to create the raw document twice
-        // from the same input stream
-        FileCachedInputStream resettableInputStream = StreamUtil.createResettableStream(
-            inputStream, FileCachedInputStream.DEFAULT_BUFFER_SIZE);
-
-        try (RawDocument rawDoc =
-            new RawDocument(
-                resettableInputStream,
-                sourceEnc,
-                LocaleId.fromString(sourceLang),
-                LocaleId.fromString(targetLang))) {
-          rawDoc.setFilterConfigId(configId);
-
-          // add document id under which the results of the batch processor are stored
-          // to Marian NMT configuration
-          marianNmtResourceParams.setDocumentId(rawDoc.hashCode() + "");
-
-          // run batch processor
-          runMarianNmtBatch(
-              rawDoc, sourceLang, targetLang, marianNmtResourceParams, applySegmentation);
-
-          // reset input stream so that the same rawDocument can be processed again
-          if (!resettableInputStream.isOpen()) {
-            resettableInputStream.reopen();
-          }
-          resettableInputStream.reset();
-          inputStream = resettableInputStream;
-        }
-      } catch (IOException e) {
-        throw new OkapiException("creation of resettable input stream failed", e);
-      }
-    }
-
-    // process document for the first time (if using MARIAN)
-    // or for the second time (if using MARIAN_BATCH); in the latter case, pre-/postprocessing
-    // results will be returned from cache
     try (RawDocument rawDoc =
         new RawDocument(
             inputStream,
@@ -269,143 +207,54 @@ public class Translator {
 
       rawDoc.setFilterConfigId(configId);
 
-      // create the driver
-      PipelineDriver driver = new PipelineDriver();
-      driver.setFilterConfigurationMapper(this.fcMapper);
-      String projectDir = Util.getDirectoryName(Paths.get(".").toAbsolutePath().toString());
-      driver.setRootDirectories(projectDir, projectDir);
-
-      // raw document to filter events step
-      driver.addStep(new RawDocumentToFilterEventsStep());
-
-      // add segmentation step (optional)
-      if (applySegmentation) {
-        driver.addStep(createSeqmentationStep());
-      }
-
-      // add leveraging step for selected translator
+      // create (pseudo) leveraging step for selected translator
+      BasePipelineStep leveragingStep = null;
       switch (translatorId) {
         case MICROSOFT:
-          driver.addStep(createMicrosoftLeveragingStep("microsoft-translator.cfg"));
+          leveragingStep = createMicrosoftLeveragingStep("microsoft-translator.cfg");
           break;
         case APERTIUM:
-          driver.addStep(createApertiumLeveragingStep("apertium-translator.cfg"));
-          break;
-        case MARIAN:
-        case MARIAN_BATCH:
-          driver.addStep(createMarianLeveragingStep(marianNmtResourceParams));
+          leveragingStep = createApertiumLeveragingStep("apertium-translator.cfg");
           break;
         case UPPERCASE_DUMMY:
-          driver.addStep(new UppercaseStep());
+          leveragingStep = new UppercaseStep();
           break;
         default:
           logger.error("unknown translator id \"{}\"", translatorId);
           return;
       }
 
-      // filter events to raw document final step
-      FilterEventsToRawDocumentStep filterEventsToRawDocumentStep =
-          new FilterEventsToRawDocumentStep();
-      driver.addStep(filterEventsToRawDocumentStep);
+      // create pipeline driver
+      PipelineDriver driver = createPipelineDriver(leveragingStep, applySegmentation);
 
+      // set document to process
       driver.addBatchItem(rawDoc, new File(targetFileName).toURI(), targetEnc);
 
       // process
-      try {
-        driver.processBatch();
-      } finally {
-        // if an exception is thrown during processing, make sure all resources are released
-
-        // this is a *HACK* to make sure that the output file is closed properly and
-        // can be deleted later
-        try {
-          Field filterWriterField =
-              FilterEventsToRawDocumentStep.class.getDeclaredField("filterWriter");
-          filterWriterField.setAccessible(true);
-          IFilterWriter filterWriter =
-              (IFilterWriter)filterWriterField.get(filterEventsToRawDocumentStep);
-          filterWriter.close();
-        } catch (ReflectiveOperationException | SecurityException | IllegalArgumentException e) {
-          logger.error(e.getLocalizedMessage(), e);
-        }
-
-        // remove processed text fragments for this document from batch runner
-        if (translatorId == TransId.MARIAN_BATCH) {
-          BatchRunner.INSTANCE.clear(marianNmtResourceParams.getDocumentId());
-        }
-      }
+      driver.processBatch();
     }
   }
 
 
   /**
-   * Collect text fragments and batch process them.
+   * Get extension from the given file name.
    *
-   * @param rawDoc
-   *          the raw document
-   * @param sourceLang
-   *          the source language
-   * @param targetLang
-   *          the target language
-   * @param marianNmtResourceParams
-   *          the Marian NMT configuration
-   * @param applySegmentation
-   *          add segmentation when {@code true}
+   * @param fileName
+   *          the file name
+   * @return the extension
    */
-  private void runMarianNmtBatch(
-      RawDocument rawDoc, String sourceLang, String targetLang,
-      MarianNmtParameters marianNmtResourceParams, boolean applySegmentation) {
+  private String getExtensionFromFileName(String fileName) {
 
-    // create the driver
-    PipelineDriver driver = new PipelineDriver();
-    driver.setFilterConfigurationMapper(this.fcMapper);
-    String projectDir = Util.getDirectoryName(Paths.get(".").toAbsolutePath().toString());
-    driver.setRootDirectories(projectDir, projectDir);
-
-    // raw document to filter events step
-    driver.addStep(new RawDocumentToFilterEventsStep());
-
-    // add segmentation step (optional)
-    if (applySegmentation) {
-      driver.addStep(createSeqmentationStep());
+    String ext = Util.getExtension(fileName);
+    // remove dot from extension
+    if (ext.length() > 0) {
+      ext = ext.substring(1);
     }
-
-    // collect all text fragments for batch processor
-    driver.addStep(new TextFragmentsCollector(marianNmtResourceParams.getDocumentId()));
-
-    // add document to Okapi pipeline for processing
-    driver.addBatchItem(rawDoc);
-
-    // process
-    driver.processBatch();
-
-    // batch process text fragments collected in the pipeline above;
-    // use parameters of MarianNmtConnector
-    BatchRunner.INSTANCE.processBatch(sourceLang, targetLang, marianNmtResourceParams);
-    logger.debug(BatchRunner.INSTANCE.getStats(marianNmtResourceParams.getDocumentId()));
-  }
-
-
-  /**
-   * @return default segmenter for western languages
-   */
-  private SegmentationStep createSeqmentationStep() {
-
-    SegmentationStep segStep = new SegmentationStep();
-
-    net.sf.okapi.steps.segmentation.Parameters segParams =
-        (net.sf.okapi.steps.segmentation.Parameters)segStep.getParameters();
-    segParams.setSegmentSource(true);
-    segParams.setSegmentTarget(true);
-    InputStream sourceSrxIn =
-        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
-    InputStream targetSrxIn =
-        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
-    segParams.setSourceSrxStream(sourceSrxIn);
-    segParams.setTargetSrxStream(targetSrxIn);
-    segParams.setCopySource(true);
-
-    return segStep;
+    if (Util.isEmpty(ext)) {
+      throw new OkapiException(
+          String.format("No file extension detected in \"%s\".", fileName));
+    }
+    return ext;
   }
 
 
@@ -472,7 +321,306 @@ public class Translator {
 
 
   /**
-   * Create leveraging step using Marian translator.
+   * Create pipeline driver using the given (pseudo) leveraging step.
+   *
+   * @param leveragingStep
+   *          the (pseudo) leveraging step
+   * @param applySegmentation
+   *          apply segmentation when {@code true}
+   * @return the pipeline driver
+   */
+  private PipelineDriver createPipelineDriver(
+      BasePipelineStep leveragingStep, boolean applySegmentation) {
+
+    // create the driver
+    PipelineDriver driver = new PipelineDriver();
+    driver.setFilterConfigurationMapper(this.fcMapper);
+    String projectDir = Util.getDirectoryName(Paths.get(".").toAbsolutePath().toString());
+    driver.setRootDirectories(projectDir, projectDir);
+
+    // raw document to filter events step
+    driver.addStep(new RawDocumentToFilterEventsStep());
+
+    // add segmentation step (optional)
+    if (applySegmentation) {
+      driver.addStep(createSeqmentationStep());
+    }
+
+    // add leveraging step
+    driver.addStep(leveragingStep);
+
+    // filter events to raw document final step
+    FilterEventsToRawDocumentStep filterEventsToRawDocumentStep =
+        new FilterEventsToRawDocumentStep();
+    driver.addStep(filterEventsToRawDocumentStep);
+
+    return driver;
+  }
+
+
+  /**
+   * @return default segmenter for western languages
+   */
+  private SegmentationStep createSeqmentationStep() {
+
+    SegmentationStep segStep = new SegmentationStep();
+
+    net.sf.okapi.steps.segmentation.Parameters segParams =
+        (net.sf.okapi.steps.segmentation.Parameters)segStep.getParameters();
+    segParams.setSegmentSource(true);
+    segParams.setSegmentTarget(true);
+    InputStream sourceSrxIn =
+        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
+    InputStream targetSrxIn =
+        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
+    segParams.setSourceSrxStream(sourceSrxIn);
+    segParams.setTargetSrxStream(targetSrxIn);
+    segParams.setCopySource(true);
+
+    return segStep;
+  }
+
+
+  /**
+   * Translate source document from the given source language to the given target language using
+   * Marian NMT.
+   *
+   * @param sourceFileName
+   *          the source document file name
+   * @param sourceLang
+   *          the source language
+   * @param sourceEnc
+   *          the source document encoding
+   * @param targetFileName
+   *          the target document file name
+   * @param targetLang
+   *          the target language
+   * @param targetEnc
+   *          the target document encoding
+   * @param applySegmentation
+   *          add segmentation when {@code true}
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use
+   * @param batchProcessing
+   *          do batch processing when {@code true}
+   */
+  public void translateWithMarianNmt(
+      String sourceFileName, String sourceLang, String sourceEnc,
+      String targetFileName, String targetLang, String targetEnc,
+      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing) {
+
+    // get file extension
+    String ext = getExtensionFromFileName(sourceFileName);
+
+    // create input stream and translate
+    try (InputStream inputStream =
+        Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
+      translateWithMarianNmt(inputStream, ext, sourceLang, sourceEnc,
+          targetFileName, targetLang, targetEnc, applySegmentation,
+          markupStrategy, batchProcessing);
+    } catch (IOException e) {
+      throw new OkapiException(
+          String.format("could not read source file \"%s\"", sourceFileName), e);
+    }
+  }
+
+
+  /**
+   * Translate source document read from the given input stream from the given source language to
+   * the given target language using Marian NMT.
+   *
+   * @param inputStream
+   *          the stream to read the source document from
+   * @param fileExtension
+   *          the source document type, usually indicated by the file extension
+   * @param sourceLang
+   *          the source language
+   * @param sourceEnc
+   *          the source document encoding
+   * @param targetFileName
+   *          the target document file name
+   * @param targetLang
+   *          the target language
+   * @param targetEnc
+   *          the target document encoding
+   * @param applySegmentation
+   *          apply segmentation when {@code true}
+   * @param markupStrategy
+   *          the markup re-insertion strategy to use
+   * @param batchProcessing
+   *          do batch processing when {@code true}
+   */
+  public void translateWithMarianNmt(
+      InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
+      String targetFileName, String targetLang, String targetEnc,
+      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing) {
+
+    // get configuration id for file extension
+    String configId = this.extensionsMap.get(fileExtension);
+    if (configId == null) {
+      throw new OkapiException(String.format(
+          "Could not guess the configuration for the extension '%s'", fileExtension));
+    }
+    // get MIME type for file extension
+    String mimeType = MimeTypeMapper.getMimeType(fileExtension);
+
+    // parameter summary
+    logger.info("             source language: {}", sourceLang);
+    logger.info("             source encoding: {}", sourceEnc);
+    logger.info("                 target file: {}", targetFileName);
+    logger.info("             target language: {}", targetLang);
+    logger.info("             target encoding: {}", targetEnc);
+    logger.info("markup re-insertion strategy: {}", markupStrategy);
+    logger.info("          MIME type detected: {}", mimeType);
+    logger.info("      configuration detected: {}", configId);
+
+    // read Marian NMT configuration
+    MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
+    InputStream configIn =
+        getClass().getClassLoader().getResourceAsStream("marian-translator.cfg");
+    marianNmtResourceParams.load(configIn, false);
+    marianNmtResourceParams.setMarkupStrategy(markupStrategy);
+
+    if (batchProcessing) {
+      try {
+        // make sure input stream is resettable, as we have to create the raw document twice
+        // from the same input stream
+        FileCachedInputStream resettableInputStream = StreamUtil.createResettableStream(
+            inputStream, FileCachedInputStream.DEFAULT_BUFFER_SIZE);
+
+        try (RawDocument rawDoc =
+            new RawDocument(
+                resettableInputStream,
+                sourceEnc,
+                LocaleId.fromString(sourceLang),
+                LocaleId.fromString(targetLang))) {
+          rawDoc.setFilterConfigId(configId);
+
+          // add document id under which the results of the batch processor are stored
+          // to Marian NMT configuration
+          marianNmtResourceParams.setDocumentId(rawDoc.hashCode() + "");
+
+          // run batch processor
+          runMarianNmtBatch(
+              rawDoc, sourceLang, targetLang, marianNmtResourceParams, applySegmentation);
+
+          // reset input stream so that the same rawDocument can be processed again
+          if (!resettableInputStream.isOpen()) {
+            resettableInputStream.reopen();
+          }
+          resettableInputStream.reset();
+          inputStream = resettableInputStream;
+        }
+      } catch (IOException e) {
+        throw new OkapiException("creation of resettable input stream failed", e);
+      }
+    }
+
+    // process document for the first time (if doing non-batch processing)
+    // or for the second time (if doing batch processing); in the latter case, pre-/postprocessing
+    // results will be returned from cache
+    try (RawDocument rawDoc =
+        new RawDocument(
+            inputStream,
+            sourceEnc,
+            LocaleId.fromString(sourceLang),
+            LocaleId.fromString(targetLang))) {
+
+      rawDoc.setFilterConfigId(configId);
+
+      // create leveraging step
+      BasePipelineStep leveragingStep = createMarianLeveragingStep(marianNmtResourceParams);
+
+      // create pipeline driver
+      PipelineDriver driver = createPipelineDriver(leveragingStep, applySegmentation);
+
+      // get filter events to raw document final step; it is assumed that this
+      // is the last step of the pipeline; required later to release resources
+      List<IPipelineStep> steps = driver.getPipeline().getSteps();
+      FilterEventsToRawDocumentStep filterEventsToRawDocumentStep =
+          (FilterEventsToRawDocumentStep)steps.get(steps.size() - 1);
+
+      // set document to process
+      driver.addBatchItem(rawDoc, new File(targetFileName).toURI(), targetEnc);
+
+      // process
+      try {
+        driver.processBatch();
+      } finally {
+        // if an exception is thrown during processing, make sure all resources are released
+
+        // this is a *HACK* to make sure that the output file is closed properly and
+        // can be deleted later
+        try {
+          Field filterWriterField =
+              FilterEventsToRawDocumentStep.class.getDeclaredField("filterWriter");
+          filterWriterField.setAccessible(true);
+          IFilterWriter filterWriter =
+              (IFilterWriter)filterWriterField.get(filterEventsToRawDocumentStep);
+          filterWriter.close();
+        } catch (ReflectiveOperationException | SecurityException | IllegalArgumentException e) {
+          logger.error(e.getLocalizedMessage(), e);
+        }
+
+        // remove processed text fragments for this document from batch runner
+        if (batchProcessing) {
+          BatchRunner.INSTANCE.clear(marianNmtResourceParams.getDocumentId());
+        }
+      }
+    }
+  }
+
+
+  /**
+   * Collect text fragments and batch process them.
+   *
+   * @param rawDoc
+   *          the raw document
+   * @param sourceLang
+   *          the source language
+   * @param targetLang
+   *          the target language
+   * @param marianNmtResourceParams
+   *          the Marian NMT configuration
+   * @param applySegmentation
+   *          add segmentation when {@code true}
+   */
+  private void runMarianNmtBatch(
+      RawDocument rawDoc, String sourceLang, String targetLang,
+      MarianNmtParameters marianNmtResourceParams, boolean applySegmentation) {
+
+    // create the driver
+    PipelineDriver driver = new PipelineDriver();
+    driver.setFilterConfigurationMapper(this.fcMapper);
+    String projectDir = Util.getDirectoryName(Paths.get(".").toAbsolutePath().toString());
+    driver.setRootDirectories(projectDir, projectDir);
+
+    // raw document to filter events step
+    driver.addStep(new RawDocumentToFilterEventsStep());
+
+    // add segmentation step (optional)
+    if (applySegmentation) {
+      driver.addStep(createSeqmentationStep());
+    }
+
+    // collect all text fragments for batch processor
+    driver.addStep(new TextFragmentsCollector(marianNmtResourceParams.getDocumentId()));
+
+    // add document to Okapi pipeline for processing
+    driver.addBatchItem(rawDoc);
+
+    // process
+    driver.processBatch();
+
+    // batch process text fragments collected in the pipeline above;
+    // use parameters of MarianNmtConnector
+    BatchRunner.INSTANCE.processBatch(sourceLang, targetLang, marianNmtResourceParams);
+    logger.debug(BatchRunner.INSTANCE.getStats(marianNmtResourceParams.getDocumentId()));
+  }
+
+
+  /**
+   * Create leveraging step using Marian NMT translator.
    *
    * @param marianNmtResourceParams
    *          the Marian NMT configuration

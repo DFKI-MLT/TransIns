@@ -29,7 +29,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MICROSOFT, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
+        applySegmentation, Translator.TransId.MICROSOFT);
   }
 
 
@@ -47,7 +47,7 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.APERTIUM, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
+        applySegmentation, Translator.TransId.APERTIUM);
   }
 
 
@@ -60,12 +60,13 @@ public final class TranslatorDemo {
     String targetLang = "de";
     String targetEnc = "windows-1252";
     boolean applySegmentation = true;
+    boolean batchProcessing = false;
 
     Translator translator = new Translator();
-    translator.translate(
+    translator.translateWithMarianNmt(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MARIAN, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
+        applySegmentation, MarkupStrategy.COMPLETE_MAPPING, batchProcessing);
   }
 
 
@@ -78,12 +79,13 @@ public final class TranslatorDemo {
     String targetLang = "fr";
     String targetEnc = "windows-1252";
     boolean applySegmentation = true;
+    boolean batchProcessing = true;
 
     Translator translator = new Translator();
-    translator.translate(
+    translator.translateWithMarianNmt(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.MARIAN_BATCH, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
+        applySegmentation, MarkupStrategy.COMPLETE_MAPPING, batchProcessing);
   }
 
 
@@ -101,6 +103,6 @@ public final class TranslatorDemo {
     translator.translate(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        Translator.TransId.UPPERCASE_DUMMY, MarkupStrategy.COMPLETE_MAPPING, applySegmentation);
+        applySegmentation, Translator.TransId.UPPERCASE_DUMMY);
   }
 }
