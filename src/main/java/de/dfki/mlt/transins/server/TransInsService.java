@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,40 +65,28 @@ public class TransInsService {
   // thread pool for running the translation
   private static ExecutorService executorService;
 
-  // supported translation directions
-  private static List<String> suppportedTransDirs;
-
-  // maximum number of jobs in queue
-  private static int maxQueueSize;
-
-  // maximum size of documents to translate in MB
-  private static int maxFileSize;
-
-  // switch for activating development mode; allows cross-origin resource sharing
-  private static boolean developmentMode;
+  // server configuration
+  private static PropertiesConfiguration config;
 
 
   /**
    * Initialize TransIns service using the given configuration.
    *
-   * @param config
+   * @param serverConfig
    *          the configuration
-   *
    * @throws IOException
    *           if creation of input or output folders fails
    */
-  public static void init(PropertiesConfiguration config) throws IOException {
+  public static void init(PropertiesConfiguration serverConfig)
+      throws IOException {
 
     translator = new Translator();
     jobManager = new JobManager(INPUT_FOLDER, OUTPUT_FOLDER);
     random = new RandomStringGenerator(40);
     executorService = Executors.newFixedThreadPool(1);
+    config = serverConfig;
     Files.createDirectories(Paths.get(INPUT_FOLDER));
     Files.createDirectories(Paths.get(OUTPUT_FOLDER));
-    suppportedTransDirs = config.getList(String.class, ConfigKeys.SUPPORTED_TRANS_DIRS);
-    maxQueueSize = config.getInt(ConfigKeys.MAX_QUEUE_SIZE);
-    maxFileSize = config.getInt(ConfigKeys.MAX_FILE_SIZE);
-    developmentMode = config.getBoolean(ConfigKeys.DEVELOPMENT_MODE);
   }
 
 
@@ -113,8 +100,10 @@ public class TransInsService {
 
     try {
       ObjectMapper mapper = new ObjectMapper();
-      ResponseBuilder response = Response.accepted(mapper.writeValueAsString(suppportedTransDirs));
-      if (developmentMode) {
+      ResponseBuilder response =
+          Response.accepted(mapper.writeValueAsString(
+              config.getList(String.class, ConfigKeys.SUPPORTED_TRANS_DIRS)));
+      if (config.getBoolean(ConfigKeys.DEVELOPMENT_MODE)) {
         response.header("Access-Control-Allow-Origin", "*");
       }
       return response.build();
@@ -158,7 +147,7 @@ public class TransInsService {
       @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString) {
 
     // reject job if too many jobs in queue
-    if (jobManager.getQueuedJobsCount() > maxQueueSize) {
+    if (jobManager.getQueuedJobsCount() > config.getInt(ConfigKeys.MAX_QUEUE_SIZE)) {
       logger.error("server busy");
       return createResponse(503, "server busy");
     }
@@ -186,6 +175,7 @@ public class TransInsService {
     // write content from input stream to file
     final java.nio.file.Path sourcePath = Paths.get(INPUT_FOLDER).resolve(internalFileName);
     final java.nio.file.Path targetPath = Paths.get(OUTPUT_FOLDER).resolve(internalFileName);
+    int maxFileSize = config.getInt(ConfigKeys.MAX_FILE_SIZE);
     LimitedInputStream limitedInputStream =
         new LimitedInputStream(inputStream, maxFileSize * 1024 * 1024) {
 
@@ -263,7 +253,7 @@ public class TransInsService {
     });
 
     ResponseBuilder response = Response.accepted(jobId);
-    if (developmentMode) {
+    if (config.getBoolean(ConfigKeys.DEVELOPMENT_MODE)) {
       response.header("Access-Control-Allow-Origin", "*");
     }
     return response.build();
@@ -300,7 +290,7 @@ public class TransInsService {
                 .header("Content-Disposition",
                     String.format("attachment; filename=\"%s\"",
                         jobManager.getResultFileName(jobId)));
-        if (developmentMode) {
+        if (config.getBoolean(ConfigKeys.DEVELOPMENT_MODE)) {
           response.header("Access-Control-Allow-Origin", "*")
               .header("Access-Control-Expose-Headers", "*");
         }
@@ -379,7 +369,7 @@ public class TransInsService {
       String transDir, String encoding, String markupStrategyString) {
 
     // translation direction
-    if (!suppportedTransDirs.contains(transDir)) {
+    if (!config.getList(String.class, ConfigKeys.SUPPORTED_TRANS_DIRS).contains(transDir)) {
       return String.format("unsupported translation direction %s", transDir);
     }
     // document type
@@ -420,7 +410,7 @@ public class TransInsService {
   public static synchronized Response alive() {
 
     ResponseBuilder response = Response.ok("TransIns server is alive");
-    if (developmentMode) {
+    if (config.getBoolean(ConfigKeys.DEVELOPMENT_MODE)) {
       response.header("Access-Control-Allow-Origin", "*");
     }
     return response.build();
@@ -439,7 +429,7 @@ public class TransInsService {
   private static Response createResponse(int status, String message) {
 
     ResponseBuilder response = Response.status(status, message);
-    if (developmentMode) {
+    if (config.getBoolean(ConfigKeys.DEVELOPMENT_MODE)) {
       response.header("Access-Control-Allow-Origin", "*");
     }
     return response.build();
