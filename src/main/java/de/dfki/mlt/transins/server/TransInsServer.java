@@ -74,13 +74,13 @@ public final class TransInsServer {
     ContextHandlerCollection contexts = new ContextHandlerCollection(webContext, servletContext);
 
     try {
-      String configFileName = "server.cfg";
+      String configFileName = "transIns.cfg";
       if (args.length > 0) {
         configFileName = args[0];
       }
-      PropertiesConfiguration serverConfig = Utils.readConfigFromClasspath(configFileName);
-      TransInsService.init(serverConfig);
-      Server server = new Server(serverConfig.getInt(ConfigKeys.PORT, 7777));
+      PropertiesConfiguration transInsConfig = Utils.readConfigFromClasspath(configFileName);
+      TransInsService.init(transInsConfig);
+      Server server = new Server(transInsConfig.getInt(ConfigKeys.PORT, 7777));
       server.setHandler(contexts);
 
       try {

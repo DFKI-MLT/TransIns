@@ -65,26 +65,26 @@ public class TransInsService {
   // thread pool for running the translation
   private static ExecutorService executorService;
 
-  // server configuration
+  // server and Marian NMT configuration
   private static PropertiesConfiguration config;
 
 
   /**
    * Initialize TransIns service using the given configuration.
    *
-   * @param serverConfig
+   * @param transInsConfig
    *          the configuration
    * @throws IOException
    *           if creation of input or output folders fails
    */
-  public static void init(PropertiesConfiguration serverConfig)
+  public static void init(PropertiesConfiguration transInsConfig)
       throws IOException {
 
     translator = new Translator();
     jobManager = new JobManager(INPUT_FOLDER, OUTPUT_FOLDER);
     random = new RandomStringGenerator(40);
     executorService = Executors.newFixedThreadPool(1);
-    config = serverConfig;
+    config = transInsConfig;
     Files.createDirectories(Paths.get(INPUT_FOLDER));
     Files.createDirectories(Paths.get(OUTPUT_FOLDER));
   }
@@ -238,10 +238,14 @@ public class TransInsService {
 
         try {
           jobManager.markJobAsInTranslation(jobId);
+          String transDirPrefix = String.format("%s-%s.", sourceLang, targetLang);
           translator.translateWithMarianNmt(
               sourcePath.toAbsolutePath().toString(), sourceLang, encoding,
               targetPath.toAbsolutePath().toString(), targetLang, encoding,
-              true, MarkupStrategy.valueOf(markupStrategyString), true);
+              true, MarkupStrategy.valueOf(markupStrategyString), true,
+              config.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
+              config.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
+              config.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT));
           jobManager.markJobAsFinished(jobId);
         } catch (Throwable e) {
           jobManager.markJobAsFailed(jobId);

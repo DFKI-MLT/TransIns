@@ -45,8 +45,7 @@ This distribution consists of the following files:
 * `src/main/python`: Python source code of the pre- and postprocessing server
 * `src/main/web`: Source files of the TransIns web page
 * `src/main/resources`:
-** `server.cfg`: configuration file of embedded server for web page and REST API
-** `marian-translator.cfg`: Okapi connector configuration file for Marian NMT, including connection settings for pre-/postprocessing server
+** `transIns.cfg`: TransIns configuration file; includes configuration of embedded server for web page and REST API as well as Marian NMT translator configurations for each supported translation direction
 ** `prepostprocessing`: configuration folder of pre-/postprocessing server; required resources/models are *not* included in this distribution
 ** `marian-nmt`: configuration folder of Marian NMT translation server; required resources/models are *not* included in this distribution
 ** `defaultSegmentation.srx`: configuration file of the Okapi segmentation step

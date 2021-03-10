@@ -403,11 +403,18 @@ public class Translator {
    *          the markup re-insertion strategy to use
    * @param batchProcessing
    *          do batch processing when {@code true}
+   * @param translationUrl
+   *          Marian NMT server web socket URL
+   * @param prePostHost
+   *          pre-/postprocessing server host
+   * @param prePostPort
+   *          pre-/postprocessing server port
    */
   public void translateWithMarianNmt(
       String sourceFileName, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing) {
+      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing,
+      String translationUrl, String prePostHost, int prePostPort) {
 
     // get file extension
     String ext = getExtensionFromFileName(sourceFileName);
@@ -417,7 +424,7 @@ public class Translator {
         Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
       translateWithMarianNmt(inputStream, ext, sourceLang, sourceEnc,
           targetFileName, targetLang, targetEnc, applySegmentation,
-          markupStrategy, batchProcessing);
+          markupStrategy, batchProcessing, translationUrl, prePostHost, prePostPort);
     } catch (IOException e) {
       throw new OkapiException(
           String.format("could not read source file \"%s\"", sourceFileName), e);
@@ -449,11 +456,18 @@ public class Translator {
    *          the markup re-insertion strategy to use
    * @param batchProcessing
    *          do batch processing when {@code true}
+   * @param translationUrl
+   *          Marian NMT server web socket URL
+   * @param prePostHost
+   *          pre-/postprocessing server host
+   * @param prePostPort
+   *          pre-/postprocessing server port
    */
   public void translateWithMarianNmt(
       InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing) {
+      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing,
+      String translationUrl, String prePostHost, int prePostPort) {
 
     // get configuration id for file extension
     String configId = this.extensionsMap.get(fileExtension);
@@ -474,11 +488,11 @@ public class Translator {
     logger.info("          MIME type detected: {}", mimeType);
     logger.info("      configuration detected: {}", configId);
 
-    // read Marian NMT configuration
+    // set Marian NMT parameters
     MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
-    InputStream configIn =
-        getClass().getClassLoader().getResourceAsStream("marian-translator.cfg");
-    marianNmtResourceParams.load(configIn, false);
+    marianNmtResourceParams.setTranslationUrl(translationUrl);
+    marianNmtResourceParams.setPrePostHost(prePostHost);
+    marianNmtResourceParams.setPrePostPort(prePostPort);
     marianNmtResourceParams.setMarkupStrategy(markupStrategy);
 
     if (batchProcessing) {

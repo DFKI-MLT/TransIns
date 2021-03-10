@@ -10,9 +10,6 @@ public final class ConfigKeys {
   /** server port number **/
   public static final String PORT = "port";
 
-  /** supported translation directions */
-  public static final String SUPPORTED_TRANS_DIRS = "supported_trans_dirs";
-
   /** maximum number of jobs in queue */
   public static final String MAX_QUEUE_SIZE = "max_queue_size";
 
@@ -21,6 +18,18 @@ public final class ConfigKeys {
 
   /** switch for activating development mode; allows cross-origin resource sharing */
   public static final String DEVELOPMENT_MODE = "development_mode";
+
+  /** supported translation directions */
+  public static final String SUPPORTED_TRANS_DIRS = "supported_trans_dirs";
+
+  /** Marian NMT server web socket URL */
+  public static final String TRANSLATION_URL = "translation_url";
+
+  /** pre-/postprocessing server host */
+  public static final String PREPOST_HOST = "prepost_host";
+
+  /** pre-/postprocessing server port */
+  public static final String PREPOST_PORT = "prepost_port";
 
 
   private ConfigKeys() {
