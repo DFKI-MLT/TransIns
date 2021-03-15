@@ -63,10 +63,10 @@ public class PrePostProcessingClient {
 
 
   /**
-   * Process the given sentence in the given language.
+   * Process the given sentence for the given translation direction.
    *
-   * @param lang
-   *          the language
+   * @param transDir
+   *          the translation direction
    * @param sentence
    *          the sentence to process
    * @param mode
@@ -77,7 +77,7 @@ public class PrePostProcessingClient {
    *          the pre-/postprocessing port
    * @return processing result
    */
-  public String process(String lang, String sentence, Mode mode, String host, int port) {
+  public String process(String transDir, String sentence, Mode mode, String host, int port) {
 
     int connectionAttempts = 0;
     int maxConnectionAttempts = 3;
@@ -88,9 +88,9 @@ public class PrePostProcessingClient {
             "http",
             host,
             port,
-            String.format(Locale.US, "/%s?lang=%s&sentence=%s",
+            String.format(Locale.US, "/%s?trans_dir=%s&sentence=%s",
                 mode == Mode.PREPROCESS ? "preprocess" : "postprocess",
-                lang,
+                transDir,
                 URLEncoder.encode(sentence, StandardCharsets.UTF_8.toString())));
         HttpGet getMethod = new HttpGet(url.toURI());
         HttpResponse response = this.httpClient.execute(getMethod);
@@ -130,10 +130,10 @@ public class PrePostProcessingClient {
 
 
   /**
-   * Process the given sentences in the given language.
+   * Process the given sentences for the given translation direction.
    *
-   * @param lang
-   *          the language
+   * @param transDir
+   *          the translation direction
    * @param sentences
    *          the sentences to process
    * @param mode
@@ -145,7 +145,7 @@ public class PrePostProcessingClient {
    * @return map from sentences to processing results
    */
   public Map<String, String> bulkProcess(
-      String lang, List<String> sentences, Mode mode, String host, int port) {
+      String transDir, List<String> sentences, Mode mode, String host, int port) {
 
     // remove duplicates, but keep order
     Set<String> controlSet = new HashSet<>();
@@ -178,7 +178,7 @@ public class PrePostProcessingClient {
             port,
             String.format(Locale.US, "/%s",
                 mode == Mode.PREPROCESS ? "preprocess" : "postprocess"),
-            String.format(Locale.US, "lang=%s", lang),
+            String.format(Locale.US, "trans_dir=%s", transDir),
             null);
         HttpPost postMethod = new HttpPost(uri);
         postMethod.setEntity(requestEntity);

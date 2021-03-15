@@ -146,7 +146,8 @@ public class MarianNmtConnector extends BaseConnector {
     String sentence = fragment.getCodedText();
     String preprocessedSourceSentence =
         this.prepostClient.process(
-            super.getSourceLanguage().toString(),
+            String.format("%s-%s",
+                super.getSourceLanguage().toString(), super.getTargetLanguage().toString()),
             sentence,
             Mode.PREPROCESS,
             this.params.getPrePostHost(),
@@ -172,7 +173,8 @@ public class MarianNmtConnector extends BaseConnector {
     // postprocessing
     String postprocessedSentence =
         this.prepostClient.process(
-            super.getTargetLanguage().toString(),
+            String.format("%s-%s",
+                super.getSourceLanguage().toString(), super.getTargetLanguage().toString()),
             translation,
             Mode.POSTPROCESS,
             this.params.getPrePostHost(),

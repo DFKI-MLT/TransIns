@@ -99,7 +99,7 @@ public enum BatchRunner {
     List<BatchItem> batchItems = createBatchItems(batchInputList);
     preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);
     translate(batchItems, translatorClient, markupStrategy);
-    postProcess(batchItems, prePostHost, prePostPort, targetLang);
+    postProcess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);
     createBatchResult(batchItems, docId);
 
     watch.stop();
@@ -208,7 +208,7 @@ public enum BatchRunner {
 
     Map<String, String> preprocessingResult =
         this.prePostClient.bulkProcess(
-            sourceLang,
+            String.format("%s-%s", sourceLang, targetLang),
             preprocessingInput,
             Mode.PREPROCESS,
             prePostHost,
@@ -268,11 +268,14 @@ public enum BatchRunner {
    *          the host of the pre/postprocessing server
    * @param prePostPort
    *          the port of the pre/postprocessing server
+   * @param sourceLang
+   *          the source language
    * @param targetLang
    *          the target language
    */
   private void postProcess(
-      List<BatchItem> batchItems, String prePostHost, int prePostPort, String targetLang) {
+      List<BatchItem> batchItems, String prePostHost, int prePostPort,
+      String sourceLang, String targetLang) {
 
     logger.debug("postprocessing batch items...");
 
@@ -283,7 +286,7 @@ public enum BatchRunner {
 
     Map<String, String> postprocessingResult =
         this.prePostClient.bulkProcess(
-            targetLang,
+            String.format("%s-%s", sourceLang, targetLang),
             postprocessingInput,
             Mode.POSTPROCESS,
             prePostHost,

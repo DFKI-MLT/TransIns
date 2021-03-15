@@ -26,13 +26,20 @@ logging.basicConfig(
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 
-# languages for which a section in config exists
-supported_langs = []
-# misc tools for each supported language, initialized in init function
+# the configuration, read from config.ini
+configuration = None
+
+# translation directions for which a section in config exists
+supported_trans_dirs = []
+
+# misc tools, initialized in init function;
+# language independent:
 moses_detruecaser = None
+# language dependent:
 moses_punct_normalizer = {}
 moses_tokenizer = {}
 moses_detokenizer = {}
+# translation direction dependent
 moses_truecaser = {}
 bpe_encoder = {}
 
@@ -56,13 +63,13 @@ def preprocess():
     :return: preprocessing result
     """
 
-    if 'lang' not in request.args:
-        error_message = "missing language"
+    if 'trans_dir' not in request.args:
+        error_message = "missing translation direction"
         logger.error(error_message)
         abort(400, description=error_message)
-    lang = request.args.get('lang', type=str).lower()
-    if lang not in supported_langs:
-        error_message = f"language '{lang}' not supported"
+    trans_dir = request.args.get('trans_dir', type=str).lower()
+    if trans_dir not in supported_trans_dirs:
+        error_message = f"translation direction '{trans_dir}' not supported"
         logger.error(error_message)
         abort(400, description=error_message)
 
@@ -72,7 +79,7 @@ def preprocess():
             logger.error(error_message)
             abort(400, description=error_message)
         sentence = request.args.get('sentence', type=str)
-        preprocessed_sentence = preprocess_sentence(sentence, lang)
+        preprocessed_sentence = preprocess_sentence(sentence, trans_dir)
         return Response(preprocessed_sentence, status=200, mimetype='text/plain')
 
     elif request.method == 'POST':
@@ -84,30 +91,35 @@ def preprocess():
         sentences = request.get_json()
         preprocessed_sentences = []
         for sentence in sentences:
-            preprocessed_sentences.append(preprocess_sentence(sentence, lang))
+            preprocessed_sentences.append(preprocess_sentence(sentence, trans_dir))
         preprocessed_sentences_as_json = json.dumps(preprocessed_sentences)
         return Response(preprocessed_sentences_as_json, status=200, mimetype='application/json')
 
 
-def preprocess_sentence(sentence, lang):
+def preprocess_sentence(sentence, trans_dir):
     """
-    Preprocess the provided sentence in the provided language.
+    Preprocess the given sentence for the given translation direction.
     :param sentence: the sentence to preprocess
-    :param lang: the sentence's language
+    :param trans_dir: the translation direction
     :return: preprocessing result
     """
 
-    # normalize punctuation
-    normalizer = moses_punct_normalizer[lang]
+    # extract source language from translation direction
+    source_lang = trans_dir.split('-')[0]
+
+    # normalize punctuation; this is translation direction dependent
+    normalizer = moses_punct_normalizer[source_lang]
+    if configuration[trans_dir]['replace_unicode_punctuation']:
+        sentence = normalizer.replace_unicode_punct(sentence)
     sentence_normalized = normalizer.normalize(sentence)
 
-    # tokenize
-    tokenizer = moses_tokenizer[lang]
+    # tokenize; this is language dependent
+    tokenizer = moses_tokenizer[source_lang]
     # a single Okapi tag is split into two tokens
     sentence_tokenized_as_tokens = tokenizer.tokenize(sentence_normalized)
 
-    # truecasing
-    truecaser = moses_truecaser[lang]
+    # truecasing; this is translation direction dependent
+    truecaser = moses_truecaser[trans_dir]
     # remove Okapi tags at beginning of sentence before truecasing and re-add them afterwards
     removed_tokens = []
     while True:
@@ -123,8 +135,8 @@ def preprocess_sentence(sentence, lang):
     sentence_truecased_as_tokens = truecaser.truecase(' '.join(sentence_tokenized_as_tokens))
     sentence_truecased_as_tokens = removed_tokens + sentence_truecased_as_tokens
 
-    # run byte pair encoding
-    encoder = bpe_encoder[lang]
+    # run byte pair encoding; this is translation direction dependent
+    encoder = bpe_encoder[trans_dir]
     sentence_bpe_as_tokens = encoder.process_line(' '.join(sentence_truecased_as_tokens)).split()
 
     # merge each Okapi tag in a single token
@@ -144,13 +156,13 @@ def postprocess():
     :return: postprocessing result
     """
 
-    if 'lang' not in request.args:
-        error_message = "missing language"
+    if 'trans_dir' not in request.args:
+        error_message = "missing translation direction"
         logger.error(error_message)
         abort(400, description=error_message)
-    lang = request.args.get('lang', type=str)
-    if lang not in supported_langs:
-        error_message = f"language '{lang}' not supported"
+    trans_dir = request.args.get('trans_dir', type=str)
+    if trans_dir not in supported_trans_dirs:
+        error_message = f"translation direction '{trans_dir}' not supported"
         logger.error(error_message)
         abort(400, description=error_message)
 
@@ -160,7 +172,7 @@ def postprocess():
             logger.error(error_message)
             abort(400, description=error_message)
         sentence = request.args.get('sentence', type=str)
-        postprocessed_sentence = postprocess_sentence(sentence, lang)
+        postprocessed_sentence = postprocess_sentence(sentence, trans_dir)
         return Response(postprocessed_sentence, status=200, mimetype='text/plain')
 
     elif request.method == 'POST':
@@ -172,18 +184,21 @@ def postprocess():
         sentences = request.get_json()
         postprocessed_sentences = []
         for sentence in sentences:
-            postprocessed_sentences.append(postprocess_sentence(sentence, lang))
+            postprocessed_sentences.append(postprocess_sentence(sentence, trans_dir))
         postprocessed_sentences_as_json = json.dumps(postprocessed_sentences)
         return Response(postprocessed_sentences_as_json, status=200, mimetype='application/json')
 
 
-def postprocess_sentence(sentence, lang):
+def postprocess_sentence(sentence, trans_dir):
     """
-    Postprocess the provided sentence in the provided language.
+    Postprocess the given sentence for the given translation direction.
     :param sentence: the sentence to postprocess
-    :param lang: the sentence's language
-    :return: preprocessing result
+    :param trans_dir: the translation direction
+    :return: postprocessing result
     """
+
+    # extract target language from translation direction
+    target_lang = trans_dir.split('-')[1]
 
     # detruecasing; this is language independent
     # remove Okapi tags at beginning of sentence before detruecasing and re-add them afterwards;
@@ -203,47 +218,53 @@ def postprocess_sentence(sentence, lang):
     sentence_detruecased_as_tokens = moses_detruecaser.detruecase(' '.join(sentence_tokenized_as_tokens))
     sentence_detruecased_as_tokens = removed_tokens + sentence_detruecased_as_tokens
 
-    # detokenize
-    detokenizer = moses_detokenizer[lang]
+    # detokenize; this is language dependent
+    detokenizer = moses_detokenizer[target_lang]
     return detokenizer.detokenize(sentence_detruecased_as_tokens)
 
 
 def init(config, config_folder):
     """
-    Init global tools for each supported language
-    :param config: the config with sections for each supported language
+    Init global tools for each supported translation direction
+    :param config: the config with sections for each supported translation direction
     :param config_folder: the config folder
     :return:
     """
 
-    global supported_langs
+    global configuration
+    configuration = config
+
+    global supported_trans_dirs
 
     # detruecaser is language independent
     global moses_detruecaser
     moses_detruecaser = MosesDetruecaser()
 
-    # all other tools need language specific initialization
+    # punctuation normalizer, tokenizer and detokenizer are language dependent
     global moses_punct_normalizer
     global moses_tokenizer
     global moses_detokenizer
+    # truecaser and byte pair encoder are translation direction dependent;
+    # truecaser depends on the corpus on which the translation model was trained
+    # and is therefore considered translation direction dependent
     global moses_truecaser
     global bpe_encoder
-    for lang in config.sections():
-        lang = lang.lower()
-        if lang == 'all':
-            continue
-        supported_langs.append(lang)
-        logger.info(f"initializing for '{lang}'...")
-        moses_punct_normalizer[lang] = \
-            MosesPunctNormalizer(lang=lang,
-                                 pre_replace_unicode_punct=config['all']['replace_unicode_punctuation'])
-        moses_tokenizer[lang] = MosesTokenizer(lang=lang)
-        moses_detokenizer[lang] = MosesDetokenizer(lang=lang)
-        moses_truecaser[lang] = MosesTruecaser(f"{config_folder}/{config[lang]['truecaser_model']}")
-        bpe_encoder[lang] = BPE(
-            codecs.open(f"{config_folder}/{config[lang]['bpe_codes']}", encoding='utf-8'),
+
+    for trans_dir in config.sections():
+        trans_dir = trans_dir.lower()
+        supported_trans_dirs.append(trans_dir)
+        logger.info(f"initializing for '{trans_dir}'...")
+        source_lang = trans_dir.split('-')[0]
+        # initialize punctuation normalizer, tokenizer and detokenizer ONCE for each language
+        if source_lang not in moses_punct_normalizer:
+            moses_punct_normalizer[source_lang] = MosesPunctNormalizer(lang=source_lang)
+            moses_tokenizer[source_lang] = MosesTokenizer(lang=source_lang)
+            moses_detokenizer[source_lang] = MosesDetokenizer(lang=source_lang)
+        moses_truecaser[trans_dir] = MosesTruecaser(f"{config_folder}/{config[trans_dir]['truecaser_model']}")
+        bpe_encoder[trans_dir] = BPE(
+            codecs.open(f"{config_folder}/{config[trans_dir]['bpe_codes']}", encoding='utf-8'),
             vocab=read_vocabulary(
-                codecs.open(f"{config_folder}/{config[lang]['bpe_vocabulary']}", encoding='utf-8'), None))
+                codecs.open(f"{config_folder}/{config[trans_dir]['bpe_vocabulary']}", encoding='utf-8'), None))
 
 
 def main(config_folder, port):
