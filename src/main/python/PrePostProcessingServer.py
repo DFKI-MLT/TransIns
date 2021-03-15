@@ -29,8 +29,8 @@ logger.setLevel(logging.INFO)
 # languages for which a section in config exists
 supported_langs = []
 # misc tools for each supported language, initialized in init function
-moses_punct_normalizer = None
 moses_detruecaser = None
+moses_punct_normalizer = {}
 moses_tokenizer = {}
 moses_detokenizer = {}
 moses_truecaser = {}
@@ -97,8 +97,9 @@ def preprocess_sentence(sentence, lang):
     :return: preprocessing result
     """
 
-    # normalize punctuation, this is language independent
-    sentence_normalized = moses_punct_normalizer.normalize(sentence)
+    # normalize punctuation
+    normalizer = moses_punct_normalizer[lang]
+    sentence_normalized = normalizer.normalize(sentence)
 
     # tokenize
     tokenizer = moses_tokenizer[lang]
@@ -217,14 +218,12 @@ def init(config, config_folder):
 
     global supported_langs
 
-    # punctuation normalizer and detruecaser are language independent
-    global moses_punct_normalizer
+    # detruecaser is language independent
     global moses_detruecaser
-    moses_punct_normalizer = MosesPunctNormalizer(
-        pre_replace_unicode_punct=config['all']['replace_unicode_punctuation'])
     moses_detruecaser = MosesDetruecaser()
 
     # all other tools need language specific initialization
+    global moses_punct_normalizer
     global moses_tokenizer
     global moses_detokenizer
     global moses_truecaser
@@ -235,6 +234,9 @@ def init(config, config_folder):
             continue
         supported_langs.append(lang)
         logger.info(f"initializing for '{lang}'...")
+        moses_punct_normalizer[lang] = \
+            MosesPunctNormalizer(lang=lang,
+                                 pre_replace_unicode_punct=config['all']['replace_unicode_punctuation'])
         moses_tokenizer[lang] = MosesTokenizer(lang=lang)
         moses_detokenizer[lang] = MosesDetokenizer(lang=lang)
         moses_truecaser[lang] = MosesTruecaser(f"{config_folder}/{config[lang]['truecaser_model']}")
