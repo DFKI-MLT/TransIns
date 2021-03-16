@@ -993,6 +993,8 @@ public final class MarkupInserter {
         // add remaining closing tags
         tokenList.addAll(tagsToInsertAfter);
         i = fragSeqEnd;
+        fragSeqStart = -1;
+        fragSeqEnd = -1;
       }
     }
 

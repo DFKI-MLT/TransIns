@@ -892,6 +892,11 @@ class MarkupInserterTest {
     targetTokens = asArray("a OPEN1 OPEN2 b@@ CLOSE2 CLOSE1 OPEN3 c@@ CLOSE3");
     expectedResult = asArray("a OPEN1 OPEN2 OPEN3 b@@ c@@ CLOSE3 CLOSE2 CLOSE1");
     testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
+
+    // complete bpe fragments followed by incomplete bpe fragments
+    targetTokens = asArray("a b@@ c@@ d e@@ f@@");
+    expectedResult = asArray("a b@@ c@@ d e@@ f@@");
+    testMoveTagsFromBetweenBpeFragments(targetTokens, expectedResult);
   }
 
 
