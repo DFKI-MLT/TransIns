@@ -74,7 +74,7 @@ public final class TranslatorDemo {
   }
 
 
-  static void testMarianFr(PropertiesConfiguration transInsConfig) {
+  static void testMarianFrToDe(PropertiesConfiguration transInsConfig) {
 
     String sourceFileName = "src/test/resources/examples/Test.fr.docx";
     String sourceLang = "fr";
@@ -97,7 +97,7 @@ public final class TranslatorDemo {
   }
 
 
-  static void testMarianDe(PropertiesConfiguration transInsConfig) {
+  static void testMarianDeToFr(PropertiesConfiguration transInsConfig) {
 
     String sourceFileName = "src/test/resources/examples/Test.de.docx";
     String sourceLang = "de";
