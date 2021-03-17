@@ -199,6 +199,10 @@ public class MarianNmtClient implements WebSocket.Listener {
   public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
 
     logger.info("Session closed because of {}", reason);
+    // if future is not already completed, something went wrong, so complete with exception
+    if (this.responseFuture.completeExceptionally(new OkapiException("translation failed"))) {
+      logger.error("translation failed");
+    }
     return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
   }
 }
