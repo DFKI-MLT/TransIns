@@ -4,10 +4,12 @@
 
 body {
   height: 100%;
-  width: 1026px;
+  width: 1046px;
   margin: auto;
   font-family: 'Fira Sans', Arial;
-  background-color: rgb(160, 160, 160);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url("/assets/background.jpg");
+  background-size: auto;
+  background-position: center;
 }
 
 .header {
@@ -16,11 +18,17 @@ body {
 }
 
 .header__text {
+  min-width: 800px;
+  padding: 0px 10px;
+  border: 3px solid rgb(60, 60, 60);
+  margin-bottom: 20px;
   color: white;
   line-height: 1.4em;
   font-size: large;
   text-align: left;
-  padding: 0px 10px;
+  background: linear-gradient(top, rgb(110, 110, 110), rgba(110, 110, 110, .5));
+  background: -webkit-linear-gradient(top, rgb(110, 110, 110), rgba(110, 110, 110, .5));
+  background: -moz-linear-gradient(top, rgb(110, 110, 110), rgba(110, 110, 110, .5));
 }
 
 .header__text__title,
@@ -37,8 +45,9 @@ li {
 }
 
 .header__logo {
+  margin: 0px 0px 20px 20px;
   text-align: right;
-  color: white;
+  color: black;
   line-height: 1.5em;
 }
 
@@ -53,7 +62,8 @@ a:hover {
 
 .nav-link:link,
 .nav-link:visited {
-  color: white;
+  color: black;
+  font-weight: bold;
   text-decoration: none;
 }
 
@@ -141,12 +151,14 @@ a:hover {
 }
 
 .footer {
+  min-width: 1020px;
+  margin-top: 20px;
+  padding: 3px;
   text-align: right;
   font-weight: bold;
   color: white;
-  margin-top: 20px;
-  padding: 3px;
   background-color: rgb(110, 110, 110);
+  background: -webkit-linear-gradient(right, rgb(110, 110, 110), rgba(110, 110, 110, .8));
 }
 
 .spinner--enabled {
