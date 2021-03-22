@@ -5,7 +5,7 @@ LABEL description="Docker container of TransIns with web interface and REST API"
 
 COPY pom.xml /tmp/
 COPY src/main/java /tmp/src/main/java/
-COPY src/main/resources/de /tmp/src/main/resources/de/
+COPY src/main/resources/okapi /tmp/src/main/resources/okapi/
 WORKDIR /tmp/
 RUN mvn package
 
@@ -29,7 +29,7 @@ COPY --from=buildstage /tmp/target/*.jar $app_home
 COPY --from=buildstage /tmp/target/lib $app_home/lib/
 COPY src/main/resources/*.properties $app_home/config/
 COPY src/main/resources/logback.xml $app_home/config/
-COPY src/main/resources/defaultSegmentation.srx $app_home/config/
+COPY src/main/resources/okapi $app_home/config/okapi/
 COPY src/main/resources/transIns.cfg $app_home/config/
 COPY src/main/web $app_home/web/
 

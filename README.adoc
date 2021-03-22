@@ -48,8 +48,7 @@ This distribution consists of the following files:
 ** `transIns.cfg`: TransIns configuration file; includes configuration of embedded server for web page and REST API as well as Marian NMT translator configurations for each supported translation direction
 ** `prepostprocessing`: configuration folder of pre-/postprocessing server; required resources/models are *not* included in this distribution
 ** `marian-nmt`: configuration folder of Marian NMT translation server; required resources/models are *not* included in this distribution
-** `defaultSegmentation.srx`: configuration file of the Okapi segmentation step
-** `de/dfki/mlt/transins/*Configuration.yml`: configuration files used by the Okapi HTML filter
+** `okapi`: configuration files of Okapi modules
 ** `apertium-translator.cfg`, `microsoft-translator.cfg`: Okapi connector configuration files for alternative translation services
 ** `logback.xml`: TransIns logger configuration
 ** `log4j2.xml`, `commons-logging.properties`, `simplelog.properties`: logger configuration for third-party libraries

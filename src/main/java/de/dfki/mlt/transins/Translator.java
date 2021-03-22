@@ -95,8 +95,8 @@ public class Translator {
     this.extensionsMap.put("odg", "okf_openoffice");
     this.extensionsMap.put("sxd", "okf_openoffice");
 
-    this.extensionsMap.put("htm", "okf_html");
-    this.extensionsMap.put("html", "okf_html");
+    this.extensionsMap.put("htm", "okf_html_custom");
+    this.extensionsMap.put("html", "okf_html_custom");
   }
 
 
@@ -370,9 +370,9 @@ public class Translator {
     segParams.setSegmentSource(true);
     segParams.setSegmentTarget(true);
     InputStream sourceSrxIn =
-        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
+        getClass().getClassLoader().getResourceAsStream("okapi/defaultSegmentation.srx");
     InputStream targetSrxIn =
-        getClass().getClassLoader().getResourceAsStream("defaultSegmentation.srx");
+        getClass().getClassLoader().getResourceAsStream("okapi/defaultSegmentation.srx");
     segParams.setSourceSrxStream(sourceSrxIn);
     segParams.setTargetSrxStream(targetSrxIn);
     segParams.setCopySource(true);

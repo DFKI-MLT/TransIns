@@ -4,9 +4,8 @@
 # allowed files and folders
 !/pom.xml
 !/src/main/java/**
-!/src/main/resources/de
+!/src/main/resources/okapi
 !src/main/resources/*.properties
 !src/main/resources/logback.xml
-!src/main/resources/defaultSegmentation.srx
 !src/main/resources/transIns.cfg
 !src/main/web/**
