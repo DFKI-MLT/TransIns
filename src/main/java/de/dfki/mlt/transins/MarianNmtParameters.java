@@ -20,6 +20,7 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   private static final String PREPOST_PORT = "prepost_port";
   private static final String DOC_ID = "doc_id";
   private static final String MARKUP_STRATEGY = "markup_strategy";
+  private static final String OKAPI_FILTER_CONFIG_ID = "okapi_filter_config_id";
 
 
   /**
@@ -177,5 +178,26 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   public void setMarkupStrategy(MarkupStrategy markupStrategy) {
 
     setString(MARKUP_STRATEGY, markupStrategy.toString());
+  }
+
+
+  /**
+   * @return the config id of Okapi filter;
+   *         not part of the config file, but set at runtime
+   */
+  public String getOkapiFilterConfigId() {
+
+    return getString(OKAPI_FILTER_CONFIG_ID);
+  }
+
+
+  /**
+   * @param okapiFilterConfigId
+   *          the config id of Okapi filter;
+   *          not part of the config file, but set at runtime
+   */
+  public void setOkapiFilterConfigId(String okapiFilterConfigId) {
+
+    setString(OKAPI_FILTER_CONFIG_ID, okapiFilterConfigId);
   }
 }

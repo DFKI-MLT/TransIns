@@ -99,7 +99,11 @@ public enum BatchRunner {
     List<BatchItem> batchItems = createBatchItems(batchInputList);
     preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);
     translate(batchItems, translatorClient, markupStrategy);
-    postProcess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);
+    // add space at sentence end when translating MS Office documents
+    boolean addSpaceAtSentenceEnd =
+        marianNmtResourceParams.getOkapiFilterConfigId().equals("okf_openxml");
+    postProcess(
+        batchItems, prePostHost, prePostPort, sourceLang, targetLang, addSpaceAtSentenceEnd);
     createBatchResult(batchItems, docId);
 
     watch.stop();
@@ -272,10 +276,12 @@ public enum BatchRunner {
    *          the source language
    * @param targetLang
    *          the target language
+   * @param addSpaceAtEnd
+   *          if <code>true</code>, add single space at sentence end
    */
   private void postProcess(
       List<BatchItem> batchItems, String prePostHost, int prePostPort,
-      String sourceLang, String targetLang) {
+      String sourceLang, String targetLang, boolean addSpaceAtSentenceEnd) {
 
     logger.debug("postprocessing batch items...");
 
@@ -296,6 +302,9 @@ public enum BatchRunner {
       String postRes = postprocessingResult.get(oneBatchItem.getPostInput());
       if (oneBatchItem.getTextFragment().hasCode()) {
         postRes = MarianNmtConnector.cleanPostProcessedSentence(postRes);
+      }
+      if (addSpaceAtSentenceEnd) {
+        postRes = postRes + " ";
       }
       oneBatchItem.setPostResult(postRes);
     }

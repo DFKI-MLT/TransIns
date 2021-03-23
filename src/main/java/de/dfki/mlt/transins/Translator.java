@@ -494,6 +494,7 @@ public class Translator {
     marianNmtResourceParams.setPrePostHost(prePostHost);
     marianNmtResourceParams.setPrePostPort(prePostPort);
     marianNmtResourceParams.setMarkupStrategy(markupStrategy);
+    marianNmtResourceParams.setOkapiFilterConfigId(configId);
 
     if (batchProcessing) {
       try {

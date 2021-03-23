@@ -190,6 +190,12 @@ public class MarianNmtConnector extends BaseConnector {
       logger.debug("postprocessed target sentence: \"{}\"", postprocessedSentence);
     }
 
+    // add space at sentence end when translating MS Office documents
+    boolean addSpaceAtSentenceEnd = this.params.getOkapiFilterConfigId().equals("okf_openxml");
+    if (addSpaceAtSentenceEnd) {
+      postprocessedSentence = postprocessedSentence + " ";
+    }
+
     // create query result
     return createQueryResult(fragment, postprocessedSentence);
   }
@@ -297,10 +303,6 @@ public class MarianNmtConnector extends BaseConnector {
     postprocessedSentence = MarkupInserter.unmaskTags(postprocessedSentence);
     // remove space in front of and after tags
     postprocessedSentence = MarkupInserter.detokenizeTags(postprocessedSentence);
-    // add a space at the end, otherwise the next sentence immediately starts after this one
-    // TODO deactivate segmentation step in translator and do the handling of sentences here
-    postprocessedSentence = postprocessedSentence + " ";
-
     return postprocessedSentence;
   }
 }
