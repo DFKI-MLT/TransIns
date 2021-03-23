@@ -9,7 +9,7 @@ DFKI MLT-Lab
 Email: steffen@dfki.de
 
 == Overview
-TransIns uses the https://okapiframework.org/[Okapi] framework to parse documents of supported formats (currently MS Office, OpenOffice and html) into a representation that preserves the document markup and allows access to the document's text content on a sentence level. The sentences, without the markup, are translated using translation models trained and provided by the neural machine translation framework https://marian-nmt.github.io/[MarianNMT]. Afterwards, the markup is re-inserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
+TransIns uses the https://okapiframework.org/[Okapi] framework to parse documents of supported formats (currently MS Office, OpenOffice, HTML and plain text) into a representation that preserves the document markup and allows access to the document's text content on a sentence level. The sentences, without the markup, are translated using translation models trained and provided by the neural machine translation framework https://marian-nmt.github.io/[MarianNMT]. Afterwards, the markup is re-inserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
 
 We implement the following strategies for re-inserting markup into the translated sentence using the tokens' alignments:
 

@@ -21,6 +21,7 @@ import net.sf.okapi.common.MimeTypeMapper;
 import net.sf.okapi.common.StreamUtil;
 import net.sf.okapi.common.Util;
 import net.sf.okapi.common.exceptions.OkapiException;
+import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.filters.IFilterConfigurationMapper;
 import net.sf.okapi.common.filterwriter.IFilterWriter;
@@ -33,6 +34,7 @@ import net.sf.okapi.connectors.apertium.ApertiumMTConnector;
 import net.sf.okapi.connectors.microsoft.MicrosoftMTConnector;
 import net.sf.okapi.filters.openoffice.OpenOfficeFilter;
 import net.sf.okapi.filters.openxml.OpenXMLFilter;
+import net.sf.okapi.filters.plaintext.PlainTextFilter;
 import net.sf.okapi.steps.common.FilterEventsToRawDocumentStep;
 import net.sf.okapi.steps.common.RawDocumentToFilterEventsStep;
 import net.sf.okapi.steps.leveraging.LeveragingStep;
@@ -78,6 +80,15 @@ public class Translator {
     this.fcMapper.addConfigurations(OpenXMLFilter.class.getName());
     this.fcMapper.addConfigurations(OpenOfficeFilter.class.getName());
     this.fcMapper.addConfigurations(CustomHtmlFilter.class.getName());
+    this.fcMapper.addConfiguration(
+        new FilterConfiguration(
+            "okf_plaintext_custom",
+            PlainTextFilter.FILTER_MIME,
+            PlainTextFilter.class.getName(),
+            "Plain Text (custom)",
+            "plain text filter with configuration as set in custom parameters file",
+            "/okapi/okf_plaintext_custom.fprm",
+            ".txt"));
 
     // init extension map
     this.extensionsMap = new Hashtable<>();
@@ -97,6 +108,8 @@ public class Translator {
 
     this.extensionsMap.put("htm", "okf_html_custom");
     this.extensionsMap.put("html", "okf_html_custom");
+
+    this.extensionsMap.put("txt", "okf_plaintext_custom");
   }
 
 
