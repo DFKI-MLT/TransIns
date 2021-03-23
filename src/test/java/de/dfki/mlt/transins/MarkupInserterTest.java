@@ -1509,17 +1509,17 @@ class MarkupInserterTest {
 
     // standard
     input = String.format("x y z %s a %s b %s c", ISO1, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z %sa %sb%s c", ISO1, OPEN1, CLOSE1);
+    expectedResult = String.format("x y z%sa %sb%s c", ISO1, OPEN1, CLOSE1);
     testDetokenizeTags(input, expectedResult);
 
     // multiple whitespaces
     input = String.format("x y z %s   a   %s  b   %s  c", ISO1, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z %sa   %sb%s  c", ISO1, OPEN1, CLOSE1);
+    expectedResult = String.format("x y z%sa   %sb%s  c", ISO1, OPEN1, CLOSE1);
     testDetokenizeTags(input, expectedResult);
 
     // empty tag pair
     input = String.format("x y z %s a %s %s b", ISO1, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z %sa %s%s b", ISO1, OPEN1, CLOSE1);
+    expectedResult = String.format("x y z%sa %s%s b", ISO1, OPEN1, CLOSE1);
     testDetokenizeTags(input, expectedResult);
   }
 

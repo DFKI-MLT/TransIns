@@ -1642,8 +1642,9 @@ public final class MarkupInserter {
 
   /**
    * Remove from the given postprocessed sentence with re-inserted tags the spaces to the
-   * left/right of the tags, depending on the type of tag. Opening and isolated tags have all
-   * spaces to their right removed, closing tags have all spaces to their left removed.
+   * left/right of the tags, depending on the type of tag. Opening tags have all
+   * spaces to their right removed, closing tags have all spaces to their left removed,
+   * isolated tags have all spaces to their left and right removed.
    *
    * @param postprocessedSentence
    *          the postprocessed sentence with re-inserted tags
@@ -1668,13 +1669,21 @@ public final class MarkupInserter {
     }
     closingMatcher.appendTail(sb);
 
-    Pattern isolatedTag = Pattern.compile("(\uE103.)( )+");
-    Matcher isoMatcher = isolatedTag.matcher(sb.toString());
+    Pattern isolatedTagRight = Pattern.compile("(\uE103.)( )+");
+    Matcher isoMatcherRight = isolatedTagRight.matcher(sb.toString());
     sb = new StringBuilder();
-    while (isoMatcher.find()) {
-      isoMatcher.appendReplacement(sb, isoMatcher.group(1));
+    while (isoMatcherRight.find()) {
+      isoMatcherRight.appendReplacement(sb, isoMatcherRight.group(1));
     }
-    isoMatcher.appendTail(sb);
+    isoMatcherRight.appendTail(sb);
+
+    Pattern isolatedTagLeft = Pattern.compile("( )+(\uE103.)");
+    Matcher isoMatcherLeft = isolatedTagLeft.matcher(sb.toString());
+    sb = new StringBuilder();
+    while (isoMatcherLeft.find()) {
+      isoMatcherLeft.appendReplacement(sb, isoMatcherLeft.group(2));
+    }
+    isoMatcherLeft.appendTail(sb);
 
     return sb.toString();
   }
