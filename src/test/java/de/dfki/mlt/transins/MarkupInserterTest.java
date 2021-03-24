@@ -2077,7 +2077,6 @@ class MarkupInserterTest {
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN2, OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1, CLOSE2);
 
-
     // gap 1, max gap size 1, different neighbor tags with intersection
     sourceTokens = asArray("OPEN2 OPEN1 x CLOSE1 CLOSE2 y OPEN1 z CLOSE1 a b c");
     targetTokensWithoutTags = asArray("x y z a b c eos");
@@ -2119,6 +2118,21 @@ class MarkupInserterTest {
     maxGapSize = 3;
     neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
         3, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    // gap 2, max gap size 3, gap at start
+    sourceTokens = asArray("OPEN1 x y z CLOSE1 a b c");
+    targetTokensWithoutTags = asArray("x y z a b c eos");
+    rawAlignments = "2-2";
+    maxGapSize = 3;
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
+        0, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
+    assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
+    assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
+
+    neighborTags = testInterpolateNeighborTagsForNoAlignmentToken(
+        1, targetTokensWithoutTags, sourceTokens, rawAlignments, maxGapSize);
     assertThat(neighborTags.getBeforeTags()).containsExactly(OPEN1);
     assertThat(neighborTags.getAfterTags()).containsExactly(CLOSE1);
   }

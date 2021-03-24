@@ -2049,22 +2049,22 @@ public final class MarkupInserter {
     }
 
     NeighborTags neighborTags = null;
-    if (previousSourceTokenIndexes == null
-        && followingSourceTokenIndexes == null) {
+    if (prevIndexWithAlgn == -1
+        && folIndexWithAlgn == -1) {
       // no previous and following tokens with alignments
       neighborTags = new NeighborTags();
-    } else if (previousSourceTokenIndexes == null
+    } else if (prevIndexWithAlgn == -1
         && folIndexWithAlgn <= maxGapSize) {
       // only following token with alignments
       neighborTags = getNeighborTags(
           followingSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
-    } else if (followingSourceTokenIndexes == null
+    } else if (folIndexWithAlgn == -1
         && targetTokensWithoutTags.length - prevIndexWithAlgn - 2 <= maxGapSize) {
       // only previous token with alignments
       neighborTags = getNeighborTags(
           previousSourceTokenIndexes, sourceTokenIndex2tags, usedIsolatedTags, true);
-    } else if (previousSourceTokenIndexes != null
-        && followingSourceTokenIndexes != null
+    } else if (prevIndexWithAlgn != -1
+        && folIndexWithAlgn != -1
         && (folIndexWithAlgn - prevIndexWithAlgn - 1) <= maxGapSize) {
       // previous and following tokens with alignments
       NeighborTags prevTokenTags = getNeighborTags(
