@@ -24,7 +24,7 @@ class SoftAlignmentsTest {
     // empty
     rawAlignments = "";
     algn = new SoftAlignments(rawAlignments);
-    assertThat(algn.getAlignmentScores()).isNull();
+    assertThat(algn.getAlignmentScores()).isEmpty();
 
     // wrong format
     assertThatExceptionOfType(NumberFormatException.class).isThrownBy(() -> {

@@ -21,7 +21,7 @@ class HardAlignmentsTest {
     // empty
     rawAlignments = "";
     algn = new HardAlignments(rawAlignments);
-    assertThat(algn.getTarget2SourcesMapping()).isNull();
+    assertThat(algn.getTarget2SourcesMapping()).isEmpty();
 
     // wrong format
     assertThatExceptionOfType(NumberFormatException.class).isThrownBy(() -> {

@@ -34,6 +34,7 @@ public class SoftAlignments implements Alignments {
 
     if (rawAlignments.trim().isEmpty()) {
       // no alignments provided
+      this.alignmentScores = new double[0][0];
       return;
     }
 
@@ -55,7 +56,7 @@ public class SoftAlignments implements Alignments {
 
 
   /**
-   * @return the underlying alignment scores; {@code null} if not initialized
+   * @return the underlying alignment scores
    */
   public double[][] getAlignmentScores() {
 

@@ -35,12 +35,13 @@ public class HardAlignments implements Alignments {
    */
   public HardAlignments(String rawAlignments) {
 
+    this.target2sourcesMapping = new TreeMap<>();
+
     if (rawAlignments.trim().isEmpty()) {
       // no alignments provided
       return;
     }
 
-    this.target2sourcesMapping = new TreeMap<>();
     String[] algnPairs = rawAlignments.split(" ");
 
     for (String oneAlgnPair : algnPairs) {
@@ -161,7 +162,7 @@ public class HardAlignments implements Alignments {
 
   /**
    * @return the raw hard alignments, from target token index to source token index;
-   *         please note this this is vice versa as provided by Marian NMT
+   *         please note this is vice versa as provided by Marian NMT
    */
   @Override
   public String toString() {
