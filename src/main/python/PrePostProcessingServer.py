@@ -265,6 +265,7 @@ def init(config, config_folder):
             codecs.open(f"{config_folder}/{config[trans_dir]['bpe_codes']}", encoding='utf-8'),
             vocab=read_vocabulary(
                 codecs.open(f"{config_folder}/{config[trans_dir]['bpe_vocabulary']}", encoding='utf-8'), None))
+    logger.info("initialization done")
 
 
 def main(config_folder, port):
