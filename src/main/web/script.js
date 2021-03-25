@@ -2,6 +2,15 @@
 const restBaseUrl = "";
 
 
+$(document).ready(function() {
+
+  setTranslationDirections();
+
+  // add click event listener to translate button
+  $("#transButton").click(translate);
+})
+
+
 /**
  * Query server for available translation directions and set them as options
  * at 'transDir' dropdown menu.
