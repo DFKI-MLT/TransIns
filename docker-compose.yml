@@ -88,6 +88,22 @@ services:
             device_ids: ['1']
             capabilities: [gpu]
 
+  transins-marian-es-en-mono:
+    image: 'dfki/transins-marian:0.0.1'
+    networks:
+      - transins
+    container_name: transins-marian-es-en-mono
+    restart: always
+    volumes:
+      - './src/main/resources/marian-nmt/esca-en-mono:/TransIns-marian/config:ro'
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            device_ids: ['1']
+            capabilities: [gpu]
+
   transins-prepost:
     image: 'dfki/transins-prepost:0.0.1'
     networks:
