@@ -93,7 +93,8 @@ public final class TranslatorDemo {
         applySegmentation, MarkupStrategy.COMPLETE_MAPPING, batchProcessing,
         transInsConfig.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
         transInsConfig.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
-        transInsConfig.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT));
+        transInsConfig.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT),
+        transInsConfig.getBoolean(transDirPrefix + ConfigKeys.USE_TARGET_LANG_TAG));
   }
 
 
@@ -116,6 +117,7 @@ public final class TranslatorDemo {
         applySegmentation, MarkupStrategy.COMPLETE_MAPPING, batchProcessing,
         transInsConfig.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
         transInsConfig.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
-        transInsConfig.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT));
+        transInsConfig.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT),
+        transInsConfig.getBoolean(transDirPrefix + ConfigKeys.USE_TARGET_LANG_TAG));
   }
 }

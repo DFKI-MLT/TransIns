@@ -422,12 +422,14 @@ public class Translator {
    *          pre-/postprocessing server host
    * @param prePostPort
    *          pre-/postprocessing server port
+   * @param useTargetLangTag
+   *          if <code>true</code>, add target language tag as first token to source sentence
    */
   public void translateWithMarianNmt(
       String sourceFileName, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
       boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing,
-      String translationUrl, String prePostHost, int prePostPort) {
+      String translationUrl, String prePostHost, int prePostPort, boolean useTargetLangTag) {
 
     // get file extension
     String ext = getExtensionFromFileName(sourceFileName);
@@ -437,7 +439,8 @@ public class Translator {
         Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
       translateWithMarianNmt(inputStream, ext, sourceLang, sourceEnc,
           targetFileName, targetLang, targetEnc, applySegmentation,
-          markupStrategy, batchProcessing, translationUrl, prePostHost, prePostPort);
+          markupStrategy, batchProcessing, translationUrl, prePostHost, prePostPort,
+          useTargetLangTag);
     } catch (IOException e) {
       throw new OkapiException(
           String.format("could not read source file \"%s\"", sourceFileName), e);
@@ -475,12 +478,14 @@ public class Translator {
    *          pre-/postprocessing server host
    * @param prePostPort
    *          pre-/postprocessing server port
+   * @param useTargetLangTag
+   *          if <code>true</code>, add target language tag as first token to source sentence
    */
   public void translateWithMarianNmt(
       InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
       boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing,
-      String translationUrl, String prePostHost, int prePostPort) {
+      String translationUrl, String prePostHost, int prePostPort, boolean useTargetLangTag) {
 
     // get configuration id for file extension
     String configId = this.extensionsMap.get(fileExtension);
@@ -504,6 +509,7 @@ public class Translator {
     // set Marian NMT parameters
     MarianNmtParameters marianNmtResourceParams = new MarianNmtParameters();
     marianNmtResourceParams.setTranslationUrl(translationUrl);
+    marianNmtResourceParams.setUseTargetLangTag(useTargetLangTag);
     marianNmtResourceParams.setPrePostHost(prePostHost);
     marianNmtResourceParams.setPrePostPort(prePostPort);
     marianNmtResourceParams.setMarkupStrategy(markupStrategy);

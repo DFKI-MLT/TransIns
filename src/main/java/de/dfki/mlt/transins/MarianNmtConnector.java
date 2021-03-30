@@ -157,8 +157,10 @@ public class MarianNmtConnector extends BaseConnector {
 
     // translate
     String translatorInput = removeTags(preprocessedSourceSentence);
-    // add leading token with target language
-    translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
+    if (this.params.isUseTargetLangTag()) {
+      // add leading token with target language
+      translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
+    }
     logger.debug("send to translator: \"{}\"", translatorInput);
     String rawTranslation;
     try {
@@ -168,7 +170,8 @@ public class MarianNmtConnector extends BaseConnector {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
     }
     String translation = processRawTranslation(
-        rawTranslation, fragment, preprocessedSourceSentence, this.params.getMarkupStrategy());
+        rawTranslation, fragment, preprocessedSourceSentence,
+        this.params.getMarkupStrategy(), this.params.isUseTargetLangTag());
 
     // postprocessing
     String postprocessedSentence =
@@ -235,11 +238,14 @@ public class MarianNmtConnector extends BaseConnector {
    *          the preprocessed source sentence
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param useTargetLangTag
+   *          if <code>true</code>, target language tag was added as first token to source sentence,
+   *          so alignments have to be corrected
    * @return the translation with re-inserted tags (if required) and resolved byte pair encoding
    */
   static String processRawTranslation(
       String rawTranslation, TextFragment fragment, String preprocessedSourceSentence,
-      MarkupStrategy markupStrategy) {
+      MarkupStrategy markupStrategy, boolean useTargetLangTag) {
 
     // split into translation and alignments
     String[] parts = rawTranslation.split(" \\|\\|\\| ");
@@ -255,8 +261,10 @@ public class MarianNmtConnector extends BaseConnector {
         logger.debug("raw target sentence: \"{}\"", translation);
         logger.debug("raw alignments: \"{}\"", rawAlignments);
         Alignments algn = createAlignments(rawAlignments);
-        // compensate for leading target language token in source sentence
-        algn.shiftSourceIndexes(-1);
+        if (useTargetLangTag) {
+          // compensate for leading target language token in source sentence
+          algn.shiftSourceIndexes(-1);
+        }
         translation = MarkupInserter.insertMarkup(
             preprocessedSourceSentence, translation, algn, markupStrategy);
       } else {

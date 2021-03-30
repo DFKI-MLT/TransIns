@@ -95,10 +95,11 @@ public enum BatchRunner {
     String prePostHost = marianNmtResourceParams.getPrePostHost();
     int prePostPort = marianNmtResourceParams.getPrePostPort();
     MarkupStrategy markupStrategy = marianNmtResourceParams.getMarkupStrategy();
+    boolean useTargetLangTag = marianNmtResourceParams.isUseTargetLangTag();
 
     List<BatchItem> batchItems = createBatchItems(batchInputList);
-    preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang);
-    translate(batchItems, translatorClient, markupStrategy);
+    preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang, useTargetLangTag);
+    translate(batchItems, translatorClient, markupStrategy, useTargetLangTag);
     // add space at sentence end when translating MS Office documents
     boolean addSpaceAtSentenceEnd =
         marianNmtResourceParams.getOkapiFilterConfigId().equals("okf_openxml");
@@ -198,10 +199,12 @@ public enum BatchRunner {
    *          the source language
    * @param targetLang
    *          the target language
+   * @param useTargetLangTag
+   *          if <code>true</code>, add target language tag as first token to source sentence
    */
   private void preprocess(
       List<BatchItem> batchItems, String prePostHost, int prePostPort,
-      String sourceLang, String targetLang) {
+      String sourceLang, String targetLang, boolean useTargetLangTag) {
 
     logger.debug("preprocessing batch items...");
 
@@ -220,8 +223,13 @@ public enum BatchRunner {
 
     for (BatchItem oneBatchItem : batchItems) {
       oneBatchItem.setPreResult(preprocessingResult.get(oneBatchItem.getPreInput()));
-      oneBatchItem.setTransInput(
-          String.format("<to%s> %s", targetLang, removeTags(oneBatchItem.getPreResult())));
+      String preResultWithTagsRemoved = removeTags(oneBatchItem.getPreResult());
+      if (useTargetLangTag) {
+        oneBatchItem.setTransInput(
+            String.format("<to%s> %s", targetLang, preResultWithTagsRemoved));
+      } else {
+        oneBatchItem.setTransInput(preResultWithTagsRemoved);
+      }
     }
   }
 
@@ -236,9 +244,12 @@ public enum BatchRunner {
    *          the translator client to use
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param useTargetLangTag
+   *          if <code>true</code>, target language tag was added as first token to source sentence,
+   *          so alignments have to be corrected
    */
   private void translate(List<BatchItem> batchItems, MarianNmtClient translatorClient,
-      MarkupStrategy markupStrategy) {
+      MarkupStrategy markupStrategy, boolean useTargetLangTag) {
 
     logger.debug("translating batch items...");
 
@@ -255,7 +266,7 @@ public enum BatchRunner {
         String rawTranslation = translatorResult.get(oneBatchItem.getTransInput());
         oneBatchItem.setPostInput(MarianNmtConnector.processRawTranslation(
             rawTranslation, oneBatchItem.getTextFragment(), oneBatchItem.getPreResult(),
-            markupStrategy));
+            markupStrategy, useTargetLangTag));
       }
     } catch (InterruptedException | ExecutionException e) {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);

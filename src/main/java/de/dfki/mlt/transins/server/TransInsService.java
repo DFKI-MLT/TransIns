@@ -245,7 +245,8 @@ public class TransInsService {
               true, MarkupStrategy.valueOf(markupStrategyString), true,
               config.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
               config.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
-              config.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT));
+              config.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT),
+              config.getBoolean(transDirPrefix + ConfigKeys.USE_TARGET_LANG_TAG));
           jobManager.markJobAsFinished(jobId);
         } catch (Throwable e) {
           jobManager.markJobAsFailed(jobId);

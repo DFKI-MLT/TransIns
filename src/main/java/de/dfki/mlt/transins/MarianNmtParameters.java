@@ -16,6 +16,7 @@ import net.sf.okapi.common.uidescription.IEditorDescriptionProvider;
 public class MarianNmtParameters extends StringParameters implements IEditorDescriptionProvider {
 
   private static final String TRANSLATION_URL = "translation_url";
+  private static final String USE_TARGET_LANG_TAG = "use_target_lang_tag";
   private static final String PREPOST_HOST = "prepost_host";
   private static final String PREPOST_PORT = "prepost_port";
   private static final String DOC_ID = "doc_id";
@@ -71,6 +72,27 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   public void setTranslationUrl(String translationUrl) {
 
     setString(TRANSLATION_URL, translationUrl);
+  }
+
+
+  /**
+   * @return flag indicating if to add target language tag as first token to source sentence;
+   *         not part of the config file, but set at runtime
+   */
+  public boolean isUseTargetLangTag() {
+
+    return getBoolean(USE_TARGET_LANG_TAG);
+  }
+
+
+  /**
+   * @param useTargetLangTag
+   *          flag indicating if to add target language tag as first token to source sentence;
+   *          not part of the config file, but set at runtime
+   */
+  public void setUseTargetLangTag(boolean useTargetLangTag) {
+
+    setBoolean(USE_TARGET_LANG_TAG, useTargetLangTag);
   }
 
 

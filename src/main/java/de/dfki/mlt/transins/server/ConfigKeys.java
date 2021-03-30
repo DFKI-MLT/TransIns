@@ -25,6 +25,9 @@ public final class ConfigKeys {
   /** Marian NMT server web socket URL */
   public static final String TRANSLATION_URL = "translation_url";
 
+  /** switch to add target language tag as first token of source sentence */
+  public static final String USE_TARGET_LANG_TAG = "use_target_lang_tag";
+
   /** pre-/postprocessing server host */
   public static final String PREPOST_HOST = "prepost_host";
 
