@@ -254,12 +254,12 @@ def init(config, config_folder):
         trans_dir = trans_dir.lower()
         supported_trans_dirs.append(trans_dir)
         logger.info(f"initializing for '{trans_dir}'...")
-        source_lang = trans_dir.split('-')[0]
-        # initialize punctuation normalizer, tokenizer and detokenizer ONCE for each language
-        if source_lang not in moses_punct_normalizer:
-            moses_punct_normalizer[source_lang] = MosesPunctNormalizer(lang=source_lang)
-            moses_tokenizer[source_lang] = MosesTokenizer(lang=source_lang)
-            moses_detokenizer[source_lang] = MosesDetokenizer(lang=source_lang)
+        for lang in trans_dir.split('-'):
+            # initialize punctuation normalizer, tokenizer and detokenizer ONCE for each language
+            if lang not in moses_punct_normalizer:
+                moses_punct_normalizer[lang] = MosesPunctNormalizer(lang=lang)
+                moses_tokenizer[lang] = MosesTokenizer(lang=lang)
+                moses_detokenizer[lang] = MosesDetokenizer(lang=lang)
         moses_truecaser[trans_dir] = MosesTruecaser(f"{config_folder}/{config[trans_dir]['truecaser_model']}")
         bpe_encoder[trans_dir] = BPE(
             codecs.open(f"{config_folder}/{config[trans_dir]['bpe_codes']}", encoding='utf-8'),
