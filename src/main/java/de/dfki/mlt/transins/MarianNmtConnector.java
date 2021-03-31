@@ -121,16 +121,14 @@ public class MarianNmtConnector extends BaseConnector {
     // get the document id as passed via the parameter;
     // the document id is only set when in batch mode
     String docId = this.params.getDocumentId();
-    if (docId != null) {
+    if (!docId.isEmpty()) {
       // get batch result from batch runner
       if (this.batchResult == null) {
         this.batchResult = BatchRunner.INSTANCE.getBatchResult(this.params.getDocumentId());
       }
-      if (this.batchResult != null) {
-        String postprocessedSentence = this.batchResult.get(fragment.toString());
-        if (postprocessedSentence != null) {
-          return createQueryResult(fragment, postprocessedSentence);
-        }
+      String postprocessedSentence = this.batchResult.get(fragment.toString());
+      if (postprocessedSentence != null) {
+        return createQueryResult(fragment, postprocessedSentence);
       }
     }
 
