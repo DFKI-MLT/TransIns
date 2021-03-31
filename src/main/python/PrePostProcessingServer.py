@@ -11,8 +11,10 @@ import json
 import logging
 import re
 
-from sacremoses import MosesPunctNormalizer, MosesTokenizer, MosesTruecaser, MosesDetruecaser, MosesDetokenizer
+from sacremoses import MosesPunctNormalizer, MosesTruecaser, MosesDetruecaser
 from subword_nmt.apply_bpe import BPE, read_vocabulary
+
+from tokenizeExtended import MosesTokenizerExtended, MosesDetokenizerExtended
 
 __authors__ = ["Jörg Steffen, DFKI"]
 
@@ -258,8 +260,8 @@ def init(config, config_folder):
             # initialize punctuation normalizer, tokenizer and detokenizer ONCE for each language
             if lang not in moses_punct_normalizer:
                 moses_punct_normalizer[lang] = MosesPunctNormalizer(lang=lang)
-                moses_tokenizer[lang] = MosesTokenizer(lang=lang)
-                moses_detokenizer[lang] = MosesDetokenizer(lang=lang)
+                moses_tokenizer[lang] = MosesTokenizerExtended(lang=lang)
+                moses_detokenizer[lang] = MosesDetokenizerExtended(lang=lang)
         moses_truecaser[trans_dir] = MosesTruecaser(f"{config_folder}/{config[trans_dir]['truecaser_model']}")
         bpe_encoder[trans_dir] = BPE(
             codecs.open(f"{config_folder}/{config[trans_dir]['bpe_codes']}", encoding='utf-8'),
