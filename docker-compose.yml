@@ -88,11 +88,11 @@ services:
             device_ids: ['1']
             capabilities: [gpu]
 
-  transins-marian-es-en-mono:
+  transins-marian-esca-en-mono:
     image: 'dfki/transins-marian:0.0.1'
     networks:
       - transins
-    container_name: transins-marian-es-en-mono
+    container_name: transins-marian-esca-en-mono
     restart: always
     volumes:
       - './src/main/resources/marian-nmt/esca-en-mono:/TransIns-marian/config:ro'
@@ -102,6 +102,22 @@ services:
           devices:
           - driver: nvidia
             device_ids: ['1']
+            capabilities: [gpu]
+
+  transins-marian-es-ca-mono:
+    image: 'dfki/transins-marian:0.0.1'
+    networks:
+      - transins
+    container_name: transins-marian-es-ca-mono
+    restart: always
+    volumes:
+      - './src/main/resources/marian-nmt/es-ca-mono:/TransIns-marian/config:ro'
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            device_ids: ['2']
             capabilities: [gpu]
 
   transins-prepost:
@@ -120,6 +136,8 @@ services:
       - transins-marian-es-de-mono
       - transins-marian-de-fr-mono
       - transins-marian-fr-de-mono
+      - transins-marian-esca-en-mono
+      - transins-marian-es-ca-mono
       - transins-prepost
     image: 'dfki/transins-server:0.0.1'
     networks:
