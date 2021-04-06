@@ -158,7 +158,7 @@ public final class TagUtils {
 
 
   /**
-   * Remove Okapi codes from the given text.
+   * Remove Okapi codes from the preprocessed sentence with whitespace separated tokens.
    *
    * @param codedText
    *          the text to remove the codes from
