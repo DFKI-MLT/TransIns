@@ -104,14 +104,14 @@ services:
             device_ids: ['1']
             capabilities: [gpu]
 
-  transins-marian-es-ca-mono:
+  transins-marian-es-ca-bi:
     image: 'dfki/transins-marian:0.0.1'
     networks:
       - transins
-    container_name: transins-marian-es-ca-mono
+    container_name: transins-marian-es-ca-bi
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/es-ca-mono:/TransIns-marian/config:ro'
+      - './src/main/resources/marian-nmt/es-ca-bi:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -137,7 +137,7 @@ services:
       - transins-marian-de-fr-mono
       - transins-marian-fr-de-mono
       - transins-marian-esca-en-mono
-      - transins-marian-es-ca-mono
+      - transins-marian-es-ca-bi
       - transins-prepost
     image: 'dfki/transins-server:0.0.1'
     networks:
