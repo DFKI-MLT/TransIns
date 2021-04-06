@@ -1450,7 +1450,7 @@ class MarkupInserterTest {
 
   /**
    * Test {@link MarkupInserter#maskTags(String[])} and
-   * {@link MarkupInserter#unmaskTags(String)}.
+   * {@link MarianNmtConnector#unmaskTags(String)}.
    */
   @Test
   void testMaskAndUnmaskTags() {
@@ -1463,75 +1463,37 @@ class MarkupInserterTest {
     unmasked = "a b c " + OPEN1 + " x y z";
     masked = "a b c x" + OPEN1 + "c x y z";
     assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
 
     // tag at beginning
     unmasked = OPEN1 + " x y z";
     masked = "x" + OPEN1 + " x y z";
     assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
 
     // tag at end
     unmasked = "a b c " + OPEN1;
     masked = "a b c " + OPEN1 + "c";
     assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
 
     // two tags
     unmasked = "a b c " + ISO1 + " " + OPEN1 + " x y z";
     masked = "a b c x" + ISO1 + "c x" + OPEN1 + "c x y z";
     assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
 
     // two tags at beginning
     unmasked = ISO1 + " " + OPEN1 + " x y z";
     masked = "x" + ISO1 + " x" + OPEN1 + " x y z";
     assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
+    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
 
     // two tags at end
     unmasked = "a b c " + ISO1 + " " + OPEN1;
     masked = "a b c " + ISO1 + "c " + OPEN1 + "c";
     assertThat(MarkupInserter.maskTags(unmasked.split(" "))).isEqualTo(masked);
-    assertThat(MarkupInserter.unmaskTags(masked)).isEqualTo(unmasked);
-  }
-
-
-  /**
-   * Test {@link MarkupInserter#detokenizeTags(String)}.
-   */
-  @Test
-  void testDetokenizeTags() {
-
-    // init variables to be re-used between tests
-    String input = null;
-    String expectedResult = null;
-
-    // standard
-    input = String.format("x y z %s a %s b %s c", ISO1, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z%sa %sb%s c", ISO1, OPEN1, CLOSE1);
-    testDetokenizeTags(input, expectedResult);
-
-    // multiple whitespaces
-    input = String.format("x y z %s   a   %s  b   %s  c", ISO1, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z%sa   %sb%s  c", ISO1, OPEN1, CLOSE1);
-    testDetokenizeTags(input, expectedResult);
-
-    // empty tag pair
-    input = String.format("x y z %s a %s %s b", ISO1, OPEN1, CLOSE1);
-    expectedResult = String.format("x y z%sa %s%s b", ISO1, OPEN1, CLOSE1);
-    testDetokenizeTags(input, expectedResult);
-  }
-
-
-  private void testDetokenizeTags(String input, String expectedResult) {
-
-    input = MarkupInserter.detokenizeTags(input);
-    assertThat(input)
-        // provide human-readable string in case of error
-        .as(String.format("%nexpected: %s%nactual: %s",
-            expectedResult, input))
-        .isEqualTo(expectedResult);
+    assertThat(MarianNmtConnector.unmaskTags(masked)).isEqualTo(unmasked);
   }
 
 

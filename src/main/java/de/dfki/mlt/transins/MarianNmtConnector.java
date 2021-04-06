@@ -4,6 +4,7 @@ import static de.dfki.mlt.transins.TagUtils.removeTags;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
@@ -306,9 +307,80 @@ public class MarianNmtConnector extends BaseConnector {
   public static String cleanPostProcessedSentence(String postprocessedSentence) {
 
     // unmask tags
-    postprocessedSentence = MarkupInserter.unmaskTags(postprocessedSentence);
+    postprocessedSentence = unmaskTags(postprocessedSentence);
     // remove space in front of and after tags
-    postprocessedSentence = MarkupInserter.detokenizeTags(postprocessedSentence);
+    postprocessedSentence = detokenizeTags(postprocessedSentence);
     return postprocessedSentence;
+  }
+
+
+  /**
+   * Undo the tag masking of {@link MarkupInserter#maskTags(String[])}.
+   *
+   * @param postprocessedSentence
+   *          the postprocessed sentence
+   * @return the unmasked postprocessed sentence
+   */
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
+  static String unmaskTags(String postprocessedSentence) {
+
+    Pattern tag = Pattern.compile("\\S?([\uE101\uE102\uE103].)\\S?");
+    Matcher matcher = tag.matcher(postprocessedSentence);
+    StringBuilder sb = new StringBuilder();
+    while (matcher.find()) {
+      matcher.appendReplacement(sb, matcher.group(1));
+    }
+    matcher.appendTail(sb);
+
+    return sb.toString();
+  }
+
+
+  /**
+   * Remove from the given postprocessed sentence with re-inserted tags the spaces to the
+   * left/right of the tags, depending on the type of tag. Opening tags have all
+   * spaces to their right removed, closing tags have all spaces to their left removed,
+   * isolated tags have all spaces to their left and right removed.
+   *
+   * @param postprocessedSentence
+   *          the postprocessed sentence with re-inserted tags
+   * @return the postprocessed sentence with detokenized tags
+   */
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
+  static String detokenizeTags(String postprocessedSentence) {
+
+    Pattern openingTag = Pattern.compile("(\uE101.)( )+");
+    Matcher openingMatcher = openingTag.matcher(postprocessedSentence);
+    StringBuilder sb = new StringBuilder();
+    while (openingMatcher.find()) {
+      openingMatcher.appendReplacement(sb, openingMatcher.group(1));
+    }
+    openingMatcher.appendTail(sb);
+
+    Pattern closingTag = Pattern.compile("( )+(\uE102.)");
+    Matcher closingMatcher = closingTag.matcher(sb.toString());
+    sb = new StringBuilder();
+    while (closingMatcher.find()) {
+      closingMatcher.appendReplacement(sb, closingMatcher.group(2));
+    }
+    closingMatcher.appendTail(sb);
+
+    Pattern isolatedTagRight = Pattern.compile("(\uE103.)( )+");
+    Matcher isoMatcherRight = isolatedTagRight.matcher(sb.toString());
+    sb = new StringBuilder();
+    while (isoMatcherRight.find()) {
+      isoMatcherRight.appendReplacement(sb, isoMatcherRight.group(1));
+    }
+    isoMatcherRight.appendTail(sb);
+
+    Pattern isolatedTagLeft = Pattern.compile("( )+(\uE103.)");
+    Matcher isoMatcherLeft = isolatedTagLeft.matcher(sb.toString());
+    sb = new StringBuilder();
+    while (isoMatcherLeft.find()) {
+      isoMatcherLeft.appendReplacement(sb, isoMatcherLeft.group(2));
+    }
+    isoMatcherLeft.appendTail(sb);
+
+    return sb.toString();
   }
 }
