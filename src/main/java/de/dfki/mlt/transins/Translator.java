@@ -356,7 +356,7 @@ public class Translator {
 
     // add segmentation step (optional)
     if (applySegmentation) {
-      driver.addStep(createSeqmentationStep());
+      driver.addStep(createSegmentationStep());
     }
 
     // add leveraging step
@@ -374,7 +374,7 @@ public class Translator {
   /**
    * @return default segmenter for western languages
    */
-  private SegmentationStep createSeqmentationStep() {
+  private SegmentationStep createSegmentationStep() {
 
     SegmentationStep segStep = new SegmentationStep();
 
@@ -634,7 +634,7 @@ public class Translator {
 
     // add segmentation step (optional)
     if (applySegmentation) {
-      driver.addStep(createSeqmentationStep());
+      driver.addStep(createSegmentationStep());
     }
 
     // collect all text fragments for batch processor
