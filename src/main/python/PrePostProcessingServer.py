@@ -117,8 +117,10 @@ def preprocess_sentence(sentence, trans_dir):
 
     # tokenize; this is language dependent
     tokenizer = moses_tokenizer[source_lang]
+    escape_xml_symbols = configuration[trans_dir]['escape_xml_symbols']
     # a single Okapi tag is split into two tokens
-    sentence_tokenized_as_tokens = tokenizer.tokenize(sentence_normalized)
+    sentence_tokenized_as_tokens = \
+        tokenizer.tokenize(sentence_normalized, escape=escape_xml_symbols)
 
     # truecasing; this is translation direction dependent
     truecaser = moses_truecaser[trans_dir]
@@ -222,7 +224,8 @@ def postprocess_sentence(sentence, trans_dir):
 
     # detokenize; this is language dependent
     detokenizer = moses_detokenizer[target_lang]
-    return detokenizer.detokenize(sentence_detruecased_as_tokens)
+    unescape_xml_symbols = configuration[trans_dir]['escape_xml_symbols']
+    return detokenizer.detokenize(sentence_detruecased_as_tokens, unescape=unescape_xml_symbols)
 
 
 def init(config, config_folder):
