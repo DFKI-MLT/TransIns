@@ -1,11 +1,9 @@
 package de.dfki.mlt.transins;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.ex.ConfigurationException;
 
 import de.dfki.mlt.transins.MarkupInserter.MarkupStrategy;
 import de.dfki.mlt.transins.server.ConfigKeys;
-import de.dfki.mlt.transins.server.Utils;
 
 /**
  * Demo of {@link Translator} class usage.
