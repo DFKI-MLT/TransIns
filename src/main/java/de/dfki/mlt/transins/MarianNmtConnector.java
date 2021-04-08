@@ -259,6 +259,10 @@ public class MarianNmtConnector extends BaseConnector {
         String rawAlignments = parts[1].strip();
         logger.debug("raw target sentence: \"{}\"", translation);
         logger.debug("raw alignments: \"{}\"", rawAlignments);
+        if (translation.isEmpty()) {
+          // if the correct translation model is used, this shouldn't happen
+          return translation;
+        }
         Alignments algn = createAlignments(rawAlignments);
         if (useTargetLangTag) {
           // compensate for leading target language token in source sentence
