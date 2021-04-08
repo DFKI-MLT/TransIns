@@ -193,6 +193,7 @@ public class Translator {
       boolean applySegmentation, TransId translatorId) {
 
     // get configuration id for file extension
+    fileExtension = fileExtension.toLowerCase();
     String configId = this.extensionsMap.get(fileExtension);
     if (configId == null) {
       throw new OkapiException(String.format(
@@ -488,6 +489,7 @@ public class Translator {
       String translationUrl, String prePostHost, int prePostPort, boolean useTargetLangTag) {
 
     // get configuration id for file extension
+    fileExtension = fileExtension.toLowerCase();
     String configId = this.extensionsMap.get(fileExtension);
     if (configId == null) {
       throw new OkapiException(String.format(

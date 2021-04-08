@@ -383,6 +383,7 @@ public class TransInsService {
       return "no file provided";
     }
     String fileExtension = Utils.getFileExtension(originalFileName);
+    fileExtension = fileExtension.toLowerCase();
     if (!translator.getSupportedExtensions().contains(fileExtension.toLowerCase())) {
       return String.format("unsupported file extension %s", fileExtension);
     }
