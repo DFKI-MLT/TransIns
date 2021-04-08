@@ -580,6 +580,8 @@ public class Translator {
       // process
       try {
         driver.processBatch();
+      } catch (OkapiException e) {
+        logger.error(e.getLocalizedMessage(), e);
       } finally {
         // if an exception is thrown during processing, make sure all resources are released
 
@@ -591,7 +593,9 @@ public class Translator {
           filterWriterField.setAccessible(true);
           IFilterWriter filterWriter =
               (IFilterWriter)filterWriterField.get(filterEventsToRawDocumentStep);
-          filterWriter.close();
+          if (filterWriter != null) {
+            filterWriter.close();
+          }
         } catch (ReflectiveOperationException | SecurityException | IllegalArgumentException e) {
           logger.error(e.getLocalizedMessage(), e);
         }
