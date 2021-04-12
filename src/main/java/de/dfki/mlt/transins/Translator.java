@@ -70,6 +70,21 @@ public class Translator {
 
 
   /**
+   * Create a new translator instance loading hand annotated alignments from the given path.
+   *
+   * @param handAnnotatedAlignmentsPath
+   *          path to hand annotated alignments
+   */
+  public Translator(String handAnnotatedAlignmentsPath) {
+
+    this();
+    if (handAnnotatedAlignmentsPath != null && !handAnnotatedAlignmentsPath.strip().isEmpty()) {
+      AlignmentProvider.INSTANCE.loadAlignments(handAnnotatedAlignmentsPath);
+    }
+  }
+
+
+  /**
    * Create a new translator instance.
    */
   public Translator() {

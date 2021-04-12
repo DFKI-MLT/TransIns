@@ -169,7 +169,7 @@ public class MarianNmtConnector extends BaseConnector {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);
     }
     String translation = processRawTranslation(
-        rawTranslation, fragment, preprocessedSourceSentence,
+        rawTranslation, fragment, preprocessedSourceSentence, translatorInput,
         this.params.getMarkupStrategy(), this.params.isUseTargetLangTag());
 
     // postprocessing
@@ -235,6 +235,8 @@ public class MarianNmtConnector extends BaseConnector {
    *          the fragment from which the source sentence to translate was provided
    * @param preprocessedSourceSentence
    *          the preprocessed source sentence
+   * @param translatorInput
+   *          the source sentence as it was sent to the translator
    * @param markupStrategy
    *          the markup re-insertion strategy to use
    * @param useTargetLangTag
@@ -244,7 +246,7 @@ public class MarianNmtConnector extends BaseConnector {
    */
   static String processRawTranslation(
       String rawTranslation, TextFragment fragment, String preprocessedSourceSentence,
-      MarkupStrategy markupStrategy, boolean useTargetLangTag) {
+      String translatorInput, MarkupStrategy markupStrategy, boolean useTargetLangTag) {
 
     // split into translation and alignments
     String[] parts = rawTranslation.split(" \\|\\|\\| ");
@@ -255,10 +257,20 @@ public class MarianNmtConnector extends BaseConnector {
       translation = parts[0].strip();
 
       if (fragment.hasCode()) {
-        // get alignments for tag re-insertion
-        String rawAlignments = parts[1].strip();
         logger.debug("raw target sentence: \"{}\"", translation);
-        logger.debug("raw alignments: \"{}\"", rawAlignments);
+        // check if there are hand annotated alignments
+        String rawAlignments = null;
+        if (AlignmentProvider.INSTANCE.isInitialized()) {
+          rawAlignments = AlignmentProvider.INSTANCE.getAlignments(translatorInput, translation);
+        }
+        if (rawAlignments != null) {
+          logger.debug("hand annotated alignments: \"{}\"", rawAlignments);
+        } else {
+          // use alignments as provided by Marian NMT
+          rawAlignments = parts[1].strip();
+          logger.debug("raw alignments: \"{}\"", rawAlignments);
+        }
+
         if (translation.isEmpty()) {
           // if the correct translation model is used, this shouldn't happen
           return translation;

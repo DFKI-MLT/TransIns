@@ -265,7 +265,8 @@ public enum BatchRunner {
       for (BatchItem oneBatchItem : batchItems) {
         String rawTranslation = translatorResult.get(oneBatchItem.getTransInput());
         oneBatchItem.setPostInput(MarianNmtConnector.processRawTranslation(
-            rawTranslation, oneBatchItem.getTextFragment(), oneBatchItem.getPreResult(),
+            rawTranslation, oneBatchItem.getTextFragment(),
+            oneBatchItem.getPreResult(), oneBatchItem.getTransInput(),
             markupStrategy, useTargetLangTag));
       }
     } catch (InterruptedException | ExecutionException e) {
