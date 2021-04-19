@@ -179,7 +179,7 @@ public final class TagUtils {
           sb.append(codedText.charAt(i));
       }
     }
-    return sb.toString();
+    return sb.toString().strip();
   }
 
 
