@@ -109,7 +109,7 @@ Note that the configuration folders of both the pre-/postprocessing server as we
 == REST API
 TransIns provides a RESTful API that allows to query the translation service in an asynchronous way. This API is also used by the web page.
 
-The REST endpoint for getting the supported translation directions is `\getTranslationDirections`. Sending a GET request returns a JSON array of strings where each string represents a translation direction in the format `<sourceLang>-<targetLang>`.
+The REST endpoint for getting the supported translation directions is `/getTranslationDirections`. Sending a GET request returns a JSON array of strings where each string represents a translation direction in the format `<sourceLang>-<targetLang>`.
 
 The REST endpoint for sending a document to translate is `/translate`. The query has to be sent as POST request encoded as `multipart/form-data` with the following fields:
 
