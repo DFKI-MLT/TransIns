@@ -126,21 +126,23 @@ def preprocess_sentence(sentence, trans_dir):
                            aggressive_dash_splits=aggressive_hyphen_splitting)
 
     # truecasing; this is translation direction dependent
-    truecaser = moses_truecaser[trans_dir]
-    # remove Okapi tags at beginning of sentence before truecasing and re-add them afterwards
-    removed_tokens = []
-    while True:
-        if len(sentence_tokenized_as_tokens) > 1:
-            first_token = sentence_tokenized_as_tokens[0]
-            if re.search(r"\uE101", first_token) \
-                    or re.search(r"\uE102", first_token) \
-                    or re.search(r"\uE103", first_token):
-                removed_tokens.extend(sentence_tokenized_as_tokens[0:2])
-                del sentence_tokenized_as_tokens[0:2]
-                continue
-        break
-    sentence_truecased_as_tokens = truecaser.truecase(' '.join(sentence_tokenized_as_tokens))
-    sentence_truecased_as_tokens = removed_tokens + sentence_truecased_as_tokens
+    sentence_truecased_as_tokens = sentence_tokenized_as_tokens
+    if trans_dir in moses_truecaser:
+        truecaser = moses_truecaser[trans_dir]
+        # remove Okapi tags at beginning of sentence before truecasing and re-add them afterwards
+        removed_tokens = []
+        while True:
+            if len(sentence_tokenized_as_tokens) > 1:
+                first_token = sentence_tokenized_as_tokens[0]
+                if re.search(r"\uE101", first_token) \
+                        or re.search(r"\uE102", first_token) \
+                        or re.search(r"\uE103", first_token):
+                    removed_tokens.extend(sentence_tokenized_as_tokens[0:2])
+                    del sentence_tokenized_as_tokens[0:2]
+                    continue
+            break
+        sentence_truecased_as_tokens = truecaser.truecase(' '.join(sentence_tokenized_as_tokens))
+        sentence_truecased_as_tokens = removed_tokens + sentence_truecased_as_tokens
 
     # run byte pair encoding; this is translation direction dependent
     encoder = bpe_encoder[trans_dir]
@@ -207,23 +209,26 @@ def postprocess_sentence(sentence, trans_dir):
     # extract target language from translation direction
     target_lang = trans_dir.split('-')[1]
 
-    # detruecasing; this is language independent
-    # remove Okapi tags at beginning of sentence before detruecasing and re-add them afterwards;
-    # single Okapi tag is ONE token, in contrast to preprocessing
-    sentence_tokenized_as_tokens = sentence.split()
-    removed_tokens = []
-    while True:
-        if len(sentence_tokenized_as_tokens) > 1:
-            first_token = sentence_tokenized_as_tokens[0]
-            if re.search(r"\uE101", first_token) \
-                    or re.search(r"\uE102", first_token) \
-                    or re.search(r"\uE103", first_token):
-                removed_tokens.extend(sentence_tokenized_as_tokens[0:1])
-                del sentence_tokenized_as_tokens[0:1]
-                continue
-        break
-    sentence_detruecased_as_tokens = moses_detruecaser.detruecase(' '.join(sentence_tokenized_as_tokens))
-    sentence_detruecased_as_tokens = removed_tokens + sentence_detruecased_as_tokens
+    # only apply detruecasing if truecasing was applied in preprocessing
+    sentence_detruecased_as_tokens = sentence.split()
+    if trans_dir in moses_truecaser:
+        # detruecasing; this is language independent
+        # remove Okapi tags at beginning of sentence before detruecasing and re-add them afterwards;
+        # single Okapi tag is ONE token, in contrast to preprocessing
+        sentence_tokenized_as_tokens = sentence.split()
+        removed_tokens = []
+        while True:
+            if len(sentence_tokenized_as_tokens) > 1:
+                first_token = sentence_tokenized_as_tokens[0]
+                if re.search(r"\uE101", first_token) \
+                        or re.search(r"\uE102", first_token) \
+                        or re.search(r"\uE103", first_token):
+                    removed_tokens.extend(sentence_tokenized_as_tokens[0:1])
+                    del sentence_tokenized_as_tokens[0:1]
+                    continue
+            break
+        sentence_detruecased_as_tokens = moses_detruecaser.detruecase(' '.join(sentence_tokenized_as_tokens))
+        sentence_detruecased_as_tokens = removed_tokens + sentence_detruecased_as_tokens
 
     # detokenize; this is language dependent
     detokenizer = moses_detokenizer[target_lang]
@@ -268,11 +273,21 @@ def init(config, config_folder):
                 moses_punct_normalizer[lang] = MosesPunctNormalizer(lang=lang)
                 moses_tokenizer[lang] = MosesTokenizerExtended(lang=lang)
                 moses_detokenizer[lang] = MosesDetokenizerExtended(lang=lang)
-        moses_truecaser[trans_dir] = MosesTruecaser(f"{config_folder}/{config[trans_dir]['truecaser_model']}")
+        truecaser_model_path = config[trans_dir]['truecaser_model'].strip()
+        if len(truecaser_model_path) > 0:
+            moses_truecaser[trans_dir] = MosesTruecaser(f"{config_folder}/{truecaser_model_path}")
+        else:
+            logger.info(f"no truecaser model provided for '{trans_dir}'")
+        vocab_path = f"{config[trans_dir]['bpe_vocabulary']}".strip()
+        vocab = None
+        if len(vocab_path) > 0:
+            vocab = read_vocabulary(
+                codecs.open(f"{config_folder}/{config[trans_dir]['bpe_vocabulary']}", encoding='utf-8'), None)
+        else:
+            logger.info(f"no BPE vocabulary provided for '{trans_dir}'")
         bpe_encoder[trans_dir] = BPE(
             codecs.open(f"{config_folder}/{config[trans_dir]['bpe_codes']}", encoding='utf-8'),
-            vocab=read_vocabulary(
-                codecs.open(f"{config_folder}/{config[trans_dir]['bpe_vocabulary']}", encoding='utf-8'), None))
+            vocab=vocab)
     logger.info("initialization done")
 
 
