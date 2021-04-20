@@ -111,13 +111,13 @@ def preprocess_sentence(sentence, trans_dir):
 
     # normalize punctuation; this is translation direction dependent
     normalizer = moses_punct_normalizer[source_lang]
-    if configuration[trans_dir]['replace_unicode_punctuation']:
+    if configuration[trans_dir].getboolean('replace_unicode_punctuation'):
         sentence = normalizer.replace_unicode_punct(sentence)
     sentence_normalized = normalizer.normalize(sentence)
 
     # tokenize; this is language dependent
     tokenizer = moses_tokenizer[source_lang]
-    escape_xml_symbols = configuration[trans_dir]['escape_xml_symbols']
+    escape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
     # a single Okapi tag is split into two tokens
     sentence_tokenized_as_tokens = \
         tokenizer.tokenize(sentence_normalized, escape=escape_xml_symbols)
@@ -224,7 +224,7 @@ def postprocess_sentence(sentence, trans_dir):
 
     # detokenize; this is language dependent
     detokenizer = moses_detokenizer[target_lang]
-    unescape_xml_symbols = configuration[trans_dir]['escape_xml_symbols']
+    unescape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
     return detokenizer.detokenize(sentence_detruecased_as_tokens, unescape=unescape_xml_symbols)
 
 
