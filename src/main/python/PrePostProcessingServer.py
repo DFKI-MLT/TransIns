@@ -118,9 +118,12 @@ def preprocess_sentence(sentence, trans_dir):
     # tokenize; this is language dependent
     tokenizer = moses_tokenizer[source_lang]
     escape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
+    aggressive_hyphen_splitting = configuration[trans_dir].getboolean('aggressive_hyphen_splitting')
     # a single Okapi tag is split into two tokens
     sentence_tokenized_as_tokens = \
-        tokenizer.tokenize(sentence_normalized, escape=escape_xml_symbols)
+        tokenizer.tokenize(sentence_normalized,
+                           escape=escape_xml_symbols,
+                           aggressive_dash_splits=aggressive_hyphen_splitting)
 
     # truecasing; this is translation direction dependent
     truecaser = moses_truecaser[trans_dir]
