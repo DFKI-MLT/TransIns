@@ -1,5 +1,5 @@
 *:focus {
-  outline: 1px solid lightgrey;
+  outline: 3px solid rgba(0, 123, 255, 0.25);
 }
 
 body {
@@ -7,7 +7,7 @@ body {
   width: 1046px;
   margin: auto;
   font-family: 'Fira Sans', Arial;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url("/assets/background.jpg");
+  background-image: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)), url("/assets/mlt-background.jpg");
   background-size: auto;
   background-position: center;
 }
@@ -20,20 +20,18 @@ body {
 .header__text {
   min-width: 800px;
   padding: 0px 10px;
-  border: 3px solid rgb(60, 60, 60);
+  border: 3px solid rgb(25, 76, 122);
   margin-bottom: 20px;
-  color: white;
+  color: black;
   line-height: 1.4em;
   font-size: large;
   text-align: left;
-  background: linear-gradient(top, rgb(110, 110, 110), rgba(110, 110, 110, .5));
-  background: -webkit-linear-gradient(top, rgb(110, 110, 110), rgba(110, 110, 110, .5));
-  background: -moz-linear-gradient(top, rgb(110, 110, 110), rgba(110, 110, 110, .5));
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
 .header__text__title,
 .header__text__subtitle {
-  color: black;
+  color: rgb(25, 76, 122);
 }
 
 ul {
@@ -53,11 +51,11 @@ li {
 
 a:link,
 a:visited {
-  color: white;
+  color: black;
 }
 
 a:hover {
-  color: rgb(230, 230, 230);
+  color: rgb(112, 112, 112);
 }
 
 .nav-link:link,
@@ -74,10 +72,8 @@ a:hover {
 .center {
   min-width: 800px;
   padding: 10px;
-  border: 3px solid rgb(60, 60, 60);
-  background: linear-gradient(top, rgb(0, 0, 240), rgba(0, 0, 240, .2));
-  background: -webkit-linear-gradient(top, rgb(0, 0, 240), rgba(0, 0, 240, .2));
-  background: -moz-linear-gradient(top, rgb(0, 0, 240), rgba(0, 0, 240, .2));
+  border: 3px solid rgb(25, 76, 122);
+  background-color: rgba(255, 255, 255, 0.9);
   display: inline-block;
   position: relative;
 }
@@ -93,7 +89,7 @@ a:hover {
 
 .query__labels,
 .query__param {
-  color: white;
+  color: black;
   font-weight: bold;
 }
 
@@ -104,13 +100,13 @@ a:hover {
 }
 
 .query__param {
-  border: 2px solid rgb(60, 60, 60);
+  border: 2px solid rgb(25, 76, 122);
   padding-left: 4px;
   padding-right: 4px;
 }
 
 .query__param--enabled {
-  background-color: rgb(110, 110, 110);
+  background-color: rgb(255, 255, 255);
 }
 
 .query__param--disabled {
@@ -128,22 +124,21 @@ a:hover {
 .translation__button {
   font-weight: bold;
   font-size: medium;
-  color: black;
+  color: white;
   padding: 7px;
-  border: 2px solid rgb(60, 60, 60);
+  border: 0px;
 }
 
 .translation__button--enabled {
-  background-color: rgb(255, 255, 0);
+  background-color: rgb(243, 149, 17);
 }
 
 .translation__button--enabled:hover {
-  background-color: rgb(255, 220, 0);
-  outline: 1px solid red;
+  background-color: rgb(212, 125, 4);
 }
 
 .translation__button--enabled:active {
-  background-color: rgb(255, 180, 0);
+  background-color: rgb(25, 76, 122);
 }
 
 .translation__button--disabled {
@@ -161,8 +156,7 @@ a:hover {
   text-align: right;
   font-weight: bold;
   color: white;
-  background-color: rgb(110, 110, 110);
-  background: -webkit-linear-gradient(right, rgb(110, 110, 110), rgba(110, 110, 110, .8));
+  background-color: rgb(87, 87, 87);
 }
 
 .spinner--enabled {
@@ -190,7 +184,7 @@ a:hover {
   width: 6px;
   height: 18px;
   border-radius: 20%;
-  background: #fff;
+  background: rgb(25, 76, 122);
 }
 
 .spinner--enabled div:nth-child(1) {
