@@ -82,6 +82,10 @@ a:hover {
   position: relative;
 }
 
+#email {
+  display: inline-block;
+}
+
 .query {
   line-height: 2em;
   display: flex;

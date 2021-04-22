@@ -8,6 +8,12 @@ $(document).ready(function() {
 
   // add click event listener to translate button
   $("#transButton").click(translate);
+
+  // add contact
+  let server = "dfki.de"
+  let recipient = ("steffen" + "@" + server)
+  let contact = "Jörg Steffen"
+  $("#email").html('<a href="mailto:' + recipient + '">' + contact + '</a>')
 })
 
 
