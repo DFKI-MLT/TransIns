@@ -74,9 +74,9 @@ public final class MarkupInserter {
    *          the alignments
    * @param markupStrategy
    *          the markup re-insertion strategy to use
-   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   * @return the translation's tokens with re-inserted markup
    */
-  public static String insertMarkup(
+  public static String[] insertMarkup(
       String preprocessedSourceSentence, String translation, Alignments algn,
       MarkupStrategy markupStrategy) {
 
@@ -109,9 +109,9 @@ public final class MarkupInserter {
    *          the translation of the source sentence with whitespace separated tokens
    * @param algn
    *          the alignments
-   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   * @return the translation's tokens with re-inserted markup
    */
-  public static String insertMarkupMtrain(
+  public static String[] insertMarkupMtrain(
       String preprocessedSourceSentence, String translation, Alignments algn) {
 
     String[] sourceTokensWithTags = preprocessedSourceSentence.split(" ");
@@ -134,11 +134,7 @@ public final class MarkupInserter {
     targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
     targetTokensWithTags = handleInvertedTagsMtrain(tagMap, targetTokensWithTags);
 
-    // prepare translation for postprocessing;
-    // mask tags so that detokenizer in postprocessing works correctly
-    translation = maskTags(targetTokensWithTags);
-
-    return translation;
+    return targetTokensWithTags;
   }
 
 
@@ -152,9 +148,9 @@ public final class MarkupInserter {
    *          the translation of the source sentence with whitespace separated tokens
    * @param algn
    *          the alignments
-   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   * @return the translation's tokens with re-inserted markup
    */
-  public static String insertMarkupMtrainImproved(
+  public static String[] insertMarkupMtrainImproved(
       String preprocessedSourceSentence, String translation, Alignments algn) {
 
     logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
@@ -204,11 +200,7 @@ public final class MarkupInserter {
         MarkupInserter.replaceIsosWithEmptyTagPairs(targetTokensWithTags, isoReplacements);
     logger.debug("target sentence with cleaned tags: \"{}\"", asString(targetTokensWithTags));
 
-    // prepare translation for postprocessing;
-    // mask tags so that detokenizer in postprocessing works correctly
-    translation = maskTags(targetTokensWithTags);
-
-    return translation;
+    return targetTokensWithTags;
   }
 
 
@@ -223,9 +215,9 @@ public final class MarkupInserter {
    *          the translation of the source sentence with whitespace separated tokens
    * @param algn
    *          the alignments
-   * @return the translation with re-inserted markup ready for postprocessing, i.e. with masked tags
+   * @return the translation's tokens with re-inserted markup
    */
-  public static String insertMarkupComplete(
+  public static String[] insertMarkupComplete(
       String preprocessedSourceSentence, String translation, Alignments algn) {
 
     logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
@@ -273,11 +265,7 @@ public final class MarkupInserter {
         MarkupInserter.replaceIsosWithEmptyTagPairs(targetTokensWithTags, isoReplacements);
     logger.debug("target sentence with cleaned tags: \"{}\"", asString(targetTokensWithTags));
 
-    // prepare translation for postprocessing;
-    // mask tags so that detokenizer in postprocessing works correctly
-    translation = maskTags(targetTokensWithTags);
-
-    return translation;
+    return targetTokensWithTags;
   }
 
 
@@ -1577,42 +1565,6 @@ public final class MarkupInserter {
 
     String[] resultAsArray = new String[tokenList.size()];
     return tokenList.toArray(resultAsArray);
-  }
-
-
-  /**
-   * Embed each Okapi tag with last/first character of preceding/following token (if available).
-   * This makes sure that the detokenizer in postprocessing works correctly.
-   *
-   * @param targetTokensWithTags
-   *          the target tokens with Okapi tags
-   * @return string with embedded Okapi tags
-   */
-  static String maskTags(String[] targetTokensWithTags) {
-
-    StringBuilder result = new StringBuilder();
-
-    for (int i = 0; i < targetTokensWithTags.length; i++) {
-      String currentToken = targetTokensWithTags[i];
-      if (isTag(currentToken)) {
-        for (int j = i - 1; j >= 0; j--) {
-          String precedingToken = targetTokensWithTags[j];
-          if (!isTag(precedingToken)) {
-            currentToken = currentToken + precedingToken.charAt(precedingToken.length() - 1);
-            break;
-          }
-        }
-        for (int j = i + 1; j < targetTokensWithTags.length; j++) {
-          String followingToken = targetTokensWithTags[j];
-          if (!isTag(followingToken)) {
-            currentToken = followingToken.charAt(0) + currentToken;
-            break;
-          }
-        }
-      }
-      result.append(currentToken + " ");
-    }
-    return result.toString().strip();
   }
 
 

@@ -1,5 +1,6 @@
 package de.dfki.mlt.transins;
 
+import static de.dfki.mlt.transins.TagUtils.isTag;
 import static de.dfki.mlt.transins.TagUtils.removeTags;
 
 import java.util.Map;
@@ -280,8 +281,13 @@ public class MarianNmtConnector extends BaseConnector {
           // compensate for leading target language token in source sentence
           algn.shiftSourceIndexes(-1);
         }
-        translation = MarkupInserter.insertMarkup(
+        String[] targetTokensWithTags = MarkupInserter.insertMarkup(
             preprocessedSourceSentence, translation, algn, markupStrategy);
+
+        // prepare translation for postprocessing;
+        // mask tags so that detokenizer in postprocessing works correctly
+        translation = maskTags(targetTokensWithTags);
+
       } else {
         // no tags, just undo byte pair encoding
         translation = translation.replaceAll("@@ ", "");
@@ -327,6 +333,42 @@ public class MarianNmtConnector extends BaseConnector {
     // remove space in front of and after tags
     postprocessedSentence = detokenizeTags(postprocessedSentence);
     return postprocessedSentence;
+  }
+
+
+  /**
+   * Embed each Okapi tag with last/first character of preceding/following token (if available).
+   * This makes sure that the detokenizer in postprocessing works correctly.
+   *
+   * @param targetTokensWithTags
+   *          the target tokens with Okapi tags
+   * @return string with embedded Okapi tags
+   */
+  static String maskTags(String[] targetTokensWithTags) {
+
+    StringBuilder result = new StringBuilder();
+
+    for (int i = 0; i < targetTokensWithTags.length; i++) {
+      String currentToken = targetTokensWithTags[i];
+      if (isTag(currentToken)) {
+        for (int j = i - 1; j >= 0; j--) {
+          String precedingToken = targetTokensWithTags[j];
+          if (!isTag(precedingToken)) {
+            currentToken = currentToken + precedingToken.charAt(precedingToken.length() - 1);
+            break;
+          }
+        }
+        for (int j = i + 1; j < targetTokensWithTags.length; j++) {
+          String followingToken = targetTokensWithTags[j];
+          if (!isTag(followingToken)) {
+            currentToken = followingToken.charAt(0) + currentToken;
+            break;
+          }
+        }
+      }
+      result.append(currentToken + " ");
+    }
+    return result.toString().strip();
   }
 
 
