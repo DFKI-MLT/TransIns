@@ -2,6 +2,13 @@
 /incoming/
 /outgoing/
 /log/
+/src/main/resources/marian-nmt/*-opus/opus*
+/src/main/resources/marian-nmt/*-opus/decoder.yml
+/src/main/resources/marian-nmt/*-opus/LICENSE
+/src/main/resources/marian-nmt/*-opus/README.md
+/src/main/resources/prepostprocessing/*-opus/*.sh
+/src/main/resources/prepostprocessing/*-opus/*.spm
+/src/main/resources/prepostprocessing/*-opus/*.tcmodel
 /.settings/
 /.classpath
 /.checkstyle

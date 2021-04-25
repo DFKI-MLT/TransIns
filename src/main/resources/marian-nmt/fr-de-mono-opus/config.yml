@@ -1,0 +1,17 @@
+devices:
+  - 0
+workspace: 3000
+relative-paths: true
+models:
+  - opus.spm32k-spm32k.transformer-align.model1.npz.best-perplexity.npz
+vocabs:
+  - opus.spm32k-spm32k.vocab.yml
+  - opus.spm32k-spm32k.vocab.yml
+alignment: 1
+beam-size: 6
+normalize: 1
+word-penalty: 0
+mini-batch: 32
+maxi-batch: 128
+maxi-batch-sort: src
+port: 8080

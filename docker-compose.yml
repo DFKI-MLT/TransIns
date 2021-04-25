@@ -8,14 +8,14 @@ networks:
        - subnet: 10.5.0.0/16
 
 services:
-  transins-marian-de-en-bi:
+  transins-marian-de-en-mono-opus:
     image: 'dfki/transins-marian:0.0.1'
     networks:
       - transins
-    container_name: transins-marian-de-en-bi
+    container_name: transins-marian-de-en-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/de-en-bi:/TransIns-marian/config:ro'
+      - './src/main/resources/marian-nmt/de-en-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -24,14 +24,14 @@ services:
             device_ids: ['0']
             capabilities: [gpu]
 
-  transins-marian-de-es-mono:
+  transins-marian-en-de-mono-opus:
     image: 'dfki/transins-marian:0.0.1'
     networks:
       - transins
-    container_name: transins-marian-de-es-mono
+    container_name: transins-marian-en-de-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/de-es-mono:/TransIns-marian/config:ro'
+      - './src/main/resources/marian-nmt/en-de-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -40,30 +40,14 @@ services:
             device_ids: ['0']
             capabilities: [gpu]
 
-  transins-marian-es-de-mono:
+  transins-marian-de-fr-mono-opus:
     image: 'dfki/transins-marian:0.0.1'
     networks:
       - transins
-    container_name: transins-marian-es-de-mono
+    container_name: transins-marian-de-fr-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/es-de-mono:/TransIns-marian/config:ro'
-    deploy:
-      resources:
-        reservations:
-          devices:
-          - driver: nvidia
-            device_ids: ['0']
-            capabilities: [gpu]
-
-  transins-marian-de-fr-mono:
-    image: 'dfki/transins-marian:0.0.1'
-    networks:
-      - transins
-    container_name: transins-marian-de-fr-mono
-    restart: always
-    volumes:
-      - './src/main/resources/marian-nmt/de-fr-mono:/TransIns-marian/config:ro'
+      - './src/main/resources/marian-nmt/de-fr-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -72,52 +56,20 @@ services:
             device_ids: ['1']
             capabilities: [gpu]
 
-  transins-marian-fr-de-mono:
+  transins-marian-fr-de-mono-opus:
     image: 'dfki/transins-marian:0.0.1'
     networks:
       - transins
-    container_name: transins-marian-fr-de-mono
+    container_name: transins-marian-fr-de-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/fr-de-mono:/TransIns-marian/config:ro'
+      - './src/main/resources/marian-nmt/fr-de-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
           devices:
           - driver: nvidia
             device_ids: ['1']
-            capabilities: [gpu]
-
-  transins-marian-esca-en-mono:
-    image: 'dfki/transins-marian:0.0.1'
-    networks:
-      - transins
-    container_name: transins-marian-esca-en-mono
-    restart: always
-    volumes:
-      - './src/main/resources/marian-nmt/esca-en-mono:/TransIns-marian/config:ro'
-    deploy:
-      resources:
-        reservations:
-          devices:
-          - driver: nvidia
-            device_ids: ['1']
-            capabilities: [gpu]
-
-  transins-marian-es-ca-bi:
-    image: 'dfki/transins-marian:0.0.1'
-    networks:
-      - transins
-    container_name: transins-marian-es-ca-bi
-    restart: always
-    volumes:
-      - './src/main/resources/marian-nmt/es-ca-bi:/TransIns-marian/config:ro'
-    deploy:
-      resources:
-        reservations:
-          devices:
-          - driver: nvidia
-            device_ids: ['2']
             capabilities: [gpu]
 
   transins-prepost:
@@ -131,13 +83,10 @@ services:
 
   transins-server:
     depends_on:
-      - transins-marian-de-en-bi
-      - transins-marian-de-es-mono
-      - transins-marian-es-de-mono
-      - transins-marian-de-fr-mono
-      - transins-marian-fr-de-mono
-      - transins-marian-esca-en-mono
-      - transins-marian-es-ca-bi
+      - transins-marian-de-en-mono-opus
+      - transins-marian-en-de-mono-opus
+      - transins-marian-de-fr-mono-opus
+      - transins-marian-fr-de-mono-opus
       - transins-prepost
     image: 'dfki/transins-server:0.0.1'
     networks:
