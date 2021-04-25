@@ -257,6 +257,11 @@ public class MarianNmtConnector extends BaseConnector {
       // if tags and alignments are available, re-insert tags
       translation = parts[0].strip();
 
+      if (isSentencePieceEncoded(translation)) {
+        // convert SentencePiece subtokenization format into BPE format
+        translation = convertSentencePieceToBpe(translation);
+      }
+
       if (fragment.hasCode()) {
         logger.debug("raw target sentence: \"{}\"", translation);
         // check if there are hand annotated alignments
@@ -440,5 +445,46 @@ public class MarianNmtConnector extends BaseConnector {
     isoMatcherLeft.appendTail(sb);
 
     return sb.toString();
+  }
+
+
+  /**
+   * Check if the given translation is encoded with SentencePiece
+   *
+   * @param translation
+   *          the translation to check
+   * @return flag indicating SentencePiece encoding
+   */
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
+  static boolean isSentencePieceEncoded(String translation) {
+
+    return translation.startsWith("\u2581");
+  }
+
+
+  /**
+   * Convert a string that has been subtokenized with SentencePiece into to format used
+   * with byte pair encoding.
+   *
+   * @param translation
+   *          the string to convert
+   * @return the converted string
+   */
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
+  static String convertSentencePieceToBpe(String translation) {
+
+    String[] tokens = translation.split(" ");
+    StringBuilder result = new StringBuilder();
+    for (String oneToken : tokens) {
+      if (oneToken.charAt(0) == '\u2581') {
+        result.append(" ");
+        result.append(oneToken.substring(1));
+      } else {
+        result.append("@@ ");
+        result.append(oneToken);
+      }
+    }
+
+    return result.toString().trim();
   }
 }

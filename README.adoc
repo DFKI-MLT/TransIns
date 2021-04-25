@@ -77,6 +77,7 @@ To run the pre-/postprocessing server, several Python packages have to be instal
 ```
 conda install -c anaconda flask=1.1.2
 conda install -c conda-forge sacremoses=0.0.43
+conda install -c conda-forge sentencepiece=0.1.95
 conda install -c anaconda pip=20.2.4
 pip install subword-nmt==0.3.7
 ```

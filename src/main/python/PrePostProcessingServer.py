@@ -10,6 +10,7 @@ import configparser
 import json
 import logging
 import re
+import sentencepiece as spm
 
 from sacremoses import MosesPunctNormalizer, MosesTruecaser, MosesDetruecaser
 from subword_nmt.apply_bpe import BPE, read_vocabulary
@@ -43,9 +44,14 @@ moses_detokenizer = {}
 # translation direction dependent
 moses_truecaser = {}
 bpe_encoder = {}
+sentence_piece = {}
 
 # Flask app
 app = Flask(__name__)
+
+# constants defining the supported subtokenization types
+ST_BPE = "BPE"
+ST_SENTENCE_PIECE = "SENTENCE_PIECE"
 
 
 @app.route('/alive')
@@ -74,13 +80,20 @@ def preprocess():
         logger.error(error_message)
         abort(400, description=error_message)
 
+    # get subtokenization type
+    subtok_type = None
+    if trans_dir in bpe_encoder:
+        subtok_type = ST_BPE
+    elif trans_dir in sentence_piece:
+        subtok_type = ST_SENTENCE_PIECE
+
     if request.method == 'GET':
         if 'sentence' not in request.args:
             error_message = "missing sentence"
             logger.error(error_message)
             abort(400, description=error_message)
         sentence = request.args.get('sentence', type=str)
-        preprocessed_sentence = preprocess_sentence(sentence, trans_dir)
+        preprocessed_sentence = preprocess_sentence(sentence, trans_dir, subtok_type)
         return Response(preprocessed_sentence, status=200, mimetype='text/plain')
 
     elif request.method == 'POST':
@@ -92,17 +105,18 @@ def preprocess():
         sentences = request.get_json()
         preprocessed_sentences = []
         for sentence in sentences:
-            preprocessed_sentences.append(preprocess_sentence(sentence, trans_dir))
+            preprocessed_sentences.append(preprocess_sentence(sentence, trans_dir, subtok_type))
         preprocessed_sentences_as_json = json.dumps(preprocessed_sentences)
         return Response(preprocessed_sentences_as_json, status=200, mimetype='application/json')
 
 
-def preprocess_sentence(sentence, trans_dir):
+def preprocess_sentence(sentence, trans_dir, subtok_type):
     """
     Preprocess the given sentence for the given translation direction.
     :param sentence: the sentence to preprocess
     :param trans_dir: the translation direction
-    :return: preprocessing result
+    :param subtok_type: the subtokenization type
+    :return: preprocessed sentence
     """
 
     # extract source language from translation direction
@@ -113,16 +127,18 @@ def preprocess_sentence(sentence, trans_dir):
     if configuration[trans_dir].getboolean('replace_unicode_punctuation'):
         sentence = normalizer.replace_unicode_punct(sentence)
     sentence = normalizer.normalize(sentence)
+    sentence_as_tokens = sentence.split()
 
-    # tokenize; this is language dependent
-    tokenizer = moses_tokenizer[source_lang]
-    escape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
-    aggressive_hyphen_splitting = configuration[trans_dir].getboolean('aggressive_hyphen_splitting')
-    # a single Okapi tag is split into two tokens
-    sentence_as_tokens = \
-        tokenizer.tokenize(sentence,
-                           escape=escape_xml_symbols,
-                           aggressive_dash_splits=aggressive_hyphen_splitting)
+    if subtok_type == ST_BPE:
+        # tokenize; this is language dependent
+        tokenizer = moses_tokenizer[source_lang]
+        escape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
+        aggressive_hyphen_splitting = configuration[trans_dir].getboolean('aggressive_hyphen_splitting')
+        # a single Okapi tag is split into two tokens
+        sentence_as_tokens = \
+            tokenizer.tokenize(sentence,
+                               escape=escape_xml_symbols,
+                               aggressive_dash_splits=aggressive_hyphen_splitting)
 
     if trans_dir in moses_truecaser:
         # truecasing; this is translation direction dependent
@@ -143,18 +159,29 @@ def preprocess_sentence(sentence, trans_dir):
         sentence_as_tokens = removed_tokens + sentence_as_tokens
         sentence = ' '.join(sentence_as_tokens)
 
-    # byte pair encoding; this is translation direction dependent
-    encoder = bpe_encoder[trans_dir]
-    sentence_as_tokens = encoder.process_line(sentence).split()
+    if subtok_type == ST_BPE:
+        # byte pair encoding; this is translation direction dependent
+        encoder = bpe_encoder[trans_dir]
+        sentence_as_tokens = encoder.process_line(sentence).split()
+        # merge each Okapi tag into a single token
+        sentence = ''
+        for token in sentence_as_tokens:
+            if re.search(r"\uE101", token) or re.search(r"\uE102", token) or re.search(r"\uE103", token):
+                sentence += token
+            else:
+                sentence += token + ' '
+        sentence = sentence.strip()
+    elif subtok_type == ST_SENTENCE_PIECE:
+        # SentencePiece subtokenization; this is translation direction dependent
+        sp = sentence_piece[trans_dir]
+        # tags must be surrounded by whitespace
+        sentence = re.sub('([\uE101\uE102\uE103].)', r' \1 ', sentence)
+        sentence_as_tokens = sp.encode(sentence, out_type=str)
+        # remove orphaned underscores
+        sentence_as_tokens = list(filter(lambda tok: tok != '\u2581', sentence_as_tokens))
+        sentence = ' '.join(sentence_as_tokens)
 
-    # merge each Okapi tag into a single token
-    sentence = ''
-    for token in sentence_as_tokens:
-        if re.search(r"\uE101", token) or re.search(r"\uE102", token) or re.search(r"\uE103", token):
-            sentence += token
-        else:
-            sentence += token + ' '
-    return sentence.strip()
+    return sentence
 
 
 @app.route('/postprocess', methods=['GET', 'POST'])
@@ -174,13 +201,20 @@ def postprocess():
         logger.error(error_message)
         abort(400, description=error_message)
 
+    # get subtokenization type
+    subtok_type = None
+    if trans_dir in bpe_encoder:
+        subtok_type = ST_BPE
+    elif trans_dir in sentence_piece:
+        subtok_type = ST_SENTENCE_PIECE
+
     if request.method == 'GET':
         if 'sentence' not in request.args:
             error_message = "missing sentence"
             logger.error(error_message)
             abort(400, description=error_message)
         sentence = request.args.get('sentence', type=str)
-        postprocessed_sentence = postprocess_sentence(sentence, trans_dir)
+        postprocessed_sentence = postprocess_sentence(sentence, trans_dir, subtok_type)
         return Response(postprocessed_sentence, status=200, mimetype='text/plain')
 
     elif request.method == 'POST':
@@ -192,17 +226,18 @@ def postprocess():
         sentences = request.get_json()
         postprocessed_sentences = []
         for sentence in sentences:
-            postprocessed_sentences.append(postprocess_sentence(sentence, trans_dir))
+            postprocessed_sentences.append(postprocess_sentence(sentence, trans_dir, subtok_type))
         postprocessed_sentences_as_json = json.dumps(postprocessed_sentences)
         return Response(postprocessed_sentences_as_json, status=200, mimetype='application/json')
 
 
-def postprocess_sentence(sentence, trans_dir):
+def postprocess_sentence(sentence, trans_dir, subtok_type):
     """
     Postprocess the given sentence for the given translation direction.
     :param sentence: the sentence to postprocess
     :param trans_dir: the translation direction
-    :return: postprocessing result
+    :param subtok_type: the subtokenization type
+    :return: postprocessed sentence
     """
 
     # extract target language from translation direction
@@ -229,10 +264,11 @@ def postprocess_sentence(sentence, trans_dir):
         sentence_as_tokens = removed_tokens + sentence_as_tokens
         sentence = ' '.join(sentence_as_tokens)
 
-    # detokenize; this is language dependent
-    detokenizer = moses_detokenizer[target_lang]
-    unescape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
-    sentence = detokenizer.detokenize(sentence_as_tokens, unescape=unescape_xml_symbols)
+    if subtok_type == ST_BPE:
+        # detokenize; this is language dependent
+        detokenizer = moses_detokenizer[target_lang]
+        unescape_xml_symbols = configuration[trans_dir].getboolean('escape_xml_symbols')
+        sentence = detokenizer.detokenize(sentence_as_tokens, unescape=unescape_xml_symbols)
 
     return sentence
 
@@ -258,11 +294,12 @@ def init(config, config_folder):
     global moses_punct_normalizer
     global moses_tokenizer
     global moses_detokenizer
-    # truecaser and byte pair encoder are translation direction dependent;
+    # truecaser, byte pair encoderand SentencePiece are translation direction dependent;
     # truecaser depends on the corpus on which the translation model was trained
     # and is therefore considered translation direction dependent
     global moses_truecaser
     global bpe_encoder
+    global sentence_piece
 
     for trans_dir in config.sections():
         trans_dir = trans_dir.lower()
@@ -284,15 +321,24 @@ def init(config, config_folder):
             logger.info(f"no truecaser model provided for '{trans_dir}'")
 
         # BPE encoder
-        vocab_path = f"{config[trans_dir]['bpe_vocabulary']}".strip()
-        vocab = None
-        if len(vocab_path) > 0:
-            vocab = read_vocabulary(codecs.open(f"{config_folder}/{vocab_path}", encoding='utf-8'), None)
-        else:
-            logger.info(f"no BPE vocabulary provided for '{trans_dir}'")
-        bpe_encoder[trans_dir] = BPE(
-            codecs.open(f"{config_folder}/{config[trans_dir]['bpe_codes']}", encoding='utf-8'),
-            vocab=vocab)
+        bpe_codes_path = config[trans_dir]['bpe_codes'].strip()
+        if len(bpe_codes_path) > 0:
+            vocab_path = f"{config[trans_dir]['bpe_vocabulary']}".strip()
+            vocab = None
+            if len(vocab_path) > 0:
+                vocab = read_vocabulary(codecs.open(f"{config_folder}/{vocab_path}", encoding='utf-8'), None)
+            else:
+                logger.info(f"no BPE vocabulary provided for '{trans_dir}'")
+            bpe_encoder[trans_dir] = BPE(
+                codecs.open(f"{config_folder}/{bpe_codes_path}", encoding='utf-8'),
+                vocab=vocab)
+
+        # SentencePiece
+        sentence_piece_model_path = config[trans_dir]['sentencepiece_model'].strip()
+        if len(sentence_piece_model_path) > 0:
+            sp = spm.SentencePieceProcessor()
+            sp.Load(f"{config_folder}/{sentence_piece_model_path}")
+            sentence_piece[trans_dir] = sp
 
     logger.info("initialization done")
 

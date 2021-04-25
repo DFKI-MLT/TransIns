@@ -41,6 +41,17 @@ public class MarianNmtConnectorTest {
   }
 
 
+  private void testDetokenizeTags(String input, String expectedResult) {
+
+    input = MarianNmtConnector.detokenizeTags(input);
+    assertThat(input)
+        // provide human-readable string in case of error
+        .as(String.format("%nexpected: %s%nactual: %s",
+            expectedResult, input))
+        .isEqualTo(expectedResult);
+  }
+
+
   /**
    * Test {@link MarianNmtConnector#maskTags(String[])} and
    * {@link MarianNmtConnector#unmaskTags(String)}.
@@ -90,9 +101,49 @@ public class MarianNmtConnectorTest {
   }
 
 
-  private void testDetokenizeTags(String input, String expectedResult) {
+  /**
+   * Test {@link MarianNmtConnector#convertSentencePieceToBpe(String)}.
+   */
+  @Test
+  void testConvertSentencePieceToBpe() {
 
-    input = MarianNmtConnector.detokenizeTags(input);
+    // init variables to be re-used between tests
+    String input = null;
+    String expectedResult = null;
+
+    // one in middle
+    input = "_a _b c _d";
+    expectedResult = String.format("a b@@ c d");
+    testConvertSentencePieceToBpe(input, expectedResult);
+
+    // two in middle
+    input = "_a _b c d _e";
+    expectedResult = String.format("a b@@ c@@ d e");
+    testConvertSentencePieceToBpe(input, expectedResult);
+
+    // one at end
+    input = "_a _b _c d";
+    expectedResult = String.format("a b c@@ d");
+    testConvertSentencePieceToBpe(input, expectedResult);
+
+    // two at end
+    input = "_a _b c d";
+    expectedResult = String.format("a b@@ c@@ d");
+    testConvertSentencePieceToBpe(input, expectedResult);
+
+    // two, split
+    input = "_a _b c _d e _f";
+    expectedResult = String.format("a b@@ c d@@ e f");
+    testConvertSentencePieceToBpe(input, expectedResult);
+  }
+
+
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
+  private void testConvertSentencePieceToBpe(String input, String expectedResult) {
+
+    input = input.replace('_', '\u2581');
+
+    input = MarianNmtConnector.convertSentencePieceToBpe(input);
     assertThat(input)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",
