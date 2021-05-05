@@ -133,6 +133,7 @@ public final class MarkupInserter {
     targetTokensWithTags = moveTagsFromBetweenBpeFragments(targetTokensWithTags, tagMap);
     targetTokensWithTags = undoBytePairEncoding(targetTokensWithTags);
     targetTokensWithTags = handleInvertedTagsMtrain(tagMap, targetTokensWithTags);
+    targetTokensWithTags = balanceTags(tagMap, targetTokensWithTags);
 
     return targetTokensWithTags;
   }
