@@ -9,6 +9,9 @@ $(document).ready(function() {
   // add click event listener to translate button
   $("#transButton").click(translate);
 
+  // add change event listener to strategy selection
+  $("#strategySelection").change(checkMaxGapSelection)
+
   // add contact
   let server = "dfki.de"
   let recipient = ("steffen" + "@" + server)
@@ -31,6 +34,25 @@ function setTranslationDirections() {
         transDir => dropdown.append(new Option(transDir.replace("-", " → "), transDir)));
     })
     .catch(errorMessage => console.log(errorMessage));
+}
+
+
+/**
+ * Only enable maximum interpolation gap size selection if strategy is
+ * COMPLETE_MAPPING, disable otherwise.
+ */
+function checkMaxGapSelection() {
+
+  let strategy = $("#strategySelection").val();
+  if (strategy == "COMPLETE_MAPPING") {
+    $("#gapSelection").addClass("query__param--enabled");
+    $("#gapSelection").removeClass("query__param--disabled");
+    $("#gapSelection").prop("disabled", false);
+  } else {
+    $("#gapSelection").addClass("query__param--disabled");
+    $("#gapSelection").removeClass("query__param--enabled");
+    $("#gapSelection").prop("disabled", true);
+  }
 }
 
 
@@ -221,6 +243,8 @@ function enableQuery() {
   $(".translation__button").prop("textContent", "Translate");
   $(".translation__button").removeClass("translation__button--disabled");
   $(".translation__button").addClass("translation__button--enabled");
+
+  checkMaxGapSelection();
 
   // turn off spinner
   $(".spinner").toggleClass("spinner--enabled");

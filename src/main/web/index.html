@@ -38,18 +38,25 @@
         <label for="file">Select File</label><br/>
         <label for="transDir">Translation Direction</label><br/>
         <label for="enc">Encoding (for .txt only)</label><br/>
-        <label for="strategy">Markup Re-Insertion Strategy</label>
+        <label for="strategy">Markup Re-Insertion Strategy</label><br/>
+        <label for="maxGap">Maximum Interpolation Gap Size</label>
       </div>
       <form id="queryForm">
         <input class="query__param query__param--enabled" id="file" name="file" type="file" onfocus="removeInvalid(this)" /><br/>
         <select class="query__param query__param--enabled" id="transDir" name="transDir">
         </select><br/>
         <input class="query__param query__param--enabled" id="enc" name="enc" value="utf-8" maxlength="20" size="7" onfocus="removeInvalid(this)" /><br/>
-        <select class="query__param query__param--enabled" name="strategy">
-            <option value="COMPLETE_MAPPING">COMPLETE_MAPPING</option>
-            <option value="MTRAIN">MTRAIN</option>
-            <option value="MTRAIN_IMPROVED">MTRAIN_IMPROVED</option>
-          </select>
+        <select id="strategySelection" class="query__param query__param--enabled" name="strategy">
+          <option value="MTRAIN">MTRAIN</option>
+          <option value="MTRAIN_IMPROVED">MTRAIN_IMPROVED</option>
+          <option value="COMPLETE_MAPPING" selected="selected">COMPLETE_MAPPING</option>
+        </select><br/>
+        <select id="gapSelection" class="query__param query__param--enabled" name="maxGap">
+          <option value="0">0</option>
+          <option value="1" selected="selected">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
       </form>
     </div>
     <div class="translation">
