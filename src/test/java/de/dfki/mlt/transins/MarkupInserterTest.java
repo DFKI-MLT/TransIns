@@ -1608,7 +1608,7 @@ class MarkupInserterTest {
         + "0,0,0,0,0,1"; // EOS -> EOS
     expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test CLOSE2 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithSoftAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // reversed alignment
     targetTokensWithoutTags = "Test ein ist das .".split(" ");
@@ -1621,7 +1621,7 @@ class MarkupInserterTest {
         + "0,0,0,0,0,1"; // EOS -> EOS
     expectedResult = asArray("ISO1 OPEN2 Test CLOSE2 ein ist OPEN1 das CLOSE1 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithSoftAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
   }
 
 
@@ -1645,7 +1645,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 2-2 3-3 4-4 5-5";
     expectedResult = asArray("ISO1 OPEN1 Das CLOSE1 ist ein OPEN2 Test CLOSE2 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // reversed alignment
     sourceTokens = asArray("ISO1 OPEN1 This CLOSE1 is a OPEN2 test . CLOSE2 ISO2");
@@ -1654,7 +1654,7 @@ class MarkupInserterTest {
     rawAlignments = "0-3 1-2 2-1 3-0 4-4 5-5";
     expectedResult = asArray("ISO1 OPEN2 Test CLOSE2 ein ist OPEN1 das CLOSE1 OPEN2 . CLOSE2 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // end-of-sentence points to source token with CLOSE tag
     sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt springen CLOSE1 ISO2 end");
@@ -1662,7 +1662,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-2 2-3";
     expectedResult = asArray("ISO1 OPEN1 aller CLOSE1 au OPEN1 contenu CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // end-of-sentence points to source token with ISO and CLOSE tag
     sourceTokens = asArray("ISO1 OPEN1 Zum Inhalt ISO2 springen CLOSE1 end");
@@ -1670,7 +1670,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-2 2-3";
     expectedResult = asArray("ISO1 OPEN1 aller CLOSE1 au OPEN1 contenu CLOSE1 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // tags enclosing the whole sentence
     sourceTokens = asArray("ISO1 OPEN1 a b c d CLOSE1 ISO2");
@@ -1678,7 +1678,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-3 4-2";
     expectedResult = asArray("ISO1 OPEN1 b a d c CLOSE1 ISO2");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // tag pair over the whole sentence
     sourceTokens = asArray("OPEN1 a b c d CLOSE1");
@@ -1686,7 +1686,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-3 4-2";
     expectedResult = asArray("OPEN1 b a d c CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // multiple tag pairs over the whole sentence
     sourceTokens = asArray("OPEN1 OPEN2 OPEN3 a b c d CLOSE3 CLOSE2 CLOSE1");
@@ -1694,7 +1694,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-3 4-2";
     expectedResult = asArray("OPEN1 OPEN2 OPEN3 b a d c CLOSE3 CLOSE2 CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // tokens with isolated tags are pointed to multiple times
     sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
@@ -1702,7 +1702,7 @@ class MarkupInserterTest {
     rawAlignments = "1-0 1-1 2-2";
     expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 OPEN1 b CLOSE1 OPEN1 c CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // one target token to multiple source tokens with same tags
     sourceTokens = asArray("x ISO1 ISO2 OPEN1 y z CLOSE1");
@@ -1710,7 +1710,7 @@ class MarkupInserterTest {
     rawAlignments = "1-0 2-0 2-2";
     expectedResult = asArray("ISO1 ISO2 OPEN1 a CLOSE1 b OPEN1 c CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // single tag pair with ISO at end
     sourceTokens = asArray("x OPEN1 y z ISO1 CLOSE1");
@@ -1718,7 +1718,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 2-2";
     expectedResult = asArray("a OPEN1 b CLOSE1 OPEN1 c CLOSE1 ISO1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // single tag pair with ISO at beginning
     sourceTokens = asArray("ISO1 OPEN1 x y CLOSE1 z");
@@ -1726,7 +1726,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 2-2";
     expectedResult = asArray("ISO1 OPEN1 a CLOSE1 OPEN1 b CLOSE1 c");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // reversed alignment
     sourceTokens = asArray("voiture OPEN1 verte CLOSE1 !");
@@ -1734,7 +1734,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-2";
     expectedResult = asArray("OPEN1 green CLOSE1 car !");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // reversed alignment
     sourceTokens = asArray("OPEN1 voiture CLOSE1 verte !");
@@ -1742,7 +1742,7 @@ class MarkupInserterTest {
     rawAlignments = "0-1 1-0 2-2";
     expectedResult = asArray("green OPEN1 car CLOSE1 !");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // two target tokens pointing to one source token
     sourceTokens = asArray("I OPEN1 buy CLOSE1 chocolate for my kid");
@@ -1750,7 +1750,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 1-1 1-6 2-5 3-2 4-3 5-4";
     expectedResult = asArray("Ich OPEN1 kaufe CLOSE1 für mein Kind Schokolade OPEN1 ein CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // isolated tag next to gap
     sourceTokens = asArray("x y ISO1 OPEN1 z CLOSE1 a b c");
@@ -1758,7 +1758,7 @@ class MarkupInserterTest {
     rawAlignments = "0-0 2-2 3-3 4-4 5-5";
     expectedResult = asArray("x y ISO1 OPEN1 z CLOSE1 a b c");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 3);
   }
 
 
@@ -1782,45 +1782,45 @@ class MarkupInserterTest {
     rawAlignments = "0-0 0-3 2-2";
     expectedResult = asArray("OPEN1 X1 CLOSE1 N OPEN1 Z CLOSE1 OPEN1 X2 CLOSE1 N N");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // second test
     targetTokensWithoutTags = asArray("Z1 Z2 X N N N");
     rawAlignments = "0-2 2-0 2-1";
     expectedResult = asArray("OPEN1 Z1 CLOSE1 OPEN1 Z2 CLOSE1 OPEN1 X CLOSE1 N N N");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
 
     // third test
     targetTokensWithoutTags = asArray("Z1 N X1 Z2 N X2");
     rawAlignments = "0-2 0-5 2-0 2-3";
     expectedResult = asArray("OPEN1 Z1 CLOSE1 N OPEN1 X1 CLOSE1 OPEN1 Z2 CLOSE1 N OPEN1 X2 CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
   }
 
 
   private void testReinsertTagsCompleteWithSoftAlignments(
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult, boolean interpolate) {
+      String[] expectedResult, int maxGapSize) {
 
     testReinsertTagsComplete(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, interpolate, false);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, maxGapSize, false);
   }
 
 
   private void testReinsertTagsCompleteWithHardAlignments(
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult, boolean interpolate) {
+      String[] expectedResult, int maxGapSize) {
 
     testReinsertTagsComplete(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, interpolate, true);
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, maxGapSize, true);
   }
 
 
   private void testReinsertTagsComplete(
       String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult, boolean interpolate, boolean hardAlignments) {
+      String[] expectedResult, int maxGapSize, boolean hardAlignments) {
 
     Alignments algn = null;
     if (hardAlignments) {
@@ -1835,7 +1835,7 @@ class MarkupInserterTest {
 
     String[] targetTokensWithTags =
         MarkupInserter.reinsertTagsComplete(
-            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, interpolate);
+            sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, maxGapSize);
     assertThat(targetTokensWithTags)
         // provide human-readable string in case of error
         .as(String.format("%nexpected: %s%nactual: %s",

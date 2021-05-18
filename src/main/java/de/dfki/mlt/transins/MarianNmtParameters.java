@@ -21,6 +21,7 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   private static final String PREPOST_PORT = "prepost_port";
   private static final String DOC_ID = "doc_id";
   private static final String MARKUP_STRATEGY = "markup_strategy";
+  private static final String MAX_GAP_SIZE = "max_gap_size";
   private static final String OKAPI_FILTER_CONFIG_ID = "okapi_filter_config_id";
 
 
@@ -200,6 +201,27 @@ public class MarianNmtParameters extends StringParameters implements IEditorDesc
   public void setMarkupStrategy(MarkupStrategy markupStrategy) {
 
     setString(MARKUP_STRATEGY, markupStrategy.toString());
+  }
+
+
+  /**
+   * @return the maximum gap size to use with COMPLETE_MAPPING;
+   *         not part of the config file, but set at runtime
+   */
+  public int getMaxGapSize() {
+
+    return getInteger(MAX_GAP_SIZE);
+  }
+
+
+  /**
+   * @param maxGapSize
+   *          the maximum gap size to use with COMPLETE_MAPPING;
+   *          not part of the config file, but set at runtime
+   */
+  public void setMaxGapSize(int maxGapSize) {
+
+    setInteger(MAX_GAP_SIZE, maxGapSize);
   }
 
 

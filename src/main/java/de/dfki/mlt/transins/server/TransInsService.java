@@ -132,6 +132,9 @@ public class TransInsService {
    * @param markupStrategyString
    *          the markup re-insertion strategy to use, defaults to COMPLETE_MAPPING,
    *          as given by the form parameter 'strategy'
+   * @param maxGapSize
+   *          the maximum gap size to use with COMPLETE_MAPPING,
+   *          as given by the form parameter 'maxGap'
    * @return a job id to be used to retrieve the translation via {@link #getTranslation(String)}
    */
   @Path("/translate")
@@ -144,7 +147,8 @@ public class TransInsService {
       @FormDataParam("file") FormDataContentDisposition fileDisposition,
       @FormDataParam("enc") String encoding,
       @FormDataParam("transDir") String transDir,
-      @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString) {
+      @DefaultValue("COMPLETE_MAPPING") @FormDataParam("strategy") String markupStrategyString,
+      @DefaultValue("1") @FormDataParam("maxGap") int maxGapSize) {
 
     // reject job if too many jobs in queue
     if (jobManager.getQueuedJobsCount() > config.getInt(ConfigKeys.MAX_QUEUE_SIZE)) {
@@ -155,7 +159,7 @@ public class TransInsService {
     // check for valid query parameters
     String errorMessage =
         checkQueryParameters(
-            fileDisposition, transDir, encoding, markupStrategyString);
+            fileDisposition, transDir, encoding, markupStrategyString, maxGapSize);
     if (errorMessage != null) {
       logger.error(errorMessage);
       return createResponse(400, errorMessage);
@@ -242,7 +246,7 @@ public class TransInsService {
           translator.translateWithMarianNmt(
               sourcePath.toAbsolutePath().toString(), sourceLang, encoding,
               targetPath.toAbsolutePath().toString(), targetLang, encoding,
-              true, MarkupStrategy.valueOf(markupStrategyString), true,
+              true, MarkupStrategy.valueOf(markupStrategyString), maxGapSize, true,
               config.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
               config.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
               config.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT),
@@ -366,12 +370,14 @@ public class TransInsService {
    *          the encoding
    * @param markupStrategyString
    *          the markup re-insertion strategy
+   * @param maxGapSize
+   *          the maximum gap size to use with COMPLETE_MAPPING
    * @return error message if a parameter is not valid, <code>null</code> if all parameters are
    *         valid
    */
   private static String checkQueryParameters(
       FormDataContentDisposition fileDisposition,
-      String transDir, String encoding, String markupStrategyString) {
+      String transDir, String encoding, String markupStrategyString, int maxGapSize) {
 
     // translation direction
     if (!config.getList(String.class, ConfigKeys.SUPPORTED_TRANS_DIRS).contains(transDir)) {
@@ -398,6 +404,10 @@ public class TransInsService {
       MarkupStrategy.valueOf(markupStrategyString);
     } catch (IllegalArgumentException e) {
       return String.format("unsupported markup re-insertion strategy %s", markupStrategyString);
+    }
+    // maximum gap size
+    if (maxGapSize < 0) {
+      return String.format("illegal maximum gap size %d", maxGapSize);
     }
 
     // all parameters valid

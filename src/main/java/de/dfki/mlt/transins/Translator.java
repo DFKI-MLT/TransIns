@@ -430,6 +430,8 @@ public class Translator {
    *          add segmentation when {@code true}
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param maxGapSize
+   *          maximum gap size for gap interpolation with COMPLETE_MAPPING
    * @param batchProcessing
    *          do batch processing when {@code true}
    * @param translationUrl
@@ -444,7 +446,8 @@ public class Translator {
   public void translateWithMarianNmt(
       String sourceFileName, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing,
+      boolean applySegmentation, MarkupStrategy markupStrategy,
+      int maxGapSize, boolean batchProcessing,
       String translationUrl, String prePostHost, int prePostPort, boolean useTargetLangTag) {
 
     // get file extension
@@ -455,7 +458,7 @@ public class Translator {
         Files.newInputStream(Path.of(new File(sourceFileName).toURI()))) {
       translateWithMarianNmt(inputStream, ext, sourceLang, sourceEnc,
           targetFileName, targetLang, targetEnc, applySegmentation,
-          markupStrategy, batchProcessing, translationUrl, prePostHost, prePostPort,
+          markupStrategy, maxGapSize, batchProcessing, translationUrl, prePostHost, prePostPort,
           useTargetLangTag);
     } catch (IOException e) {
       throw new OkapiException(
@@ -486,6 +489,8 @@ public class Translator {
    *          apply segmentation when {@code true}
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param maxGapSize
+   *          maximum gap size for gap interpolation with COMPLETE_MAPPING
    * @param batchProcessing
    *          do batch processing when {@code true}
    * @param translationUrl
@@ -500,7 +505,8 @@ public class Translator {
   public void translateWithMarianNmt(
       InputStream inputStream, String fileExtension, String sourceLang, String sourceEnc,
       String targetFileName, String targetLang, String targetEnc,
-      boolean applySegmentation, MarkupStrategy markupStrategy, boolean batchProcessing,
+      boolean applySegmentation, MarkupStrategy markupStrategy,
+      int maxGapSize, boolean batchProcessing,
       String translationUrl, String prePostHost, int prePostPort, boolean useTargetLangTag) {
 
     // get configuration id for file extension
@@ -520,6 +526,7 @@ public class Translator {
     logger.info("             target language: {}", targetLang);
     logger.info("             target encoding: {}", targetEnc);
     logger.info("markup re-insertion strategy: {}", markupStrategy);
+    logger.info("            maximum gap size: {}", maxGapSize);
     logger.info("          MIME type detected: {}", mimeType);
     logger.info("      configuration detected: {}", configId);
 
@@ -530,6 +537,7 @@ public class Translator {
     marianNmtResourceParams.setPrePostHost(prePostHost);
     marianNmtResourceParams.setPrePostPort(prePostPort);
     marianNmtResourceParams.setMarkupStrategy(markupStrategy);
+    marianNmtResourceParams.setMaxGapSize(maxGapSize);
     marianNmtResourceParams.setOkapiFilterConfigId(configId);
 
     if (batchProcessing) {

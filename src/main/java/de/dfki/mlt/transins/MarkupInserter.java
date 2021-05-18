@@ -52,9 +52,6 @@ public final class MarkupInserter {
   // special token to mark end of sentence of target sentence
   private static final String EOS = "end-of-target-sentence-marker";
 
-  // maximal gap size when interpolating tags
-  private static final int GAP_SIZE = 3;
-
 
   private MarkupInserter() {
 
@@ -74,11 +71,13 @@ public final class MarkupInserter {
    *          the alignments
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param maxGapSize
+   *          the maximum gap size to use with COMPLETE_MAPPING
    * @return the translation's tokens with re-inserted markup
    */
   public static String[] insertMarkup(
       String preprocessedSourceSentence, String translation, Alignments algn,
-      MarkupStrategy markupStrategy) {
+      MarkupStrategy markupStrategy, int maxGapSize) {
 
     switch (markupStrategy) {
       case MTRAIN:
@@ -86,9 +85,9 @@ public final class MarkupInserter {
       case MTRAIN_IMPROVED:
         return insertMarkupMtrainImproved(preprocessedSourceSentence, translation, algn);
       case COMPLETE_MAPPING:
-        return insertMarkupComplete(preprocessedSourceSentence, translation, algn);
+        return insertMarkupComplete(preprocessedSourceSentence, translation, algn, maxGapSize);
       default:
-        return insertMarkupComplete(preprocessedSourceSentence, translation, algn);
+        return insertMarkupComplete(preprocessedSourceSentence, translation, algn, maxGapSize);
     }
   }
 
@@ -216,10 +215,13 @@ public final class MarkupInserter {
    *          the translation of the source sentence with whitespace separated tokens
    * @param algn
    *          the alignments
+   * @param maxGapSize
+   *          the maximum gap size to use
    * @return the translation's tokens with re-inserted markup
    */
   public static String[] insertMarkupComplete(
-      String preprocessedSourceSentence, String translation, Alignments algn) {
+      String preprocessedSourceSentence, String translation, Alignments algn,
+      int maxGapSize) {
 
     logger.debug(String.format("sentence alignments:%n%s", createSentenceAlignments(
         preprocessedSourceSentence, translation, algn)));
@@ -249,7 +251,7 @@ public final class MarkupInserter {
 
     // re-insert tags
     String[] targetTokensWithTags = reinsertTagsComplete(
-        sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, true);
+        sourceSentence, sourceTokenIndex2tags, targetTokensWithoutTags, algn, maxGapSize);
     logger.debug("target sentence with inserted tags: \"{}\"", asString(targetTokensWithTags));
 
     // clean up tags
@@ -1794,16 +1796,15 @@ public final class MarkupInserter {
    *          target tokens without tags
    * @param algn
    *          alignments of source and target tokens
-   * @param interpolateTags
-   *          flag to activate interpolation of tags for tokens that don't have
-   *          an alignment with a token of the source sentence
+   * @param maxGapSize
+   *          the maximum gap size
    * @return target tokens with re-inserted tags
    */
   static String[] reinsertTagsComplete(
       SplitTagsSentence sourceSentence,
       Map<Integer, List<String>> sourceTokenIndex2tags,
       String[] targetTokensWithoutTags,
-      Alignments algn, boolean interpolateTags) {
+      Alignments algn, int maxGapSize) {
 
     // add explicit end-of-sentence marker to target sentence
     targetTokensWithoutTags =
@@ -1832,18 +1833,18 @@ public final class MarkupInserter {
       if ((sourceTokenIndexes.isEmpty() || neighborTags.isEmpty())
           // ignore eos in interpolation
           && targetTokenIndex < targetTokensWithoutTags.length - 1
-          && interpolateTags) {
+          && maxGapSize > 0) {
         if (sourceTokenIndexes.isEmpty()) {
           // target token has no alignment with any source token
           neighborTags = interpolateNeighborTagsForNoAlignmentToken(
-              targetTokenIndex, algn, GAP_SIZE, targetTokensWithoutTags,
+              targetTokenIndex, algn, maxGapSize, targetTokensWithoutTags,
               sourceTokenIndex2tags, usedIsolatedTags);
         } else if (neighborTags.isEmpty()) {
           // target token is aligned with source token without tags;
           // try to compensate for erroneous alignments and check if neighbor tokens
           // within gap range have the same tags; if yes, use them for target token
           neighborTags = interpolateNeighborTagsForEmptyAlignmentToken(
-              targetTokenIndex, algn, GAP_SIZE, targetTokensWithoutTags,
+              targetTokenIndex, algn, maxGapSize, targetTokensWithoutTags,
               sourceTokenIndex2tags, usedIsolatedTags);
         }
       }

@@ -95,11 +95,12 @@ public enum BatchRunner {
     String prePostHost = marianNmtResourceParams.getPrePostHost();
     int prePostPort = marianNmtResourceParams.getPrePostPort();
     MarkupStrategy markupStrategy = marianNmtResourceParams.getMarkupStrategy();
+    int maxGapSize = marianNmtResourceParams.getMaxGapSize();
     boolean useTargetLangTag = marianNmtResourceParams.isUseTargetLangTag();
 
     List<BatchItem> batchItems = createBatchItems(batchInputList);
     preprocess(batchItems, prePostHost, prePostPort, sourceLang, targetLang, useTargetLangTag);
-    translate(batchItems, translatorClient, markupStrategy, useTargetLangTag);
+    translate(batchItems, translatorClient, markupStrategy, maxGapSize, useTargetLangTag);
     // add space at sentence end when translating MS Office documents
     boolean addSpaceAtSentenceEnd =
         marianNmtResourceParams.getOkapiFilterConfigId().equals("okf_openxml");
@@ -244,12 +245,14 @@ public enum BatchRunner {
    *          the translator client to use
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param maxGapSize
+   *          the maximum gap size to use with COMPLETE_MAPPING
    * @param useTargetLangTag
    *          if <code>true</code>, target language tag was added as first token to source sentence,
    *          so alignments have to be corrected
    */
   private void translate(List<BatchItem> batchItems, MarianNmtClient translatorClient,
-      MarkupStrategy markupStrategy, boolean useTargetLangTag) {
+      MarkupStrategy markupStrategy, int maxGapSize, boolean useTargetLangTag) {
 
     logger.debug("translating batch items...");
 
@@ -267,7 +270,7 @@ public enum BatchRunner {
         oneBatchItem.setPostInput(MarianNmtConnector.processRawTranslation(
             rawTranslation, oneBatchItem.getTextFragment(),
             oneBatchItem.getPreResult(), oneBatchItem.getTransInput(),
-            markupStrategy, useTargetLangTag));
+            markupStrategy, maxGapSize, useTargetLangTag));
       }
     } catch (InterruptedException | ExecutionException e) {
       throw new OkapiException("Error querying the translation server." + e.getMessage(), e);

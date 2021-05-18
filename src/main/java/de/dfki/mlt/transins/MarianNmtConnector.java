@@ -171,7 +171,8 @@ public class MarianNmtConnector extends BaseConnector {
     }
     String translation = processRawTranslation(
         rawTranslation, fragment, preprocessedSourceSentence, translatorInput,
-        this.params.getMarkupStrategy(), this.params.isUseTargetLangTag());
+        this.params.getMarkupStrategy(), this.params.getMaxGapSize(),
+        this.params.isUseTargetLangTag());
 
     // postprocessing
     String postprocessedSentence =
@@ -240,6 +241,8 @@ public class MarianNmtConnector extends BaseConnector {
    *          the source sentence as it was sent to the translator
    * @param markupStrategy
    *          the markup re-insertion strategy to use
+   * @param maxGapSize
+   *          the maximum gap size to use with COMPLETE_MAPPING
    * @param useTargetLangTag
    *          if <code>true</code>, target language tag was added as first token to source sentence,
    *          so alignments have to be corrected
@@ -247,7 +250,8 @@ public class MarianNmtConnector extends BaseConnector {
    */
   static String processRawTranslation(
       String rawTranslation, TextFragment fragment, String preprocessedSourceSentence,
-      String translatorInput, MarkupStrategy markupStrategy, boolean useTargetLangTag) {
+      String translatorInput, MarkupStrategy markupStrategy, int maxGapSize,
+      boolean useTargetLangTag) {
 
     // split into translation and alignments
     String[] parts = rawTranslation.split(" \\|\\|\\| ");
@@ -287,7 +291,7 @@ public class MarianNmtConnector extends BaseConnector {
           algn.shiftSourceIndexes(-1);
         }
         String[] targetTokensWithTags = MarkupInserter.insertMarkup(
-            preprocessedSourceSentence, translation, algn, markupStrategy);
+            preprocessedSourceSentence, translation, algn, markupStrategy, maxGapSize);
 
         // prepare translation for postprocessing;
         // mask tags so that detokenizer in postprocessing works correctly

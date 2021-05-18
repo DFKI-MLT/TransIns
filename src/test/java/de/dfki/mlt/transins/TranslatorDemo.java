@@ -88,7 +88,7 @@ public final class TranslatorDemo {
     translator.translateWithMarianNmt(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        applySegmentation, MarkupStrategy.COMPLETE_MAPPING, batchProcessing,
+        applySegmentation, MarkupStrategy.COMPLETE_MAPPING, 1, batchProcessing,
         transInsConfig.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
         transInsConfig.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
         transInsConfig.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT),
@@ -112,7 +112,7 @@ public final class TranslatorDemo {
     translator.translateWithMarianNmt(
         sourceFileName, sourceLang, sourceEnc,
         targetFileName, targetLang, targetEnc,
-        applySegmentation, MarkupStrategy.COMPLETE_MAPPING, batchProcessing,
+        applySegmentation, MarkupStrategy.COMPLETE_MAPPING, 1, batchProcessing,
         transInsConfig.getString(transDirPrefix + ConfigKeys.TRANSLATION_URL),
         transInsConfig.getString(transDirPrefix + ConfigKeys.PREPOST_HOST),
         transInsConfig.getInt(transDirPrefix + ConfigKeys.PREPOST_PORT),
