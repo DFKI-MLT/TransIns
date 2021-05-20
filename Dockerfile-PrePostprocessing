@@ -17,7 +17,7 @@ RUN mkdir $app_home \
   && adduser -D -h "$app_home" -u $uid -G $group $user
 
 # copy app
-COPY src/main/python/*.py $app_home
+COPY src/main/python/*.py $app_home/
 COPY environment.yml $app_home
 
 # give user access to app
