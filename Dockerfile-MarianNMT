@@ -34,7 +34,7 @@ WORKDIR $marianpath
 RUN mkdir -p build
 WORKDIR $marianpath/build
 RUN cmake $marianpath -DCMAKE_BUILD_TYPE=Release -DCOMPILE_SERVER=on -DCOMPILE_CPU=off -DCOMPILE_CUDA=on && \
-    make -j
+    make
 
 FROM nvcr.io/nvidia/cuda:9.2-runtime-ubuntu18.04 as appstage
 
