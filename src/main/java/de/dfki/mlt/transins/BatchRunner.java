@@ -222,8 +222,12 @@ public enum BatchRunner {
             prePostHost,
             prePostPort);
 
-    for (BatchItem oneBatchItem : batchItems) {
+    for (BatchItem oneBatchItem : new ArrayList<>(batchItems)) {
       oneBatchItem.setPreResult(preprocessingResult.get(oneBatchItem.getPreInput()));
+      if (oneBatchItem.getPreResult().length() == 0) {
+        batchItems.remove(oneBatchItem);
+        continue;
+      }
       String preResultWithTagsRemoved = removeTags(oneBatchItem.getPreResult());
       if (useTargetLangTag) {
         oneBatchItem.setTransInput(

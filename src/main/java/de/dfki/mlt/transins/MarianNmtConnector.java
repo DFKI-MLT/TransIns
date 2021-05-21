@@ -157,6 +157,10 @@ public class MarianNmtConnector extends BaseConnector {
 
     // translate
     String translatorInput = removeTags(preprocessedSourceSentence);
+    if (translatorInput.length() == 0) {
+      logger.debug("empty translator input, skipping...");
+      return 0;
+    }
     if (this.params.isUseTargetLangTag()) {
       // add leading token with target language
       translatorInput = String.format("<to%s> %s", super.getTargetLanguage(), translatorInput);
