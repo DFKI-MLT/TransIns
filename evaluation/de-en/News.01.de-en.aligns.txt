@@ -1,0 +1,91 @@
+▁Von ▁Mat hi eu ▁von ▁Rohr , ▁Res sort leiter ▁Ausland
+By Math@@ i@@ eu von Roh@@ r@@ , Head of Foreign Affairs
+0-0 1-1 2-2 3-3 4-4 5-5 5-6 6-7 9-8 9-9 10-10 10-11 6-12
+
+▁Heute ▁ist ▁der ▁Tag ▁der ▁Entscheidungen ▁:"
+Today is the day of decisions@@ :"
+0-0 1-1 2-2 3-3 4-4 5-5 6-6 2-7
+
+▁Bundeskanzler in ▁Angela ▁Merkel ▁drängt ▁auf ▁neue ▁Maßnahmen ▁gegen ▁die ▁Cor ona - Pa nde mie , ▁sie ▁be spricht ▁sich ▁dazu ▁heute ▁in ▁einer ▁Bund - Länder - Schalt e ▁mit ▁den ▁Minister präsidenten .
+Federal Chancellor Angela Merkel is pushing for new measures against the Cor@@ ona p@@ and@@ emic@@ , and today she is discussing this with the prime ministers at a federal@@ -@@ state conference@@ .
+0-0 0-1 2-2 3-3 4-4 4-5 5-6 6-7 7-8 8-9 9-10 10-11 11-12 13-13 14-14 15-15 16-16 22-18 17-19 20-20 19-21 21-22 31-23 32-24 34-25 33-26 23-27 24-28 25-29 26-30 27-31 29-32 35-33 30-34
+
+▁Laut ▁einer ▁Umfrage ▁ist ▁eine ▁Mehrheit ▁der ▁Deutschen ▁für ▁einen ▁neuen ▁" L ock down " ▁( ein ▁un prä zi s er ▁Begriff , ▁weil ▁Deutschland ▁bisher ▁keine ▁Ausgangs sperren ▁hatte ▁- ▁der ▁sich ▁aber ▁durchzusetzen ▁scheint ).
+According to a survey@@ , a majority of Germans are in favour of a new "@@ lock@@ down@@ " (@@ an imp@@ rec@@ ise term because Germany has not yet had any cur@@ fe@@ w@@ s - but it seems to be assert@@ ing itself@@ ).
+0-0 0-1 1-2 2-3 4-5 5-6 6-7 7-8 3-9 8-10 8-11 8-12 9-13 10-14 11-15 12-16 14-17 15-18 16-19 17-20 18-21 19-22 20-23 23-24 25-25 26-26 30-27 28-28 27-29 31-30 28-31 29-32 30-33 30-34 30-35 32-36 35-37 37-38 37-39 37-40 36-41 36-42 36-43 34-44 38-45 22-46
+
+▁Wissenschaftler ▁haben ▁verschiedene ▁Arten ▁von ▁Lock down s ▁vorgeschlagen : ▁den ▁" W ellen brecher " ▁( ▁zwei ▁Wochen ▁lang ▁alles ▁zu ▁; ▁bevorzugt ▁von ▁Dr ost en ▁und ▁laut ▁Medien bericht en ▁von ▁Merkel ) ▁oder ▁eine ▁Stufen - Variante :
+Scientists have proposed different types of lock@@ down@@ s@@ : the "@@ wave@@ break@@ er@@ " (@@ every@@ thing too for two weeks@@ ; preferred by Dr@@ os@@ ten and according to media reports by Merkel@@ ) or a stage variant@@ :
+0-0 1-1 8-2 2-3 3-4 4-5 5-6 6-7 7-8 9-9 10-10 11-11 12-12 14-13 14-14 15-15 16-16 20-17 20-18 21-19 17-20 17-21 18-22 22-23 23-24 24-25 25-26 26-27 27-28 28-29 29-30 29-31 30-32 31-33 33-34 34-35 35-36 36-37 37-38 38-39 40-40 41-41 17-42
+
+▁Im ▁ersten ▁Schritt ▁dürften ▁sich ▁nur ▁noch ▁Leute ▁aus ▁zwei ▁Haushalten ▁in ▁einer ▁Wohnung ▁treffen .
+In the first step@@ , only people from two households should meet in one apartment@@ .
+0-0 0-1 1-2 2-3 5-5 7-6 8-7 9-8 10-9 3-10 14-11 11-12 12-13 13-14 15-15 15-16
+
+▁Erwartung sgemäß ▁sind ▁manche ▁Länder chef s ▁für ▁schnelle s ▁und ▁entschieden es ▁Handeln ▁( Mark us ▁S öd er , ▁Bayern ), ▁manche ▁positionieren ▁sich ▁in ▁der ▁Mitte ▁( Arm in ▁La sche t , ▁NR W ), ▁einige ▁geben ▁sich stör risch ▁und ▁wollen ▁gar ▁nichts ▁dicht ▁machen ▁( B odo ▁Ram e low , ▁Thüringen ).
+As expected@@ , some country leaders are responsible for fast and decisive action (@@ Mark@@ us S@@ ö@@ der@@ , Bayern@@ ), some are positioned in the middle (@@ Ar@@ min Las@@ chet@@ , NRW@@ ), some are stubborn and don@@ '@@ t want to close anything (@@ Bo@@ do Ram@@ e@@ low@@ , Thuringia@@ ).
+1-0 0-1 3-3 4-4 5-5 2-6 7-7 7-8 8-9 10-10 11-11 13-12 14-13 15-14 16-15 17-16 18-17 19-18 20-19 21-20 22-21 23-22 24-23 24-24 26-25 27-26 28-27 29-28 30-29 31-30 32-31 33-32 35-33 36-34 38-35 39-36 40-37 42-38 44-39 46-40 46-41 47-42 45-43 48-44 48-45 47-46 50-47 51-48 52-49 53-50 54-51 55-52 56-53 57-54 58-55 12-56
+
+▁Die ▁Cor ona - Zahl en ▁entwickeln ▁sich ▁so ▁dramatisch , ▁dass ▁neue ▁Maßnahmen ▁dringend ▁gebraucht ▁werden ▁- ▁sie ▁müssen ▁aber ▁auch ▁gut ▁begründet ▁sein .
+The Cor@@ ona figures are developing so dramatically that new measures are urgently needed - but they must also be well@@ -@@ founded@@ .
+0-0 1-1 2-2 4-3 7-4 6-5 8-6 9-7 11-8 12-9 13-10 16-11 14-12 15-13 17-14 20-15 18-16 19-17 21-18 24-19 22-20 23-21 23-22 25-23 7-24
+
+▁Die ▁Gerichte ▁werden ▁diesmal ▁kritisch er ▁prüfen , ▁was ▁auf ▁dem ▁Verordnung s weg ▁entschieden ▁wird ▁- ▁und ▁Regeln ▁not falls ▁außer ▁Kraft ▁setzen , ▁wenn ▁eine ▁gute ▁Begründung ▁fehlt .
+This time@@ , the courts will be more critical of what will be decided by regulation - and@@ , if necessary@@ , repeal rules if there is a lack of good justification@@ .
+3-0 3-1 0-3 1-4 2-5 6-6 5-7 4-8 6-9 8-10 15-11 15-12 14-13 9-14 11-15 16-16 17-17 20-19 19-20 21-22 18-23 25-24 29-25 29-26 29-27 29-28 29-29 27-30 28-31 30-32 12-33
+
+▁Für ▁die ▁demokratische ▁Leg it im ation , ▁aber ▁auch ▁für ▁die Rechtssicherheit ▁wäre ▁es ▁deshalb ▁sinnvoll , ▁wenn ▁in ▁dieser ▁Phase ▁der ▁Pan de mie ▁die ▁Parlament e ▁wieder ▁in s ▁Spiel ▁käme n .
+It would therefore be useful for democratic legitimacy@@ , but also for legal certainty@@ , if Parliament@@ s were to come back into play at this stage of the p@@ and@@ emic@@ .
+14-0 13-1 15-2 13-3 16-4 0-5 2-6 3-7 7-8 8-9 9-10 10-11 12-12 12-13 17-14 18-15 27-16 28-17 33-18 29-19 29-20 29-21 30-22 32-23 19-24 20-25 21-26 22-27 22-28 23-29 24-30 25-31 35-32 34-33
+
+▁In ▁Italien , ▁wo ▁sich ▁die ▁Bevölkerung ▁bisher ▁sehr disziplin iert ▁an ▁alle ▁Regeln ▁gehalten ▁hat , ▁gibt ▁es ▁erstmals ▁Straßen pro test e ▁gegen ▁die ▁jüngsten ▁Einschränkungen ▁( eine ▁Art ▁Lock down ▁ab ▁18 ▁Uhr ).
+In Italy@@ , where the population has so far kept very discipline@@ d to all the rules@@ , there are road protests against the recent restrictions for the first time (@@ a kind of lock@@ down starting at 6 p@@ .@@ m@@ .@@ ).
+0-0 1-1 2-2 3-3 5-4 6-5 15-6 7-7 7-8 14-9 8-10 9-11 10-12 11-13 12-14 13-15 13-16 16-17 18-18 17-19 20-20 22-21 24-22 25-23 26-24 27-25 19-26 19-27 19-28 19-29 28-30 29-31 30-32 30-33 31-34 32-35 33-36 33-37 34-38 35-39 35-40 35-41 35-42 36-43 23-44
+
+▁In ▁Frankreich ▁hat ▁Präsident ▁Emma n uel ▁Macro n ▁für ▁heute ▁Abend ▁um ▁20 ▁Uhr ▁eine ▁Fernseh an sprache ▁angekündigt .
+In France@@ , President Emmanuel Macro@@ n announced a television address for tonight at 8 p@@ .@@ m@@ .
+0-0 1-1 3-3 4-4 7-5 8-6 19-7 15-8 16-9 18-10 9-11 10-12 12-13 13-14 14-15 14-16 14-17 20-18 20-19
+
+▁Donald ▁Trump ▁und ▁seine ▁Helfer ▁reden ▁bei ▁ihren ▁Wahlkampf auftritt en ▁vermehrt ▁über ▁Hill ary ▁Clinton ▁- ▁eine ▁Frau , ▁die ▁seit ▁acht ▁Jahren ▁kein ▁politische s ▁Amt ▁mehr ▁innehat te .
+Donald Trump and his help@@ ers are increasingly talking about Hill@@ ary Clinton in their campaign appearance@@ s – a woman who hasn@@ '@@ t held political office for eight years@@ .
+0-0 1-1 2-2 3-3 4-4 4-5 5-6 11-7 5-8 12-9 13-10 14-11 15-12 6-13 7-14 8-15 9-16 10-17 16-18 17-19 18-20 20-21 24-22 24-23 24-24 29-25 25-26 27-27 21-28 22-29 23-30 31-31 23-32
+
+▁Ob ▁ihm ▁allerdings ▁zum ▁Sieg ▁ver hilf t , ▁dass ▁er ▁bei ▁seinen ▁Auftritt en ▁über ▁Hill ary ▁Clinton ▁redet ▁und ▁die ▁Cor ona - Pa nde mie ▁ver har ml ost ?
+But does it help him to win that he talks about Hill@@ ary Clinton in his appearance@@ s and down@@ play@@ s the Cor@@ ona p@@ and@@ emic@@ ?
+0-0 0-1 0-2 6-3 1-4 3-5 4-6 9-7 10-8 19-9 15-10 16-11 17-12 18-13 11-14 12-15 13-16 14-17 20-18 29-19 31-20 31-21 21-22 22-23 23-24 25-25 26-26 27-27 32-28 32-29
+
+▁Ich ▁empfehle ▁Ihnen ▁dieses ▁sehr lehr reiche ▁Tool ▁der ▁US - Daten web site ▁F ive T hir ty E ight , ▁mit ▁dem ▁Sie ▁verschiedene ▁Szenarien ▁für ▁den ▁Wahl ausgang ▁selbst ▁durch spielen ▁können .
+I recommend this very educational tool from the US data website Five@@ T@@ hir@@ ty@@ E@@ ight@@ , which allows you to play through various scenarios for the election outcome yourself@@ .
+0-0 1-1 3-2 4-3 5-4 7-5 8-6 8-7 9-8 11-9 13-10 14-11 16-12 17-13 18-14 19-15 20-16 21-17 23-18 34-19 24-20 34-21 33-22 32-23 25-24 26-25 27-26 28-27 29-28 30-29 31-30 35-31 35-32
+
+▁Und ▁hier ▁können ▁Sie ▁unseren ▁Newsletter ▁" Die ▁Lage ▁- ▁USA ▁2020 " ▁abonnieren , ▁der ▁ihnen ▁von ▁heute ▁bis ▁zur ▁Wahl ▁täglich ▁Geschichten ▁und ▁Einschätzung en ▁unseres ▁elf köpfige n ▁Reporter teams ▁in ▁den ▁USA ▁liefert ▁- ▁und ▁danach ▁wöchentlich ▁kommt .
+And here you can subscribe to our newsletter "@@ The Situation - USA 2020@@ ", which provides stories and assessments of our eleven@@ -@@ member reporter team in the USA every day from today to the election - and then comes weekly@@ .
+0-0 1-1 3-2 2-3 13-4 13-5 4-6 5-7 6-8 7-9 8-10 9-11 10-12 11-13 12-14 15-15 36-16 23-17 24-18 25-19 27-20 27-21 28-22 29-23 29-24 31-25 32-26 33-27 34-28 35-29 22-30 22-31 17-32 18-33 19-34 20-35 21-36 37-37 38-38 39-39 41-40 40-41 42-42 42-43
+
+▁Auch ▁die ▁Links partei ▁hat ▁nun ▁ihren ▁für s ▁Wochenende ▁geplanten ▁Partei tag ▁ab gesagt ▁- ▁wie tags ▁zuvor ▁schon ▁die ▁CD U .
+The Left Party has now also cancelled its party congress planned for the weekend - as the CD@@ U had already done on the previous day@@ .
+1-0 2-1 3-2 4-3 5-4 1-5 14-6 6-7 11-8 12-9 10-10 7-11 8-12 9-13 15-14 16-15 20-16 21-17 22-18 14-19 19-20 14-21 17-22 17-23 18-24 17-25 23-26 8-27
+
+▁Das ▁ent kräfte t ▁ein ▁wenig ▁die ▁Befürchtung en ▁des ▁CD U - Ka n di daten ▁Friedrich ▁Mer z , ▁das ▁" E stab l ish ment " ▁habe ▁ihm ▁seinen ▁sicheren ▁Sieg ▁im ▁Dezember ▁ge raub t .
+This relieve@@ s a little of the fears of CD@@ U candidate Friedrich Mer@@ z that the "@@ establishment@@ " had robbed him of his safe victory in December@@ .
+0-0 1-1 3-2 4-3 5-4 6-5 6-6 7-7 9-8 10-9 11-10 16-11 17-12 18-13 19-14 21-16 22-17 23-18 28-19 29-20 37-21 30-22 31-23 31-24 32-25 33-26 34-27 35-28 39-29 8-30
+
+▁Mit ▁seiner ▁Verschwörung s theorie ▁hat ▁Mer z ▁sich ▁keinen ▁Gefallen ▁getan , ▁die ▁Kritik ▁p rasse lt ▁von ▁allen ▁Seiten ▁auf ▁ihn ▁ein .
+With his conspiracy theory@@ , Mer@@ z has not done himself any favor@@ s@@ , the criticism in@@ s@@ tig@@ ates on him from all sides@@ .
+0-0 1-1 2-2 4-3 6-5 7-6 5-7 9-8 11-9 8-10 9-11 10-12 10-13 12-14 13-15 14-16 16-17 16-18 16-19 17-20 21-21 22-22 18-23 19-24 20-25 24-26 17-27
+
+▁Die ▁konservativ e ▁" F rank fu r ter ▁Allgemeine ▁Zeitung " ▁hat ▁offensichtlich ▁die ▁Nase ▁voll ▁von ▁ihm .
+The conservative "@@ F@@ rank@@ fur@@ ter All@@ ge@@ me@@ ine Zeitung@@ " has obviously had enough of him@@ .
+0-0 1-1 3-2 4-3 5-4 7-5 8-6 9-7 9-8 9-9 9-10 10-11 11-12 12-13 13-14 12-15 16-16 17-17 18-18 19-19 15-20
+
+▁Im ▁Titelseite n - Kommentar ▁schreibt ▁Ja s per ▁von ▁Alten bock um ▁heute ▁:
+In the front page commentary@@ , Ja@@ s@@ per von Al@@ ten@@ b@@ ock@@ um writes today@@ :
+0-0 0-1 1-2 1-3 4-4 6-6 7-7 8-8 9-9 10-10 10-11 11-12 11-13 12-14 5-15 13-16 14-17 14-18
+
+▁" M er z ▁mit ▁Trump ▁zu ▁vergleichen , ▁ist ▁völlig ▁fehl ▁am ▁Platz " .
+"@@ Compare@@ d with Trump is completely out of place@@ ."
+0-0 7-1 7-2 4-3 5-4 9-5 10-6 11-7 12-8 13-9 14-10 15-11
+
+▁# de mütig ) ▁post ete ▁sie ▁g lam our öse ▁Bilder ▁und ▁schrieb ▁dazu ▁:
+She posted gl@@ amo@@ rous pictures and wrote@@ :
+6-0 4-1 7-2 8-3 10-4 11-5 12-6 13-7 15-8 0-9

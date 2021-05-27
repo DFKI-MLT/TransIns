@@ -42,6 +42,7 @@ This distribution consists of the following files:
 * `build-transins-docker-images.sh`: a convenience script for building TransIns Docker images
 * `download-opus-models.sh`: script for downloading publicly available OPUS MT models for the translation directions de -> en, en -> de, de -> fr and fr -> de and deploying them in TransIns
 * `docker-compose.yml`: docker-compose file to run TransIns in Docker containers
+* `evaluation`: German evaluation documents with annotated translations to French and English, using both TransIns and 3rd party translation services
 * `src/main/java/*`: Java source code of the core TransIns component, including an embedded server for web page and REST API
 * `src/main/python`: Python source code of the pre- and postprocessing server
 * `src/main/web`: Source files of the TransIns web page
