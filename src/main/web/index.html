@@ -3,7 +3,7 @@
 <head>
   <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
   <meta charset="UTF-8">
-  <title>TransIns Translator</title>
+  <title>TransIns Document Translation</title>
   <script src="assets/jquery-3.5.1.min.js"></script>
   <script src="script.js"></script>
   <link rel="stylesheet" href="style.css">
@@ -13,16 +13,16 @@
   <div class="header">
     <div class="header__text">
       <h1 class="header__text__title">TransIns</h1>
-      <h2 class="header__text__subtitle">Document Translation with Advanced Markup Re-Insertion</h2>
+      <h2 class="header__text__subtitle">Document Translation with Markup Reinsertion</h2>
       TransIns uses the <a href="https://okapiframework.org/">Okapi</a> framework to parse documents of supported formats (MS Office, OpenOffice, HTML and plain text) into a representation that preserves the document markup and allows access to the document's
-      text content on a sentence level. The sentences, without the markup, are translated using translation models trained and provided by the neural machine translation framework <a href="https://marian-nmt.github.io/">MarianNMT</a>. Afterwards, the
-      markup is re-inserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
-      <p/> We implement the following strategies for re-inserting markup into the translated sentence using the tokens' alignments:
+      text content on a sentence level. The sentences, without the markup, are translated by the neural machine translation framework <a href="https://marian-nmt.github.io/">MarianNMT</a> using translation models provided by
+      <a href="https://marian-nmt.github.io/">OPUS-MT</a>. Afterwards, the markup is reinserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
+      <p/> We implement the following strategies for reinserting markup into the translated sentence using the tokens' alignments:
       <ul>
-        <li><b>MTRAIN</b>: A strategy assigning markup to the token next to it, as described in this <a href="https://www.aclweb.org/anthology/W17-4804/">paper</a> of Matthias Müller and implemented in the Zurich NLP <a href="https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315">mtrain</a>          Python package</li>
-        <li><b>MTRAIN_IMPROVED</b>: An improved version of the MTRAIN strategy</li>
-        <li><b>COMPLETE_MAPPING</b>: A strategy assigning markup to
-          <i>all</i> tokens in the markup's range</li>
+        <li><b>mtrain</b>: A strategy assigning markup to the token next to it, as described in this <a href="https://www.aclweb.org/anthology/W17-4804/">paper</a> of Matthias Müller and implemented in the Zurich NLP <a href="https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315">mtrain</a>          Python package</li>
+        <li><b>mtrain++</b>: An improved version of the mtrain strategy</li>
+        <li><b>Complete Mapping Strategy (CMS)</b>: A strategy assigning markup to
+          <i>all</i> tokens in the markup's scope</li>
       </ul>
       For more information, please contact
       <div id="email"></div>
@@ -38,7 +38,7 @@
         <label for="file">Select File</label><br/>
         <label for="transDir">Translation Direction</label><br/>
         <label for="enc">Encoding (for .txt only)</label><br/>
-        <label for="strategy">Markup Re-Insertion Strategy</label><br/>
+        <label for="strategy">Markup Reinsertion Strategy</label><br/>
         <label for="maxGap">Maximum Interpolation Gap Size</label>
       </div>
       <form id="queryForm">
@@ -47,9 +47,9 @@
         </select><br/>
         <input class="query__param query__param--enabled" id="enc" name="enc" value="utf-8" maxlength="20" size="7" onfocus="removeInvalid(this)" /><br/>
         <select id="strategySelection" class="query__param query__param--enabled" name="strategy">
-          <option value="MTRAIN">MTRAIN</option>
-          <option value="MTRAIN_IMPROVED">MTRAIN_IMPROVED</option>
-          <option value="COMPLETE_MAPPING" selected="selected">COMPLETE_MAPPING</option>
+          <option value="MTRAIN">mtrain</option>
+          <option value="MTRAIN_IMPROVED">mtrain++</option>
+          <option value="COMPLETE_MAPPING" selected="selected">CMS</option>
         </select><br/>
         <select id="gapSelection" class="query__param query__param--enabled" name="maxGap">
           <option value="0">0</option>
