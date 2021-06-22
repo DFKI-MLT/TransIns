@@ -47,10 +47,13 @@ public final class Evaluation {
    *          maximum gap size (only used for {@link MarkupStrategy#COMPLETE_MAPPING})
    * @param perfectAlignsFileName
    *          perfect alignments file name, use <code>null</code> for Marian alignments
+   * @throws IOException
+   *           if reading alignments fails
    */
   public static void evaluate(PropertiesConfiguration transInsConfig,
       String sourceFileName, String sourceLang, String targetLang,
-      MarkupStrategy strategy, int maxGapSize, String perfectAlignsFileName) {
+      MarkupStrategy strategy, int maxGapSize, String perfectAlignsFileName)
+      throws IOException {
 
     String evalPath = String.format("evaluation/%s-%s", sourceLang, targetLang);
     try {
@@ -103,10 +106,13 @@ public final class Evaluation {
    *          target document language
    * @param perfectAlignsFileName
    *          perfect alignments file name, use <code>null</code> for Marian alignments
+   * @throws IOException
+   *           if reading alignments fails
    */
   public static void evaluate(PropertiesConfiguration transInsConfig,
       String sourceFileName, String sourceLang, String targetLang,
-      String perfectAlignsFileName) {
+      String perfectAlignsFileName)
+          throws IOException {
 
     for (MarkupStrategy strategy : MarkupStrategy.values()) {
       if (strategy == MarkupStrategy.COMPLETE_MAPPING) {
@@ -155,7 +161,7 @@ public final class Evaluation {
         }
       }
 
-    } catch (ConfigurationException e) {
+    } catch (ConfigurationException | IOException e) {
       logger.error(e.getLocalizedMessage(), e);
     }
   }

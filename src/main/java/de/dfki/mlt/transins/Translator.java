@@ -74,8 +74,11 @@ public class Translator {
    *
    * @param handAnnotatedAlignmentsPath
    *          path to hand annotated alignments
+   * @throws IOException
+   *           if reading alignments fails
    */
-  public Translator(String handAnnotatedAlignmentsPath) {
+  public Translator(String handAnnotatedAlignmentsPath)
+      throws IOException {
 
     this();
     if (handAnnotatedAlignmentsPath != null && !handAnnotatedAlignmentsPath.strip().isEmpty()) {

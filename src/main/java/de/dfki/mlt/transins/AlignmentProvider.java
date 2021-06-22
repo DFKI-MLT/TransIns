@@ -35,8 +35,11 @@ public enum AlignmentProvider {
    *
    * @param alignmentFileName
    *          the alignment file
+   * @throws IOException
+   *           if reading alignments fails
    */
-  public void loadAlignments(String alignmentFileName) {
+  public void loadAlignments(String alignmentFileName)
+      throws IOException {
 
     try (BufferedReader in = Files.newBufferedReader(
         Paths.get(alignmentFileName), StandardCharsets.UTF_8)) {
@@ -69,8 +72,6 @@ public enum AlignmentProvider {
         translation = null;
         alignments = null;
       }
-    } catch (IOException e) {
-      logger.error(e.getLocalizedMessage(), e);
     }
   }
 
