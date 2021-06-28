@@ -9,7 +9,7 @@ networks:
 
 services:
   transins-marian-de-en-mono-opus:
-    image: 'dfki/transins-marian:0.0.1'
+    image: 'dfki/transins-marian:1.0.0'
     networks:
       - transins
     container_name: transins-marian-de-en-mono-opus
@@ -25,7 +25,7 @@ services:
             capabilities: [gpu]
 
   transins-marian-en-de-mono-opus:
-    image: 'dfki/transins-marian:0.0.1'
+    image: 'dfki/transins-marian:1.0.0'
     networks:
       - transins
     container_name: transins-marian-en-de-mono-opus
@@ -41,7 +41,7 @@ services:
             capabilities: [gpu]
 
   transins-marian-de-fr-mono-opus:
-    image: 'dfki/transins-marian:0.0.1'
+    image: 'dfki/transins-marian:1.0.0'
     networks:
       - transins
     container_name: transins-marian-de-fr-mono-opus
@@ -57,7 +57,7 @@ services:
             capabilities: [gpu]
 
   transins-marian-fr-de-mono-opus:
-    image: 'dfki/transins-marian:0.0.1'
+    image: 'dfki/transins-marian:1.0.0'
     networks:
       - transins
     container_name: transins-marian-fr-de-mono-opus
@@ -73,7 +73,7 @@ services:
             capabilities: [gpu]
 
   transins-prepost:
-    image: 'dfki/transins-prepost:0.0.1'
+    image: 'dfki/transins-prepost:1.0.0'
     networks:
       - transins
     container_name: transins-prepost
@@ -88,7 +88,7 @@ services:
       - transins-marian-de-fr-mono-opus
       - transins-marian-fr-de-mono-opus
       - transins-prepost
-    image: 'dfki/transins-server:0.0.1'
+    image: 'dfki/transins-server:1.0.0'
     networks:
       - transins
     container_name: transins-server
