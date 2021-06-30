@@ -9,13 +9,13 @@ DFKI MLT-Lab
 Email: steffen@dfki.de
 
 == Overview
-TransIns uses the https://okapiframework.org/[Okapi] framework to parse documents of supported formats (currently MS Office, OpenOffice, HTML and plain text) into a representation that preserves the document markup and allows access to the document's text content on a sentence level. The sentences, without the markup, are translated using translation models trained and provided by the neural machine translation framework https://marian-nmt.github.io/[MarianNMT]. Afterwards, the markup is re-inserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
+TransIns uses the https://okapiframework.org/[Okapi] framework to parse documents of supported formats (MS Office, OpenOffice, HTML and plain text) into a representation that preserves the document markup and allows access to the document's text content on a sentence level. The sentences, without the markup, are translated by the neural machine translation framework https://marian-nmt.github.io/[MarianNMT] using translation models provided by https://github.com/Helsinki-NLP/Opus-MT/[OPUS-MT]. Afterwards, the markup is reinserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
 
 We implement the following strategies for re-inserting markup into the translated sentence using the tokens' alignments:
 
-* `MTRAIN`: A strategy assigning markup to the token next to it, as described in this https://www.aclweb.org/anthology/W17-4804/[paper] of Matthias Müller and implemented in the Zurich NLP https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315[mtrain] Python package
-* `MTRAIN_IMPROVED`: An improved version of the MTRAIN strategy
-* `COMPLETE_MAPPING`: A strategy assigning markup to *all* tokens in the markup's range
+* `mtrain`: A strategy assigning markup to the token next to it, as described in this https://www.aclweb.org/anthology/W17-4804/[paper] of Matthias Müller and implemented in the Zurich NLP https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315[mtrain] Python package
+* `mtrain++`: An improved version of the MTRAIN strategy
+* `Complete Mapping Strategy (CMS)`: A strategy assigning markup to *all* tokens in the markup's scope
 
 == Requirements
 TransIns was tested on https://www.opensuse.org/[openSUSE Leap 15.1]. For local deployment, the following software is required:
