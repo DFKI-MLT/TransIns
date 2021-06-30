@@ -16,7 +16,7 @@
       <h2 class="header__text__subtitle">Document Translation with Markup Reinsertion</h2>
       TransIns uses the <a href="https://okapiframework.org/">Okapi</a> framework to parse documents of supported formats (MS Office, OpenOffice, HTML and plain text) into a representation that preserves the document markup and allows access to the document's
       text content on a sentence level. The sentences, without the markup, are translated by the neural machine translation framework <a href="https://marian-nmt.github.io/">MarianNMT</a> using translation models provided by
-      <a href="https://marian-nmt.github.io/">OPUS-MT</a>. Afterwards, the markup is reinserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
+      <a href="https://github.com/Helsinki-NLP/Opus-MT">OPUS-MT</a>. Afterwards, the markup is reinserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
       <p/> We implement the following strategies for reinserting markup into the translated sentence using the tokens' alignments:
       <ul>
         <li><b>mtrain</b>: A strategy assigning markup to the token next to it, as described in this <a href="https://www.aclweb.org/anthology/W17-4804/">paper</a> of Matthias Müller and implemented in the Zurich NLP <a href="https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315">mtrain</a>          Python package</li>
