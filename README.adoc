@@ -1,6 +1,8 @@
 = TransIns - Document Translation with Advanced Markup Re-Insertion =
 :nofooter:
 
+image:https://travis-ci.com/DFKI-MLT/TransIns.svg?branch=master["Build Status", link="https://travis-ci.com/DFKI-MLT/TransIns"]
+
 V1.0.0
 
 written by Jörg Steffen +
