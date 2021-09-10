@@ -19,6 +19,19 @@ We implement the following strategies for re-inserting markup into the translate
 * `mtrain++`: An improved version of the MTRAIN strategy
 * `Complete Mapping Strategy (CMS)`: A strategy assigning markup to *all* tokens in the markup's scope
 
+An online demonstrator of TransIns is available https://transins.dfki.de[here].
+
+== Citation
+If you use TransIns in your research, please cite the following https://github.com/DFKI-MLT/TransIns/blob/master/TransIns_Paper_EMNLP_2021.pdf[paper]:
+```
+@unpublished{steffen-2021-transins,
+    author = "Jörg Steffen and Josef van Genabith",
+    title = "Trans{I}ns: Document Translation with Markup Reinsertion",
+    year = "2021",
+    note = "accepted to appear at the demonstration track of the EMNLP 2021 Conference"
+}
+```
+
 == Requirements
 TransIns was tested on https://www.opensuse.org/[openSUSE Leap 15.1]. For local deployment, the following software is required:
 
@@ -27,7 +40,7 @@ TransIns was tested on https://www.opensuse.org/[openSUSE Leap 15.1]. For local 
 * https://docs.conda.io/en/latest/miniconda.html[Conda] package and environment management system, version 4.9.2 or higher
 * https://marian-nmt.github.io/[Marian NMT] neural machine translation framework, version 1.7
 
-TransIns also provides Docker images for easy deployment (see <<_docker_deployment>>). This requires
+TransIns also provides Docker images for easy deployment (see <<docker_deployment>>). This requires
 
 * https://www.docker.com/[Docker], version 19.03 or higher
 * https://docs.docker.com/compose/[Docker Compose], version 1.28.5 or higher
@@ -117,6 +130,7 @@ Make sure you have run `./download-opus-models.sh` to put the required models in
 
 The Marian NMT translation server is now accessible via a web socket running at `ws://localhost:8080/translate`.
 
+[[docker_deployment]]
 === Docker Deployment
 Instead of installing the TransIns components as described above, we also provide Docker images for easy deployment. The Docker image for each component is defined in the corresponding Dockerfile. Build the TransIns Docker images by running `./build-transins-docker-images.sh` in the top level folder of the distribution.
 
