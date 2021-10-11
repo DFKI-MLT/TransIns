@@ -1,4 +1,4 @@
-= TransIns - Document Translation with Advanced Markup Re-Insertion =
+= TransIns - Document Translation with Markup Reinsertion =
 :nofooter:
 
 image:https://travis-ci.com/DFKI-MLT/TransIns.svg?branch=master["Build Status", link="https://travis-ci.com/DFKI-MLT/TransIns"]
@@ -13,7 +13,7 @@ Email: steffen@dfki.de
 == Overview
 TransIns uses the https://okapiframework.org/[Okapi] framework to parse documents of supported formats (MS Office, OpenOffice, HTML and plain text) into a representation that preserves the document markup and allows access to the document's text content on a sentence level. The sentences, without the markup, are translated by the neural machine translation framework https://marian-nmt.github.io/[MarianNMT] using translation models provided by https://github.com/Helsinki-NLP/Opus-MT/[OPUS-MT]. Afterwards, the markup is reinserted into the translated sentences based on token alignments. Finally, a translated document is provided in the original format.
 
-We implement the following strategies for re-inserting markup into the translated sentence using the tokens' alignments:
+We implement the following strategies for reinserting markup into the translated sentence using the tokens' alignments:
 
 * `mtrain`: A strategy assigning markup to the token next to it, as described in this https://www.aclweb.org/anthology/W17-4804/[paper] of Matthias Müller and implemented in the Zurich NLP https://github.com/ZurichNLP/mtrain/blob/master/mtrain/preprocessing/reinsertion.py#L315[mtrain] Python package
 * `mtrain++`: An improved version of the MTRAIN strategy
@@ -148,7 +148,7 @@ The REST endpoint for sending a document to translate is `/translate`. The query
 * `file` the file name of the document to translate
 * `transDir` the translation direction; use the same format as returned by the `getTranslationDirections` endpoint
 * `enc` the encoding of the document; the translated document will use the same encoding
-* `strategy` the markup re-insertion strategy to use; possible values are `MTRAIN`, `MTRAIN_IMPROVED` and `COMPLETE_MAPPING` (default if strategy is not provided)
+* `strategy` the markup reinsertion strategy to use; possible values are `MTRAIN`, `MTRAIN_IMPROVED` and `COMPLETE_MAPPING` (default if strategy is not provided)
 
 If successful, the service returns a token which is required to retrieve the translated document with a second query. That query has to be sent as GET request to the `/getTranslation` REST endpoint. It requires the token as path parameter. Please note that it is not guaranteed that the translated document can be retrieved immediately, as the translation may take some time. If the translation is not yet available, the second call returns a `202` HTTP response code.
 
