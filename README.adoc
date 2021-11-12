@@ -22,13 +22,19 @@ We implement the following strategies for reinserting markup into the translated
 An online demonstrator of TransIns is available https://transins.dfki.de[here].
 
 == Citation
-If you use TransIns in your research, please cite the following https://github.com/DFKI-MLT/TransIns/blob/master/TransIns_Paper_EMNLP_2021.pdf[paper]:
+If you use TransIns in your research, please cite the following https://aclanthology.org/2021.emnlp-demo.4/[paper]:
 ```
-@unpublished{steffen-2021-transins,
-    author = "Jörg Steffen and Josef van Genabith",
-    title = "Trans{I}ns: Document Translation with Markup Reinsertion",
+@inproceedings{steffen-van-genabith-2021-transins,
+    title = "{T}rans{I}ns: Document Translation with Markup Reinsertion",
+    author = {Steffen, J{\"o}rg  and
+      van Genabith, Josef},
+    booktitle = "Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = nov,
     year = "2021",
-    note = "accepted to appear at the demonstration track of the EMNLP 2021 Conference"
+    address = "Online and Punta Cana, Dominican Republic",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.emnlp-demo.4",
+    pages = "28--34"
 }
 ```
 
