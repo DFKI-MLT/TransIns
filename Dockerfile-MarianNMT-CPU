@@ -1,0 +1,81 @@
+FROM ubuntu:18.04
+
+MAINTAINER Joerg Steffen <steffen@dfki.de>
+LABEL description="Docker container of TransIns Marian-NMT server (CPU build)"
+
+# install dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    cmake \
+    build-essential \
+    libboost-all-dev \
+    pkg-config \
+    libtool \
+    zlib1g-dev \
+    libbz2-dev \
+    automake \
+    python-dev \
+    perl \
+    libsparsehash-dev \
+    wget \
+    unzip \
+    libssl-dev \
+    libgoogle-perftools-dev \
+    gnupg2 \
+    ca-certificates
+
+# install Intel-MKL
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
+    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
+    rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
+    sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list' && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    intel-mkl-2020.0-088 && \
+    update-alternatives --install /usr/lib/x86_64-linux-gnu/libblas.so     libblas.so-x86_64-linux-gnu      /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    update-alternatives --install /usr/lib/x86_64-linux-gnu/libblas.so.3   libblas.so.3-x86_64-linux-gnu    /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    update-alternatives --install /usr/lib/x86_64-linux-gnu/liblapack.so   liblapack.so-x86_64-linux-gnu    /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    update-alternatives --install /usr/lib/x86_64-linux-gnu/liblapack.so.3 liblapack.so.3-x86_64-linux-gnu  /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    echo "/opt/intel/lib/intel64"     >  /etc/ld.so.conf.d/mkl.conf  && \
+    echo "/opt/intel/mkl/lib/intel64" >> /etc/ld.so.conf.d/mkl.conf  && \
+    ldconfig && \
+    echo "MKL_THREADING_LAYER=GNU" >> /etc/environment \
+    && rm -rf /var/lib/apt/lists/*
+
+# clone and build Marian-NMT
+RUN git clone --branch 1.7.0 https://github.com/marian-nmt/marian
+ARG marianpath=/marian
+WORKDIR $marianpath
+RUN mkdir -p build
+WORKDIR $marianpath/build
+RUN cmake $marianpath -DCMAKE_BUILD_TYPE=Release -DCOMPILE_SERVER=on -DCOMPILE_CPU=on -DCOMPILE_CUDA=off && \
+    make
+
+ARG user=transins
+ARG group=transins
+ARG uid=1001
+ARG gid=1001
+# app home will also be used as user home
+ARG app_home=/TransIns-marian
+
+# setup user
+RUN addgroup -gid $gid $group \
+  && adduser --home "$app_home" --uid $uid --gid $gid --disabled-password --gecos "" $user
+
+# copy app
+RUN cp -r $marianpath/build/marian-server $app_home/
+
+# give user access to app
+RUN chown -R $user:$group $app_home
+
+# run Marian NMT server as user when container starts;
+# PLEASE NOTE: model/resources are NOT included in image;
+# requires that a folder with a file 'config.yml' and
+# all models/resources is passed as bind mount to destination
+# 'TransIns-marian/config' when container is started:
+# -v <your-config-path-on-host>:/TransIns-marian/config:ro
+USER $user
+WORKDIR $app_home
+ENTRYPOINT ./marian-server --config config/config.yml
+EXPOSE 8080
