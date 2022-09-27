@@ -51,7 +51,7 @@ TransIns also provides Docker images for easy deployment (see <<docker_deploymen
 * https://www.docker.com/[Docker], version 19.03 or higher
 * https://docs.docker.com/compose/[Docker Compose], version 1.28.5 or higher
 
-For efficient performance, we recommend to run Marin NMT on a server with at least one GPU. Our setup uses two GeForce RTX 2080 Ti with 11GB RAM each.
+For efficient performance, we recommend to run Marian NMT on a server with at least one GPU. Our setup uses two GeForce RTX 2080 Ti with 11GB RAM each.
 
 == Content
 This distribution consists of the following files:
@@ -103,7 +103,7 @@ java -cp src/main/resources:target/*:target/lib/* \
 ```
 Configuration files are loaded from Java classpath via `src/main/resources/`. Please note that the connection settings in `transIns.cfg` are set by default for deployment in Docker and have to be adapted for local deployment.
 
-The TransIns web page can be accessed at `http://localhost:7777`, the REST API is available at `http://localhost:7777/*` (see <<_rest_api>> for more details).
+The TransIns web page can be accessed at `http://localhost:7777`, the REST API is available at `http://localhost:7777/*` (see <<rest_api>> for more details).
 
 === TransIns Pre-/Postprocessing Server
 To run the pre-/postprocessing server, several Python packages have to be installed first. We suggest to create a dedicated Conda environment by running `conda create --name transins` and then switching to it by running `conda activate transins`. Install the required packages by running the following Conda commands:
@@ -144,6 +144,7 @@ Start TransIns with all supported translation directions (de -> en, en -> de, de
 
 By default, the MT models for de -> en and en -> de are deployed at GPU 0 and the MT models for de -> fr and fr -> de are deployed at GPU 1. Each deployed models requires ~ 4 GB of free GPU memory. Please adapt the `device_ids` parameter of the `transins-marian` containers in `docker-compose.yml`, if necessary for your local GPU setup.
 
+[[rest_api]]
 == REST API
 TransIns provides a RESTful API that allows to query the translation service in an asynchronous way. This API is also used by the web page.
 

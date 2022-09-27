@@ -8,9 +8,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Singleton for providing hand annotated alignments between source sentence and its translation.
  * Used in evaluation.
@@ -22,8 +19,6 @@ public enum AlignmentProvider {
   /** the only instance of this class */
   INSTANCE;
 
-
-  private static final Logger logger = LoggerFactory.getLogger(AlignmentProvider.class);
 
   // mapping of the concatenated source sentence and its translation to alignments;
   // alignments are index based from source sentence to translation in the format x-y

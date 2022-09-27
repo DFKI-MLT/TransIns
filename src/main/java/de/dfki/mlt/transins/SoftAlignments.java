@@ -120,6 +120,32 @@ public class SoftAlignments implements Alignments {
   /**
    * @param targetTokenIndex
    *          the target token index in the translation
+   * @param threshold
+   *          the threshold score
+   * @return the source token indexes with an alignment score equals or above threshold, sorted;
+   *         empty if no source token has alignment score above threshold
+   */
+  public List<Integer> getSourceTokenIndexes(int targetTokenIndex, double threshold) {
+  
+    List<Integer> sourceTokenIndexes = new ArrayList<>();
+  
+    for (int i = 0; i < this.alignmentScores[targetTokenIndex].length; i++) {
+      double algnScore = this.alignmentScores[targetTokenIndex][i];
+      if (algnScore >= threshold) {
+        int sourceIndexWithOffset = i + this.sourceIndexOffset;
+        if (sourceIndexWithOffset >= 0) {
+          sourceTokenIndexes.add(sourceIndexWithOffset);
+        }
+      }
+    }
+  
+    return sourceTokenIndexes;
+  }
+
+
+  /**
+   * @param targetTokenIndex
+   *          the target token index in the translation
    * @return the source token index with the highest alignment score;
    *         -1 if no source token has alignment score above threshold
    */
@@ -152,32 +178,6 @@ public class SoftAlignments implements Alignments {
       }
     }
     return maxScoreIndex;
-  }
-
-
-  /**
-   * @param targetTokenIndex
-   *          the target token index in the translation
-   * @param threshold
-   *          the threshold score
-   * @return the source token indexes with an alignment score equals or above threshold, sorted;
-   *         empty if no source token has alignment score above threshold
-   */
-  public List<Integer> getSourceTokenIndexes(int targetTokenIndex, double threshold) {
-
-    List<Integer> sourceTokenIndexes = new ArrayList<>();
-
-    for (int i = 0; i < this.alignmentScores[targetTokenIndex].length; i++) {
-      double algnScore = this.alignmentScores[targetTokenIndex][i];
-      if (algnScore >= threshold) {
-        int sourceIndexWithOffset = i + this.sourceIndexOffset;
-        if (sourceIndexWithOffset >= 0) {
-          sourceTokenIndexes.add(sourceIndexWithOffset);
-        }
-      }
-    }
-
-    return sourceTokenIndexes;
   }
 
 

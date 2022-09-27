@@ -589,6 +589,14 @@ class MarkupInserterTest {
   }
 
 
+  private void testReinsertTagsWithSoftAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult) {
+  
+    testReinsertTags(sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
+  }
+
+
   /**
    * Test
    * {@link MarkupInserter#reinsertTags(SplitTagsSentence, Map, String[], Alignments)}
@@ -718,6 +726,14 @@ class MarkupInserterTest {
   }
 
 
+  private void testReinsertTagsWithHardAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult) {
+  
+    testReinsertTags(sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
+  }
+
+
   /**
    * Test
    * {@link MarkupInserter#reinsertTags(SplitTagsSentence, Map, String[], Alignments)}
@@ -753,22 +769,6 @@ class MarkupInserterTest {
     expectedResult = asArray("Z1 CLOSE1 N OPEN1 X1 Z2 CLOSE1 N OPEN1 X2");
     testReinsertTagsWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult);
-  }
-
-
-  private void testReinsertTagsWithSoftAlignments(
-      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult) {
-
-    testReinsertTags(sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, false);
-  }
-
-
-  private void testReinsertTagsWithHardAlignments(
-      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult) {
-
-    testReinsertTags(sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, true);
   }
 
 
@@ -1625,6 +1625,15 @@ class MarkupInserterTest {
   }
 
 
+  private void testReinsertTagsCompleteWithSoftAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult, int maxGapSize) {
+  
+    testReinsertTagsComplete(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, maxGapSize, false);
+  }
+
+
   /**
    * Test
    * {@link MarkupInserter#reinsertTagsComplete(SplitTagsSentence, Map, String[], Alignments, boolean)}
@@ -1762,6 +1771,15 @@ class MarkupInserterTest {
   }
 
 
+  private void testReinsertTagsCompleteWithHardAlignments(
+      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
+      String[] expectedResult, int maxGapSize) {
+  
+    testReinsertTagsComplete(
+        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, maxGapSize, true);
+  }
+
+
   /**
    * Test
    * {@link MarkupInserter#reinsertTagsComplete(SplitTagsSentence, Map, String[], Alignments, boolean)}
@@ -1797,24 +1815,6 @@ class MarkupInserterTest {
     expectedResult = asArray("OPEN1 Z1 CLOSE1 N OPEN1 X1 CLOSE1 OPEN1 Z2 CLOSE1 N OPEN1 X2 CLOSE1");
     testReinsertTagsCompleteWithHardAlignments(
         sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, 0);
-  }
-
-
-  private void testReinsertTagsCompleteWithSoftAlignments(
-      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult, int maxGapSize) {
-
-    testReinsertTagsComplete(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, maxGapSize, false);
-  }
-
-
-  private void testReinsertTagsCompleteWithHardAlignments(
-      String[] sourceTokens, String[] targetTokensWithoutTags, String rawAlignments,
-      String[] expectedResult, int maxGapSize) {
-
-    testReinsertTagsComplete(
-        sourceTokens, targetTokensWithoutTags, rawAlignments, expectedResult, maxGapSize, true);
   }
 
 

@@ -457,7 +457,7 @@ public class MarianNmtConnector extends BaseConnector {
 
 
   /**
-   * Check if the given translation is encoded with SentencePiece
+   * Check if the given translation is encoded with SentencePiece.
    *
    * @param translation
    *          the translation to check

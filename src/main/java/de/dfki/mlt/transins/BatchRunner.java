@@ -295,7 +295,7 @@ public enum BatchRunner {
    *          the source language
    * @param targetLang
    *          the target language
-   * @param addSpaceAtEnd
+   * @param addSpaceAtSentenceEnd
    *          if <code>true</code>, add single space at sentence end
    */
   private void postProcess(

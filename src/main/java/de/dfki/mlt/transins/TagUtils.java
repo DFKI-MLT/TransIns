@@ -108,7 +108,7 @@ public final class TagUtils {
 
 
   /**
-   * Return the id of the given tag
+   * Return the id of the given tag.
    *
    * @param tag
    *          the tag
