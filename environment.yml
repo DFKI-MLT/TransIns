@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - flask=1.1.2
+  - flask=2.2.2
   - sacremoses=0.0.43
   - waitress=1.4.3
   - sentencepiece=0.1.95
