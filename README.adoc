@@ -69,12 +69,13 @@ This distribution consists of the following files:
 * `src/main/web`: Source files of the TransIns web page
 * `src/main/resources`:
 ** `transIns.cfg`: TransIns configuration file; includes configuration of embedded server for web page and REST API as well as Marian NMT translator configurations for each supported translation direction
-** `prepostprocessing`: configuration folder of pre-/postprocessing server; run `./download-opus-models.sh` to put required resources for pre-/postprocessing here
-** `marian-nmt`: configuration folder of Marian NMT translation server; contains a subfolder for each supported translation direction; run `./download-opus-models.sh` to put required MT models here
 ** `okapi`: configuration files of Okapi modules
 ** `apertium-translator.cfg`, `microsoft-translator.cfg`: Okapi connector configuration files for alternative translation services
 ** `logback.xml`: TransIns logger configuration
 ** `log4j2.xml`, `commons-logging.properties`, `simplelog.properties`: logger configuration for third-party libraries
+* `src/main/resources-misc`:
+** `prepostprocessing`: configuration folder of pre-/postprocessing server; run `./download-opus-models.sh` to put required resources for pre-/postprocessing here
+** `marian-nmt`: configuration folder of Marian NMT translation server; contains a subfolder for each supported translation direction; run `./download-opus-models.sh` to put required MT models here
 * `src/test/java`: Java source code of unit tests and demos
 * `src/test/resources`: files used in demos
 
@@ -108,7 +109,7 @@ The TransIns web page can be accessed at `http://localhost:7777`, the REST API i
 === TransIns Pre-/Postprocessing Server
 To run the pre-/postprocessing server, several Python packages have to be installed first. We suggest to create a dedicated Conda environment by running `conda create --name transins` and then switching to it by running `conda activate transins`. Install the required packages by running the following Conda commands:
 ```
-conda install -c anaconda flask=1.1.2
+conda install -c anaconda flask=2.2.2
 conda install -c anaconda waitress=1.4.3
 conda install -c conda-forge sacremoses=0.0.43
 conda install -c conda-forge sentencepiece=0.1.95
@@ -130,7 +131,7 @@ The pre-/postprocessing server is now accessible via a REST API running at `http
 === TransIns Marian NMT Server
 Install Marian NMT on your system following these https://marian-nmt.github.io/docs/#installation[instructions]. Start the translation server for a specific translation direction by running the following command in the top level folder of the distribution (assuming that `marian-server` is on your $PATH)
 ```
-marian-server --config src/main/resources/marian-nmt/<trans-dir>/config.yml
+marian-server --config src/main/resources-misc/marian-nmt/<trans-dir>/config.yml
 ```
 Make sure you have run `./download-opus-models.sh` to put the required models into subfolders of `marian-nmt`. Please note that the provided `config.yml` configurations assume a GPU with at least 4 GB of free memory.
 
