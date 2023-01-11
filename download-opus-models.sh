@@ -18,7 +18,7 @@ function install_model {
 }
 
 
-cd src/main/resources
+cd src/main/resources-misc
 
 # de-fr
 wget https://object.pouta.csc.fi/OPUS-MT-models/de-fr/opus-2020-01-08.zip -O model.zip

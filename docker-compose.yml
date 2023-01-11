@@ -15,7 +15,7 @@ services:
     container_name: transins-marian-de-en-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/de-en-mono-opus:/TransIns-marian/config:ro'
+      - './src/main/resources-misc/marian-nmt/de-en-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -31,7 +31,7 @@ services:
     container_name: transins-marian-en-de-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/en-de-mono-opus:/TransIns-marian/config:ro'
+      - './src/main/resources-misc/marian-nmt/en-de-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -47,7 +47,7 @@ services:
     container_name: transins-marian-de-fr-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/de-fr-mono-opus:/TransIns-marian/config:ro'
+      - './src/main/resources-misc/marian-nmt/de-fr-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -63,7 +63,7 @@ services:
     container_name: transins-marian-fr-de-mono-opus
     restart: always
     volumes:
-      - './src/main/resources/marian-nmt/fr-de-mono-opus:/TransIns-marian/config:ro'
+      - './src/main/resources-misc/marian-nmt/fr-de-mono-opus:/TransIns-marian/config:ro'
     deploy:
       resources:
         reservations:
@@ -79,7 +79,7 @@ services:
     container_name: transins-prepost
     restart: always
     volumes:
-      - './src/main/resources/prepostprocessing:/TransIns-prepost/config:ro'
+      - './src/main/resources-misc/prepostprocessing:/TransIns-prepost/config:ro'
 
   transins-server:
     depends_on:
