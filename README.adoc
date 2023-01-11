@@ -1,7 +1,7 @@
 = TransIns - Document Translation with Markup Reinsertion =
 :nofooter:
 
-image:https://travis-ci.com/DFKI-MLT/TransIns.svg?branch=master["Build Status", link="https://travis-ci.com/DFKI-MLT/TransIns"]
+image:https://app.travis-ci.com/DFKI-MLT/TransIns.svg?branch=master["Build Status", link="https://app.travis-ci.com/DFKI-MLT/TransIns"]
 
 V1.0.0
 
