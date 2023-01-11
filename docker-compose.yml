@@ -3,9 +3,6 @@ version: '3'
 networks:
   transins:
     driver: bridge
-    ipam:
-     config:
-       - subnet: 10.5.0.0/16
 
 services:
   transins-marian-de-en-mono-opus:
